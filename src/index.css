@@ -1,0 +1,110 @@
+:root {
+    /* Benfit Premium Theme - Inspired by Smartfit but Elegant */
+
+    /* Primary Colors */
+    --color-primary: #0F172A;
+    /* Slate 900 - Sophisticated Dark */
+    --color-primary-light: #334155;
+    /* Slate 700 */
+
+    /* Accent Colors - Energy */
+    --color-accent: #F59E0B;
+    /* Amber 500 - Gold/Yellow */
+    --color-accent-hover: #D97706;
+    /* Amber 600 */
+    --color-accent-light: #FEF3C7;
+    /* Amber 100 */
+    --color-accent-pink: #F472B6;
+    /* Keeping for compatibility if needed */
+
+    /* Secondary/Functional */
+    --color-success: #10B981;
+    /* Emerald 500 */
+    --color-danger: #EF4444;
+    /* Red 500 */
+    --color-info: #3B82F6;
+    /* Blue 500 */
+    --color-secondary: #10B981;
+    /* Alias for compatibility */
+
+    /* Backgrounds */
+    --color-bg-app: #F8FAFC;
+    /* Slate 50 - Very light grey, softer than white */
+    --color-bg-card: #FFFFFF;
+    --color-bg-sidebar: #FFFFFF;
+
+    /* Text */
+    --color-text-main: #0F172A;
+    /* Darkest Slate */
+    --color-text-muted: #64748B;
+    /* Slate 500 */
+    --color-text-light: #94A3B8;
+    /* Slate 400 */
+    --color-text-on-dark: #FFFFFF;
+
+    /* Borders */
+    --color-border: #E2E8F0;
+    /* Slate 200 */
+
+    /* Shadows - Soft & Premium */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    --shadow-card: 0 0 20px rgba(0, 0, 0, 0.03);
+    --shadow-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: var(--color-bg-app);
+    color: var(--color-text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin: 0;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+button {
+    cursor: pointer;
+    font-family: inherit;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
