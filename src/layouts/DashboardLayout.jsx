@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Dumbbell, User, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, User, LogOut, Menu, X, BrainCircuit } from 'lucide-react';
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
@@ -42,6 +42,15 @@ const DashboardLayout = () => {
                     >
                         <Dumbbell size={20} />
                         <span>Meus Treinos</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/coach"
+                        className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                        onClick={() => setIsSidebarOpen(false)}
+                    >
+                        <BrainCircuit size={20} />
+                        <span>Benfit Coach AI</span>
                     </NavLink>
 
                     <NavLink

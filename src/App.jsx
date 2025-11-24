@@ -3,6 +3,7 @@ import DashboardLayout from './layouts/DashboardLayout'
 import DashboardHome from './pages/DashboardHome'
 import Workouts from './pages/Workouts'
 import Profile from './pages/Profile'
+import AICoach from './pages/AICoach'
 import './App.css'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
           <Route index element={<DashboardHome />} />
           <Route path="treinos" element={<Workouts />} />
           <Route path="perfil" element={<Profile />} />
+          <Route path="coach" element={<AICoach />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
