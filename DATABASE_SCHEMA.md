@@ -6,10 +6,10 @@ Esta documentação descreve a estrutura de dados sugerida para suportar as func
 
 ```mermaid
 erDiagram
-    USUARIOS ||--o{ PLANO_TREINO : "possui"
-    USUARIOS ||--o{ SESSAO_TREINO : "realiza"
+    USUARIOS ||--o{ PLANO_TREINO : "seleciona"
+    USUARIOS ||--o{ SESSAO_TREINOS : "inicia"
     PLANO_TREINO ||--o{ SESSOES_EXERCICIOS : "contém"
-    SESSAO_TREINO ||--o{ EXERCICIOS : "executa"
+    SESSAO_TREINOS ||--o{ EXERCICIOS : "executa"
     EXERCICIOS ||--o{ LOGS_SESSOES : "registra"
     BASE_EXERCICIOS }o--|| PLANO_TREINO : alimenta
 ```

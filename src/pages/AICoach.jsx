@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, BrainCircuit } from 'lucide-react';
+import { sendMessageToAI } from '../services/openai';
 import './AICoach.css';
 
 const AICoach = () => {
@@ -32,44 +33,33 @@ const AICoach = () => {
             text: inputValue
         };
 
-        setMessages(prev => [...prev, userMsg]);
+        // Update UI immediately with user message
+        const newMessages = [...messages, userMsg];
+        setMessages(newMessages);
         setInputValue('');
         setIsTyping(true);
 
-        // Simulate AI Delay
-        setTimeout(() => {
-            const responseText = generateMockResponse(userMsg.text);
+        try {
+            // Call OpenAI API
+            const responseText = await sendMessageToAI(newMessages);
+
             const aiMsg = {
                 id: Date.now() + 1,
                 sender: 'ai',
                 text: responseText
             };
             setMessages(prev => [...prev, aiMsg]);
+        } catch (error) {
+            console.error("Failed to get response", error);
+            const errorMsg = {
+                id: Date.now() + 1,
+                sender: 'ai',
+                text: "Ocorreu um erro ao processar sua mensagem. Verifique sua conexão."
+            };
+            setMessages(prev => [...prev, errorMsg]);
+        } finally {
             setIsTyping(false);
-        }, 1500);
-    };
-
-    // Mock AI Logic (Persona: Natural, Elderly, Isometric)
-    const generateMockResponse = (input) => {
-        const lowerInput = input.toLowerCase();
-
-        if (lowerInput.includes('dor') || lowerInput.includes('joelho') || lowerInput.includes('costas')) {
-            return "Sinto muito que esteja com dor. Lembre-se: dor é um sinal de alerta. Para alívio seguro, recomendo **exercícios isométricos** (estáticos). Eles fortalecem sem gerar atrito na articulação. Tente sustentar a posição por 15-20 segundos. Se persistir, procure um médico.";
         }
-
-        if (lowerInput.includes('idoso') || lowerInput.includes('idade') || lowerInput.includes('velho')) {
-            return "A idade é apenas um número, mas a biologia exige cuidados. O foco principal deve ser **manutenção de massa muscular** (para evitar sarcopenia) e **equilíbrio** (para evitar quedas). Caminhadas e agachamentos assistidos (segurando na cadeira) são excelentes.";
-        }
-
-        if (lowerInput.includes('emagrecer') || lowerInput.includes('peso')) {
-            return "Para emagrecer com saúde, foque em **constância** e não em intensidade extrema. Movimentos naturais como caminhar, agachar e carregar pesos moderados ativam o metabolismo de forma sustentável. A alimentação natural também é chave.";
-        }
-
-        if (lowerInput.includes('forte') || lowerInput.includes('músculo') || lowerInput.includes('hipertrofia')) {
-            return "Força real vem do controle do corpo. Antes de adicionar muita carga, domine os movimentos básicos: agachamento profundo, flexão de braços e barra fixa. A força construída assim é funcional e duradoura.";
-        }
-
-        return "Excelente pergunta. Na visão da educação física natural, o importante é manter o corpo capaz de realizar as tarefas do dia a dia com vigor. Foque na técnica perfeita antes da carga. Posso sugerir um treino de mobilidade?";
     };
 
     const suggestions = [
