@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, BrainCircuit } from 'lucide-react';
-import { sendMessageToAI } from '../services/openai';
 import './AICoach.css';
 
 const AICoach = () => {
@@ -8,7 +7,7 @@ const AICoach = () => {
         {
             id: 1,
             sender: 'ai',
-            text: 'Olá! Sou o Benfit Coach. Minha especialidade é saúde natural, longevidade e biomecânica. Como posso ajudar você a se movimentar melhor hoje?'
+            text: 'Olá! Sou o Benfit Coach. 🏋️ Posso te ajudar a criar treinos personalizados e sugerir orientações sobre alimentação. Como posso ajudar você hoje?'
         }
     ]);
     const [inputValue, setInputValue] = useState('');
@@ -33,41 +32,67 @@ const AICoach = () => {
             text: inputValue
         };
 
-        // Update UI immediately with user message
-        const newMessages = [...messages, userMsg];
-        setMessages(newMessages);
+        setMessages(prev => [...prev, userMsg]);
         setInputValue('');
         setIsTyping(true);
 
-        try {
-            // Call OpenAI API
-            const responseText = await sendMessageToAI(newMessages);
-
+        // Simulate AI delay
+        setTimeout(() => {
+            const responseText = generateResponse(userMsg.text);
             const aiMsg = {
                 id: Date.now() + 1,
                 sender: 'ai',
                 text: responseText
             };
             setMessages(prev => [...prev, aiMsg]);
-        } catch (error) {
-            console.error("Failed to get response", error);
-            const errorMsg = {
-                id: Date.now() + 1,
-                sender: 'ai',
-                text: "Ocorreu um erro ao processar sua mensagem. Verifique sua conexão."
-            };
-            setMessages(prev => [...prev, errorMsg]);
-        } finally {
             setIsTyping(false);
+        }, 1500);
+    };
+
+    // AI Coach Logic - Focused on workout and diet planning
+    const generateResponse = (input) => {
+        const lowerInput = input.toLowerCase();
+
+        // Workout creation
+        if (lowerInput.includes('treino') || lowerInput.includes('exercício') || lowerInput.includes('musculação')) {
+            return "Posso te ajudar a montar um treino personalizado! 💪\n\nPara começar, me diga:\n• Qual seu objetivo? (Hipertrofia, emagrecimento, condicionamento)\n• Quantos dias por semana pode treinar?\n• Tem alguma restrição ou lesão?\n\nVocê também pode explorar os treinos prontos na seção 'Meus Treinos'.";
         }
+
+        // Diet planning
+        if (lowerInput.includes('dieta') || lowerInput.includes('alimentação') || lowerInput.includes('nutrição') || lowerInput.includes('comer')) {
+            return "A alimentação é fundamental para seus resultados! 🥗\n\nPara uma orientação personalizada, preciso saber:\n• Seu objetivo (ganhar massa, emagrecer, manter)\n• Restrições alimentares\n• Rotina diária\n\nLembre-se: para um plano nutricional completo, consulte um nutricionista.";
+        }
+
+        // Pain/injury
+        if (lowerInput.includes('dor') || lowerInput.includes('lesão')) {
+            return "Sinto muito que esteja com dor. 😔\n\nPara alívio seguro, recomendo:\n• Exercícios isométricos (estáticos)\n• Fortalecimento sem impacto\n• Alongamentos suaves\n\nSe a dor persistir, procure um médico ou fisioterapeuta.";
+        }
+
+        // Longevity/elderly
+        if (lowerInput.includes('idoso') || lowerInput.includes('idade') || lowerInput.includes('longevidade')) {
+            return "Treinar em qualquer idade é possível e importante! 👴👵\n\nFoco principal:\n• Manutenção de massa muscular\n• Equilíbrio e prevenção de quedas\n• Mobilidade articular\n• Caminhadas e exercícios de baixo impacto";
+        }
+
+        // Weight loss
+        if (lowerInput.includes('emagrecer') || lowerInput.includes('peso') || lowerInput.includes('gordura')) {
+            return "Para emagrecer com saúde:\n\n✅ Déficit calórico moderado\n✅ Treino de força (preserva massa muscular)\n✅ Cardio moderado\n✅ Consistência é mais importante que intensidade\n\nQuer que eu monte um treino focado em emagrecimento?";
+        }
+
+        // Muscle gain
+        if (lowerInput.includes('músculo') || lowerInput.includes('hipertrofia') || lowerInput.includes('ganhar massa')) {
+            return "Para ganhar massa muscular:\n\n💪 Treino com sobrecarga progressiva\n💪 4-6 séries de 8-12 repetições\n💪 Alimentação com superávit calórico\n💪 Descanso adequado (sono 7-8h)\n\nVocê já tem uma rotina de treinos? Posso sugerir ajustes!";
+        }
+
+        // Default response
+        return "Olá! Sou o Benfit Coach. 🏋️\n\nPosso te ajudar com:\n• Criação de treinos personalizados\n• Sugestões de alimentação\n• Dicas de exercícios\n• Orientações sobre saúde e fitness\n\nO que você gostaria de saber?";
     };
 
     const suggestions = [
-        "Tenho dor no joelho",
-        "Exercício para idosos",
-        "Como ganhar força?",
-        "O que é isometria?",
-        "Treino rápido de 15min"
+        "Quero montar um treino",
+        "Como melhorar minha dieta?",
+        "Exercícios para idosos",
+        "Como ganhar massa muscular?",
+        "Treino para emagrecer"
     ];
 
     return (
@@ -82,7 +107,7 @@ const AICoach = () => {
                         <h2>Benfit Coach</h2>
                         <div className="coach-status">
                             <div className="status-dot"></div>
-                            Online • Especialista em Longevidade
+                            Online • Especialista em Treinos e Nutrição
                         </div>
                     </div>
                 </div>
@@ -130,7 +155,7 @@ const AICoach = () => {
                         <input
                             type="text"
                             className="chat-input"
-                            placeholder="Pergunte sobre treinos, dores ou dicas de saúde..."
+                            placeholder="Pergunte sobre treinos, dieta ou dicas de saúde..."
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                         />
