@@ -3,8 +3,14 @@ import OpenAI from 'openai';
 // Initialize OpenAI client
 // DANGER: Exposing API key on client side is not recommended for production.
 // Ideally, this should be proxied through a backend server.
+const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+if (!apiKey) {
+    console.error("CRITICAL: VITE_OPENAI_API_KEY is missing from environment variables. Please check your .env file.");
+}
+
 const openai = new OpenAI({
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    apiKey: apiKey,
     dangerouslyAllowBrowser: true
 });
 
