@@ -1,0 +1,310 @@
+================================================================================
+BENFIT TREINOS - DOCUMENTAÇÃO DO BANCO DE DADOS SUPABASE
+================================================================================
+
+Projeto: benfit
+Prefixo de Tabelas: B_
+Data de Criação: 2025-11-25
+
+================================================================================
+VISÃO GERAL
+================================================================================
+
+Este documento descreve a estrutura completa do banco de dados para o 
+aplicativo Benfit Treinos no Supabase. Todas as tabelas utilizam o prefixo 
+"B_" conforme solicitado.
+
+O banco de dados suporta:
+- Gestão de usuários e perfis
+- Biblioteca de exercícios
+- Planos de treino (workouts)
+- Histórico de sessões de treino
+- Logs detalhados de séries e repetições
+- Histórico de conversas com AI Coach
+- Acompanhamento de progresso físico
+
+================================================================================
+ESTRUTURA DE TABELAS
+================================================================================
+
+1. B_Users (Usuários)
+   - Armazena informações de conta e perfil
+   - Campos principais:
+     * id (UUID): Identificador único
+     * name: Nome completo
+     * email: Email único para login
+     * password_hash: Senha criptografada
+     * avatar_url: URL da foto de perfil
+     * plan_type: Tipo de plano (FREE, PRO, ELITE)
+     * created_at, updated_at: Timestamps
+
+2. B_Exercises (Biblioteca de Exercícios)
+   - Catálogo completo de exercícios disponíveis
+   - Campos principais:
+     * id (UUID): Identificador único
+     * exercise_key: Chave única (ex: 'panturrilha_em_pe_livre')
+     * name: Nome do exercício
+     * muscle_group: Grupo muscular trabalhado
+     * equipment: Equipamento necessário
+     * video_url: Link para vídeo demonstrativo
+     * instructions: Array de instruções
+     * tags: Array de tags para categorização
+
+3. B_Workouts (Planos de Treino)
+   - Programas de treino (ex: "Treino 01 - Adaptação e Base")
+   - Campos principais:
+     * id (UUID): Identificador único
+     * workout_key: Chave única (ex: 'wk_01')
+     * title: Título do treino
+     * description: Descrição detalhada
+     * difficulty: Nível (Iniciante, Intermediário, Avançado)
+     * estimated_duration: Duração estimada em minutos
+     * days_per_week: Dias de treino por semana
+     * cover_image: Imagem de capa
+     * is_public: Se é público ou personalizado
+     * creator_id: Referência ao criador (opcional)
+
+4. B_Workout_Days (Dias de Treino)
+   - Dias individuais dentro de um plano de treino
+   - Campos principais:
+     * id (UUID): Identificador único
+     * workout_id: Referência ao plano de treino
+     * day_number: Ordem do dia (1, 2, 3...)
+     * day_name: Nome do dia (ex: "Dia 1 - Inferior")
+
+5. B_Workout_Exercises (Exercícios do Treino)
+   - Liga exercícios aos dias de treino com prescrições
+   - Campos principais:
+     * id (UUID): Identificador único
+     * workout_day_id: Referência ao dia de treino
+     * exercise_id: Referência ao exercício
+     * order_index: Ordem de execução
+     * sets: Número de séries
+     * reps: Repetições (ex: "10-12")
+     * rest_seconds: Tempo de descanso
+     * notes: Observações (ex: "Drop-set na última")
+
+6. B_User_Assignments (Atribuições de Treino)
+   - Define quais treinos o usuário está seguindo
+   - Campos principais:
+     * id (UUID): Identificador único
+     * user_id: Referência ao usuário
+     * workout_id: Referência ao treino
+     * assigned_day: Dia da semana sugerido
+     * active: Se está ativo na rotina atual
+
+7. B_Workout_Sessions (Sessões de Treino)
+   - Registra cada vez que um usuário completa um treino
+   - Campos principais:
+     * id (UUID): Identificador único
+     * user_id: Quem treinou
+     * workout_id: Qual treino foi realizado
+     * workout_day_id: Qual dia específico
+     * started_at: Hora de início
+     * ended_at: Hora de término
+     * calories_burned: Calorias estimadas
+     * feeling: Escala de esforço (1-10)
+     * notes: Observações
+
+8. B_Session_Logs (Logs de Séries)
+   - Registro detalhado de cada série executada
+   - Campos principais:
+     * id (UUID): Identificador único
+     * session_id: Referência à sessão
+     * exercise_id: Exercício realizado
+     * set_number: Número da série (1, 2, 3...)
+     * weight_kg: Carga utilizada em kg
+     * reps_completed: Repetições completadas
+     * notes: Observações
+
+9. B_AI_Chat_History (Histórico de Chat com IA)
+   - Armazena conversas com o AI Coach
+   - Campos principais:
+     * id (UUID): Identificador único
+     * user_id: Usuário da conversa
+     * role: Papel (user, assistant, system)
+     * content: Conteúdo da mensagem
+     * created_at: Timestamp
+
+10. B_User_Progress (Progresso do Usuário)
+    - Acompanha métricas de progresso ao longo do tempo
+    - Campos principais:
+      * id (UUID): Identificador único
+      * user_id: Referência ao usuário
+      * date: Data da medição
+      * weight_kg: Peso em kg
+      * body_fat_percentage: Percentual de gordura
+      * muscle_mass_kg: Massa muscular em kg
+      * notes: Observações
+
+================================================================================
+RELACIONAMENTOS
+================================================================================
+
+B_Users (1) ──────→ (N) B_User_Assignments
+B_Users (1) ──────→ (N) B_Workout_Sessions
+B_Users (1) ──────→ (N) B_AI_Chat_History
+B_Users (1) ──────→ (N) B_User_Progress
+B_Users (1) ──────→ (N) B_Workouts (creator)
+
+B_Workouts (1) ───→ (N) B_Workout_Days
+B_Workouts (1) ───→ (N) B_User_Assignments
+B_Workouts (1) ───→ (N) B_Workout_Sessions
+
+B_Workout_Days (1) → (N) B_Workout_Exercises
+B_Workout_Days (1) → (N) B_Workout_Sessions
+
+B_Exercises (1) ──→ (N) B_Workout_Exercises
+B_Exercises (1) ──→ (N) B_Session_Logs
+
+B_Workout_Sessions (1) → (N) B_Session_Logs
+
+================================================================================
+SEGURANÇA (ROW LEVEL SECURITY)
+================================================================================
+
+O script inclui políticas de RLS (Row Level Security) para proteger dados:
+
+1. Usuários só podem ver e editar seus próprios dados
+2. Exercícios e treinos públicos são visíveis para todos
+3. Sessões e logs são privados por usuário
+4. Histórico de chat é privado por usuário
+5. Progresso é privado por usuário
+
+================================================================================
+ÍNDICES
+================================================================================
+
+Índices criados para otimizar consultas frequentes:
+
+- B_Users: email
+- B_Exercises: muscle_group, equipment, exercise_key
+- B_Workouts: is_public, difficulty
+- B_Workout_Days: workout_id
+- B_Workout_Exercises: workout_day_id, exercise_id
+- B_User_Assignments: user_id, (user_id + active)
+- B_Workout_Sessions: user_id, started_at, (user_id + started_at)
+- B_Session_Logs: session_id, exercise_id
+- B_AI_Chat_History: (user_id + created_at)
+- B_User_Progress: (user_id + date DESC)
+
+================================================================================
+TRIGGERS
+================================================================================
+
+Triggers automáticos para atualizar timestamps:
+
+- update_b_users_updated_at
+- update_b_exercises_updated_at
+- update_b_workouts_updated_at
+
+================================================================================
+CONSULTAS ÚTEIS PARA O DASHBOARD
+================================================================================
+
+1. FREQUÊNCIA (Últimos 7 dias):
+   SELECT COUNT(*) as frequency
+   FROM B_Workout_Sessions
+   WHERE user_id = 'USER_UUID'
+   AND started_at >= NOW() - INTERVAL '7 days';
+
+2. CALORIAS TOTAIS QUEIMADAS:
+   SELECT SUM(calories_burned) as total_calories
+   FROM B_Workout_Sessions
+   WHERE user_id = 'USER_UUID';
+
+3. VOLUME TOTAL (Carga × Reps):
+   SELECT SUM(weight_kg * reps_completed) as total_volume
+   FROM B_Session_Logs sl
+   JOIN B_Workout_Sessions ws ON sl.session_id = ws.id
+   WHERE ws.user_id = 'USER_UUID';
+
+4. PRÓXIMO TREINO:
+   SELECT w.title, w.estimated_duration, ua.assigned_day
+   FROM B_User_Assignments ua
+   JOIN B_Workouts w ON ua.workout_id = w.id
+   WHERE ua.user_id = 'USER_UUID'
+   AND ua.active = true
+   ORDER BY ua.assigned_at DESC
+   LIMIT 1;
+
+5. SESSÕES RECENTES:
+   SELECT ws.*, w.title
+   FROM B_Workout_Sessions ws
+   JOIN B_Workouts w ON ws.workout_id = w.id
+   WHERE ws.user_id = 'USER_UUID'
+   ORDER BY ws.started_at DESC
+   LIMIT 10;
+
+6. PROGRESSO DE PESO:
+   SELECT date, weight_kg
+   FROM B_User_Progress
+   WHERE user_id = 'USER_UUID'
+   ORDER BY date DESC
+   LIMIT 30;
+
+7. EXERCÍCIOS MAIS REALIZADOS:
+   SELECT e.name, COUNT(*) as times_performed
+   FROM B_Session_Logs sl
+   JOIN B_Exercises e ON sl.exercise_id = e.id
+   JOIN B_Workout_Sessions ws ON sl.session_id = ws.id
+   WHERE ws.user_id = 'USER_UUID'
+   GROUP BY e.id, e.name
+   ORDER BY times_performed DESC
+   LIMIT 10;
+
+================================================================================
+INSTRUÇÕES DE INSTALAÇÃO
+================================================================================
+
+1. Acesse o Supabase Dashboard do projeto "benfit"
+2. Vá para SQL Editor
+3. Copie e cole o conteúdo do arquivo "supabase_database_script.sql"
+4. Execute o script
+5. Verifique se todas as tabelas foram criadas com sucesso
+6. Configure as variáveis de ambiente no projeto:
+   - SUPABASE_URL
+   - SUPABASE_ANON_KEY
+
+================================================================================
+PRÓXIMOS PASSOS
+================================================================================
+
+Após criar as tabelas:
+
+1. Popular a tabela B_Exercises com os exercícios do arquivo exercises.js
+2. Popular a tabela B_Workouts com os treinos do arquivo workouts.js
+3. Popular a tabela B_Workout_Days com os dias de cada treino
+4. Popular a tabela B_Workout_Exercises com os exercícios de cada dia
+5. Configurar autenticação do Supabase no frontend
+6. Implementar as queries no código React
+7. Criar funções de API para operações complexas
+
+================================================================================
+OBSERVAÇÕES IMPORTANTES
+================================================================================
+
+- Todas as tabelas usam UUID como chave primária
+- Timestamps são armazenados com timezone
+- Arrays são suportados nativamente (instructions, tags)
+- RLS está habilitado para proteção de dados
+- Índices otimizam consultas frequentes
+- Triggers mantêm updated_at atualizado automaticamente
+- Políticas de segurança garantem privacidade dos dados
+
+================================================================================
+SUPORTE E MANUTENÇÃO
+================================================================================
+
+Para adicionar novas funcionalidades:
+
+1. Sempre use o prefixo "B_" em novas tabelas
+2. Mantenha a consistência de nomenclatura
+3. Adicione índices para campos frequentemente consultados
+4. Configure RLS para novas tabelas com dados de usuário
+5. Documente novos relacionamentos
+6. Teste as políticas de segurança
+
+================================================================================
+FIM DA DOCUMENTAÇÃO
+================================================================================
