@@ -1,12 +1,16 @@
 import { useState, useMemo } from 'react';
-import { exercises } from '../data/exercises';
-import { Search, Filter, Plus, Edit2, Trash2, Target, Package } from 'lucide-react';
+import { useExercises } from '../hooks/useSupabase';
+import { Search, Filter, Plus, Edit2, Trash2, Target, Package, Loader2 } from 'lucide-react';
 import './Exercises.css';
 
+
+
 const Exercises = () => {
+    const { exercises, loading, error } = useExercises();
     const [searchTerm, setSearchTerm] = useState('');
     const [muscleFilter, setMuscleFilter] = useState('all');
     const [equipmentFilter, setEquipmentFilter] = useState('all');
+
 
     // Get unique muscle groups and equipment types
     const muscleGroups = useMemo(() => {
@@ -38,6 +42,38 @@ const Exercises = () => {
         muscleGroups: muscleGroups.length,
         equipmentTypes: equipmentTypes.length
     };
+
+    // Loading state
+    if (loading) {
+        return (
+            <div className="exercises-container">
+                <div className="exercises-header">
+                    <h1>Lista de Exercícios</h1>
+                    <p>Carregando exercícios...</p>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                    <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <div className="exercises-container">
+                <div className="exercises-header">
+                    <h1>Lista de Exercícios</h1>
+                    <p style={{ color: 'var(--error, #ef4444)' }}>
+                        ⚠️ Erro ao carregar exercícios: {error}
+                    </p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        Usando dados locais como fallback.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="exercises-container">

@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { workouts } from '../data/workouts';
-import { exercises } from '../data/exercises';
-import { Calendar, Clock, ChevronLeft, Dumbbell, Info } from 'lucide-react';
+import { useWorkouts, useExercises } from '../hooks/useSupabase';
+import { Calendar, Clock, ChevronLeft, Dumbbell, Info, Loader2 } from 'lucide-react';
 import './Workouts.css';
 
+
+
 const Workouts = () => {
+    const { workouts, loading: workoutsLoading, error: workoutsError } = useWorkouts();
+    const { exercises, loading: exercisesLoading } = useExercises();
     const [selectedWorkout, setSelectedWorkout] = useState(null);
 
     const getExerciseDetails = (id) => {
@@ -70,6 +73,38 @@ const Workouts = () => {
                             </div>
                         ))}
                     </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Loading state
+    if (workoutsLoading || exercisesLoading) {
+        return (
+            <div className="workouts-container">
+                <div className="workouts-header">
+                    <h1>Meus Treinos</h1>
+                    <p>Carregando treinos...</p>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                    <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (workoutsError) {
+        return (
+            <div className="workouts-container">
+                <div className="workouts-header">
+                    <h1>Meus Treinos</h1>
+                    <p style={{ color: 'var(--error, #ef4444)' }}>
+                        ⚠️ Erro ao carregar treinos: {workoutsError}
+                    </p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        Usando dados locais como fallback.
+                    </p>
                 </div>
             </div>
         );
