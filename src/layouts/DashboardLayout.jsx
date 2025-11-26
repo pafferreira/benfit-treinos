@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Dumbbell, User, LogOut, Menu, X, BrainCircuit, Library } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, User, LogOut, Menu, X, BrainCircuit, Library, Database } from 'lucide-react';
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
@@ -80,6 +80,16 @@ const DashboardLayout = () => {
                             <span className="user-plan">Plano Pro</span>
                         </div>
                     </div>
+
+                    <NavLink
+                        to="/diagnostic"
+                        className={({ isActive }) => `diagnostic-btn ${isActive ? 'active' : ''}`}
+                        onClick={() => setIsSidebarOpen(false)}
+                        title="Diagnóstico do Banco de Dados"
+                    >
+                        <Database size={18} />
+                        <span>Diagnóstico</span>
+                    </NavLink>
 
                     <button className="logout-btn">
                         <LogOut size={20} />

@@ -22,7 +22,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Test connection and log table info
 if (supabaseUrl && supabaseAnonKey) {
     supabase
-        .from('B_Exercises')
+        .from('b_exercises')
         .select('count', { count: 'exact', head: true })
         .then(({ count, error }) => {
             if (error) {
@@ -42,7 +42,7 @@ export const supabaseHelpers = {
     // Exercises
     async getAllExercises() {
         const { data, error } = await supabase
-            .from('B_Exercises')
+            .from('b_exercises')
             .select('*')
             .order('name')
 
@@ -52,7 +52,7 @@ export const supabaseHelpers = {
 
     async getExercisesByMuscleGroup(muscleGroup) {
         const { data, error } = await supabase
-            .from('B_Exercises')
+            .from('b_exercises')
             .select('*')
             .eq('muscle_group', muscleGroup)
             .order('name')
@@ -63,7 +63,7 @@ export const supabaseHelpers = {
 
     async getExercisesByEquipment(equipment) {
         const { data, error } = await supabase
-            .from('B_Exercises')
+            .from('b_exercises')
             .select('*')
             .eq('equipment', equipment)
             .order('name')
@@ -74,7 +74,7 @@ export const supabaseHelpers = {
 
     async searchExercises(searchTerm) {
         const { data, error } = await supabase
-            .from('B_Exercises')
+            .from('b_exercises')
             .select('*')
             .or(`name.ilike.%${searchTerm}%,muscle_group.ilike.%${searchTerm}%`)
             .order('name')
@@ -86,14 +86,14 @@ export const supabaseHelpers = {
     // Workouts
     async getAllWorkouts() {
         const { data, error } = await supabase
-            .from('B_Workouts')
+            .from('b_workouts')
             .select(`
         *,
-        B_Workout_Days (
+        b_workout_days (
           *,
-          B_Workout_Exercises (
+          b_workout_exercises (
             *,
-            B_Exercises (*)
+            b_exercises (*)
           )
         )
       `)
@@ -106,14 +106,14 @@ export const supabaseHelpers = {
 
     async getWorkoutById(workoutId) {
         const { data, error } = await supabase
-            .from('B_Workouts')
+            .from('b_workouts')
             .select(`
         *,
-        B_Workout_Days (
+        b_workout_days (
           *,
-          B_Workout_Exercises (
+          b_workout_exercises (
             *,
-            B_Exercises (*)
+            b_exercises (*)
           )
         )
       `)
@@ -127,7 +127,7 @@ export const supabaseHelpers = {
     // User Sessions
     async createWorkoutSession(userId, workoutId, workoutDayId) {
         const { data, error } = await supabase
-            .from('B_Workout_Sessions')
+            .from('b_workout_sessions')
             .insert({
                 user_id: userId,
                 workout_id: workoutId,
@@ -143,7 +143,7 @@ export const supabaseHelpers = {
 
     async endWorkoutSession(sessionId, caloriesBurned, feeling) {
         const { data, error } = await supabase
-            .from('B_Workout_Sessions')
+            .from('b_workout_sessions')
             .update({
                 ended_at: new Date().toISOString(),
                 calories_burned: caloriesBurned,
@@ -159,7 +159,7 @@ export const supabaseHelpers = {
 
     async logSet(sessionId, exerciseId, setNumber, weightKg, repsCompleted) {
         const { data, error } = await supabase
-            .from('B_Session_Logs')
+            .from('b_session_logs')
             .insert({
                 session_id: sessionId,
                 exercise_id: exerciseId,
@@ -180,7 +180,7 @@ export const supabaseHelpers = {
         startDate.setDate(startDate.getDate() - days)
 
         const { count, error } = await supabase
-            .from('B_Workout_Sessions')
+            .from('b_workout_sessions')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
             .gte('started_at', startDate.toISOString())
@@ -191,7 +191,7 @@ export const supabaseHelpers = {
 
     async getUserTotalCalories(userId) {
         const { data, error } = await supabase
-            .from('B_Workout_Sessions')
+            .from('b_workout_sessions')
             .select('calories_burned')
             .eq('user_id', userId)
 
@@ -201,13 +201,13 @@ export const supabaseHelpers = {
 
     async getUserTotalVolume(userId) {
         const { data, error } = await supabase
-            .from('B_Session_Logs')
+            .from('b_session_logs')
             .select(`
         weight_kg,
         reps_completed,
-        B_Workout_Sessions!inner(user_id)
+        b_workout_sessions!inner(user_id)
       `)
-            .eq('B_Workout_Sessions.user_id', userId)
+            .eq('b_workout_sessions.user_id', userId)
 
         if (error) throw error
         return data.reduce((sum, log) => sum + (log.weight_kg * log.reps_completed), 0)
@@ -216,7 +216,7 @@ export const supabaseHelpers = {
     // AI Chat History
     async saveChatMessage(userId, role, content) {
         const { data, error } = await supabase
-            .from('B_AI_Chat_History')
+            .from('b_ai_chat_history')
             .insert({
                 user_id: userId,
                 role: role,
@@ -231,7 +231,7 @@ export const supabaseHelpers = {
 
     async getChatHistory(userId, limit = 50) {
         const { data, error } = await supabase
-            .from('B_AI_Chat_History')
+            .from('b_ai_chat_history')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: true })

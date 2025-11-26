@@ -18,16 +18,16 @@ const SupabaseDiagnostic = () => {
 
         // Test each table
         const tables = [
-            'B_Users',
-            'B_Exercises',
-            'B_Workouts',
-            'B_Workout_Days',
-            'B_Workout_Exercises',
-            'B_User_Assignments',
-            'B_Workout_Sessions',
-            'B_Session_Logs',
-            'B_AI_Chat_History',
-            'B_User_Progress'
+            'b_users',
+            'b_exercises',
+            'b_workouts',
+            'b_workout_days',
+            'b_workout_exercises',
+            'b_user_assignments',
+            'b_workout_sessions',
+            'b_session_logs',
+            'b_ai_chat_history',
+            'b_user_progress'
         ];
 
         for (const table of tables) {

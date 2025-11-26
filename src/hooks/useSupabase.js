@@ -50,35 +50,55 @@ export const useWorkouts = () => {
         try {
             setLoading(true)
             setError(null)
+            console.log('🔄 Loading workouts from Supabase...')
             const data = await supabaseHelpers.getAllWorkouts()
+            console.log('📊 Raw Supabase data:', data)
+            console.log('📊 Number of workouts:', data?.length)
 
             // Transform Supabase data to match local data structure
-            const transformedData = data.map(workout => ({
-                id: workout.workout_key,
-                title: workout.title,
-                description: workout.description,
-                difficulty: workout.difficulty,
-                estimated_duration: workout.estimated_duration,
-                days_per_week: workout.days_per_week,
-                cover_image: workout.cover_image,
-                schedule: workout.B_Workout_Days?.map(day => ({
-                    day_name: day.day_name,
-                    exercises: day.B_Workout_Exercises?.map(we => ({
-                        exercise_id: we.B_Exercises?.exercise_key,
-                        sets: we.sets,
-                        reps: we.reps,
-                        notes: we.notes
-                    })) || []
-                })) || []
-            }))
+            const transformedData = data.map(workout => {
+                console.log('🔄 Transforming workout:', workout.title)
+                console.log('  - Days:', workout.b_workout_days?.length)
 
+                const transformed = {
+                    id: workout.workout_key,
+                    title: workout.title,
+                    description: workout.description,
+                    difficulty: workout.difficulty,
+                    estimated_duration: workout.estimated_duration,
+                    days_per_week: workout.days_per_week,
+                    cover_image: workout.cover_image,
+                    schedule: workout.b_workout_days?.map(day => {
+                        console.log('    - Day:', day.day_name, '- Exercises:', day.b_workout_exercises?.length)
+                        return {
+                            day_name: day.day_name,
+                            exercises: day.b_workout_exercises?.map(we => ({
+                                exercise_id: we.b_exercises?.exercise_key,
+                                sets: we.sets,
+                                reps: we.reps,
+                                notes: we.notes
+                            })) || []
+                        }
+                    }) || []
+                }
+
+                console.log('✅ Transformed workout:', transformed)
+                return transformed
+            })
+
+            console.log('✅ Loaded', transformedData.length, 'workouts from Supabase')
             setWorkouts(transformedData)
         } catch (err) {
-            console.error('Error loading workouts:', err)
+            console.error('❌ Error loading workouts from Supabase:', err)
+            console.error('Error code:', err.code)
+            console.error('Error message:', err.message)
+            console.error('Error details:', err.details)
+            console.warn('🔄 Falling back to local data...')
             setError(err.message)
             // Fallback to local data if Supabase fails
             const { workouts: localWorkouts } = await import('../data/workouts')
             setWorkouts(localWorkouts)
+            console.log('✅ Loaded', localWorkouts.length, 'workouts from local data')
         } finally {
             setLoading(false)
         }

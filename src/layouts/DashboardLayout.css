@@ -104,6 +104,35 @@
     color: #EF4444;
 }
 
+/* Diagnostic Button */
+.diagnostic-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 0.75rem;
+    transition: all 0.2s;
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+}
+
+.diagnostic-btn:hover {
+    background-color: #EFF6FF;
+    color: #3B82F6;
+}
+
+.diagnostic-btn.active {
+    background-color: #DBEAFE;
+    color: #2563EB;
+}
+
 /* Main Content Styles */
 .main-content {
     flex: 1;
