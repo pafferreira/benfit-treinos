@@ -14,14 +14,21 @@ export const useExercises = () => {
         try {
             setLoading(true)
             setError(null)
+            console.log('🔄 Loading exercises from Supabase...')
             const data = await supabaseHelpers.getAllExercises()
+            console.log('✅ Loaded', data.length, 'exercises from Supabase')
             setExercises(data)
         } catch (err) {
-            console.error('Error loading exercises:', err)
+            console.error('❌ Error loading exercises from Supabase:', err)
+            console.error('Error code:', err.code)
+            console.error('Error message:', err.message)
+            console.error('Error details:', err.details)
+            console.warn('🔄 Falling back to local data...')
             setError(err.message)
             // Fallback to local data if Supabase fails
             const { exercises: localExercises } = await import('../data/exercises')
             setExercises(localExercises)
+            console.log('✅ Loaded', localExercises.length, 'exercises from local data')
         } finally {
             setLoading(false)
         }

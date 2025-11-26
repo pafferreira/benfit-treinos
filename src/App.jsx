@@ -5,6 +5,7 @@ import Workouts from './pages/Workouts'
 import Exercises from './pages/Exercises'
 import Profile from './pages/Profile'
 import AICoach from './pages/AICoach'
+import SupabaseDiagnostic from './pages/SupabaseDiagnostic'
 import './App.css'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="exercicios" element={<Exercises />} />
           <Route path="perfil" element={<Profile />} />
           <Route path="coach" element={<AICoach />} />
+          <Route path="diagnostic" element={<SupabaseDiagnostic />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

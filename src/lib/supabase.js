@@ -5,9 +5,37 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('⚠️ Supabase credentials not found in .env file')
+    console.warn('Expected variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create Supabase client with explicit configuration
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    db: {
+        schema: 'public'
+    },
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+    }
+})
+
+// Test connection and log table info
+if (supabaseUrl && supabaseAnonKey) {
+    supabase
+        .from('B_Exercises')
+        .select('count', { count: 'exact', head: true })
+        .then(({ count, error }) => {
+            if (error) {
+                console.error('❌ Supabase connection error:', error.message)
+                console.error('Error details:', error)
+                console.warn('💡 Make sure you have executed the SQL scripts in Supabase Dashboard')
+                console.warn('📁 Scripts location: database/supabase_database_script.sql')
+            } else {
+                console.log('✅ Supabase connected successfully!')
+                console.log(`📊 Found ${count} exercises in B_Exercises table`)
+            }
+        })
+}
 
 // Helper functions for common queries
 export const supabaseHelpers = {
