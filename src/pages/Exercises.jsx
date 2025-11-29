@@ -1,27 +1,19 @@
 import { useState, useMemo } from 'react';
 import { useExercises } from '../hooks/useSupabase';
-import { Search, Filter, Plus, Edit2, Trash2, Target, Package, Loader2 } from 'lucide-react';
+import { supabaseHelpers } from '../lib/supabase';
+import { Search, Filter, Plus, Edit2, Trash2, Target, Package, Loader2, LayoutGrid, List } from 'lucide-react';
+import ExerciseModal from '../components/ExerciseModal';
 import './Exercises.css';
 
-
-
 const Exercises = () => {
-    const { exercises, loading, error } = useExercises();
+    const { exercises, loading, error, reload } = useExercises();
     const [searchTerm, setSearchTerm] = useState('');
     const [muscleFilter, setMuscleFilter] = useState('all');
     const [equipmentFilter, setEquipmentFilter] = useState('all');
-
-
-    // Get unique muscle groups and equipment types
-    const muscleGroups = useMemo(() => {
-        const groups = [...new Set(exercises.map(ex => ex.muscle_group))];
-        return groups.sort();
-    }, []);
-
-    const equipmentTypes = useMemo(() => {
-        const types = [...new Set(exercises.map(ex => ex.equipment))];
-        return types.sort();
-    }, []);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedExercise, setSelectedExercise] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
     // Filter exercises
     const filteredExercises = useMemo(() => {
@@ -33,14 +25,73 @@ const Exercises = () => {
 
             return matchesSearch && matchesMuscle && matchesEquipment;
         });
-    }, [searchTerm, muscleFilter, equipmentFilter]);
+    }, [exercises, searchTerm, muscleFilter, equipmentFilter]);
 
-    // Stats
-    const stats = {
-        total: exercises.length,
-        filtered: filteredExercises.length,
-        muscleGroups: muscleGroups.length,
-        equipmentTypes: equipmentTypes.length
+    // Stats based STRICTLY on filtered results
+    const stats = useMemo(() => {
+        const uniqueMuscles = new Set(filteredExercises.map(ex => ex.muscle_group));
+        const uniqueEquipment = new Set(filteredExercises.map(ex => ex.equipment));
+
+        return {
+            total: filteredExercises.length,
+            muscleGroups: uniqueMuscles.size,
+            equipmentTypes: uniqueEquipment.size
+        };
+    }, [filteredExercises]);
+
+    // Available options for dropdowns (should remain static or based only on search to allow changing filters)
+    const filterOptions = useMemo(() => {
+        const muscles = [...new Set(exercises.map(ex => ex.muscle_group))].sort();
+        const equipment = [...new Set(exercises.map(ex => ex.equipment))].sort();
+        return { muscles, equipment };
+    }, [exercises]);
+
+    // CRUD Handlers
+    const handleCreateExercise = () => {
+        setSelectedExercise(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEditExercise = (exercise) => {
+        setSelectedExercise(exercise);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteExercise = async (exercise) => {
+        if (!confirm(`Tem certeza que deseja excluir "${exercise.name}"?`)) {
+            return;
+        }
+
+        try {
+            await supabaseHelpers.deleteExercise(exercise.id);
+            alert('Exercício excluído com sucesso!');
+            reload(); // Reload the exercises list
+        } catch (err) {
+            console.error('Error deleting exercise:', err);
+            alert('Erro ao excluir exercício: ' + err.message);
+        }
+    };
+
+    const handleSaveExercise = async (exerciseData) => {
+        setIsSaving(true);
+        try {
+            if (selectedExercise) {
+                // Update existing exercise
+                await supabaseHelpers.updateExercise(selectedExercise.id, exerciseData);
+                alert('Exercício atualizado com sucesso!');
+            } else {
+                // Create new exercise
+                await supabaseHelpers.createExercise(exerciseData);
+                alert('Exercício criado com sucesso!');
+            }
+            setIsModalOpen(false);
+            reload(); // Reload the exercises list
+        } catch (err) {
+            console.error('Error saving exercise:', err);
+            alert('Erro ao salvar exercício: ' + err.message);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     // Loading state
@@ -78,15 +129,21 @@ const Exercises = () => {
     return (
         <div className="exercises-container">
             <div className="exercises-header">
-                <h1>Lista de Exercícios</h1>
-                <p>Biblioteca completa de exercícios para montar seus treinos</p>
+                <div>
+                    <h1>Lista de Exercícios</h1>
+                    <p>Biblioteca completa de exercícios para montar seus treinos</p>
+                </div>
+                <button className="add-exercise-btn" onClick={handleCreateExercise} title="Adicionar novo exercício">
+                    <Plus size={20} />
+                    Novo Exercício
+                </button>
             </div>
 
             {/* Stats */}
             <div className="stats-bar">
                 <div className="stat-item">
                     <div className="stat-value">{stats.total}</div>
-                    <div className="stat-label">Total de Exercícios</div>
+                    <div className="stat-label">Exercícios Encontrados</div>
                 </div>
                 <div className="stat-item">
                     <div className="stat-value">{stats.muscleGroups}</div>
@@ -98,10 +155,10 @@ const Exercises = () => {
                 </div>
             </div>
 
-            {/* Filter Bar */}
+            {/* Search and Filters */}
             <div className="filter-bar">
                 <div className="search-box">
-                    <Search className="search-icon" size={18} />
+                    <Search className="search-icon" size={20} />
                     <input
                         type="text"
                         placeholder="Buscar exercícios..."
@@ -116,7 +173,7 @@ const Exercises = () => {
                     onChange={(e) => setMuscleFilter(e.target.value)}
                 >
                     <option value="all">Todos os Músculos</option>
-                    {muscleGroups.map(group => (
+                    {filterOptions.muscles.map(group => (
                         <option key={group} value={group}>{group}</option>
                     ))}
                 </select>
@@ -127,62 +184,116 @@ const Exercises = () => {
                     onChange={(e) => setEquipmentFilter(e.target.value)}
                 >
                     <option value="all">Todos os Equipamentos</option>
-                    {equipmentTypes.map(type => (
+                    {filterOptions.equipment.map(type => (
                         <option key={type} value={type}>{type}</option>
                     ))}
                 </select>
 
-                <button className="add-exercise-btn">
-                    <Plus size={20} />
-                    Adicionar Exercício
-                </button>
+                <div className="view-toggle">
+                    <button
+                        className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                        onClick={() => setViewMode('grid')}
+                        title="Visualização em Grade"
+                    >
+                        <LayoutGrid size={20} />
+                    </button>
+                    <button
+                        className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                        onClick={() => setViewMode('list')}
+                        title="Visualização em Lista"
+                    >
+                        <List size={20} />
+                    </button>
+                </div>
             </div>
 
-            {/* Results count */}
-            {searchTerm || muscleFilter !== 'all' || equipmentFilter !== 'all' ? (
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                    Mostrando {filteredExercises.length} de {exercises.length} exercícios
-                </p>
-            ) : null}
-
-            {/* Exercises Grid */}
+            {/* Exercises Content */}
             {filteredExercises.length > 0 ? (
-                <div className="exercises-grid">
-                    {filteredExercises.map(exercise => (
-                        <div key={exercise.id} className="exercise-card">
-                            <div className="exercise-card-header">
-                                <div>
-                                    <h3 className="exercise-name">{exercise.name}</h3>
-                                    <div className="exercise-muscle">
-                                        <Target size={14} />
-                                        {exercise.muscle_group}
+                viewMode === 'grid' ? (
+                    <div className="exercises-grid">
+                        {filteredExercises.map(exercise => (
+                            <div key={exercise.id} className="exercise-card">
+                                <div className="exercise-card-header">
+                                    <div>
+                                        <h3 className="exercise-name">{exercise.name}</h3>
+                                        <div className="exercise-muscle">
+                                            <Target size={14} />
+                                            {exercise.muscle_group}
+                                        </div>
+                                    </div>
+                                    <div className="exercise-actions">
+                                        <button
+                                            className="action-btn"
+                                            title="Editar exercício"
+                                            onClick={() => handleEditExercise(exercise)}
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button
+                                            className="action-btn"
+                                            title="Excluir exercício"
+                                            onClick={() => handleDeleteExercise(exercise)}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
                                     </div>
                                 </div>
+
+                                <div className="exercise-equipment">
+                                    <Package size={14} />
+                                    {exercise.equipment}
+                                </div>
+
+                                {exercise.tags && exercise.tags.length > 0 && (
+                                    <div className="exercise-tags">
+                                        {exercise.tags.map((tag, idx) => (
+                                            <span key={idx} className="tag">{tag}</span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="exercises-list-view">
+                        {filteredExercises.map(exercise => (
+                            <div key={exercise.id} className="exercise-list-item">
+                                <div className="list-item-main">
+                                    <h3 className="exercise-name">{exercise.name}</h3>
+                                    <div className="list-item-meta">
+                                        <span className="meta-tag"><Target size={14} /> {exercise.muscle_group}</span>
+                                        <span className="meta-tag"><Package size={14} /> {exercise.equipment}</span>
+                                    </div>
+                                </div>
+
+                                {exercise.tags && exercise.tags.length > 0 && (
+                                    <div className="list-item-tags">
+                                        {exercise.tags.map((tag, idx) => (
+                                            <span key={idx} className="tag">{tag}</span>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <div className="exercise-actions">
-                                    <button className="action-btn" title="Editar">
+                                    <button
+                                        className="action-btn"
+                                        title="Editar exercício"
+                                        onClick={() => handleEditExercise(exercise)}
+                                    >
                                         <Edit2 size={16} />
                                     </button>
-                                    <button className="action-btn" title="Excluir">
+                                    <button
+                                        className="action-btn"
+                                        title="Excluir exercício"
+                                        onClick={() => handleDeleteExercise(exercise)}
+                                    >
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
                             </div>
-
-                            <div className="exercise-equipment">
-                                <Package size={14} />
-                                {exercise.equipment}
-                            </div>
-
-                            {exercise.tags && exercise.tags.length > 0 && (
-                                <div className="exercise-tags">
-                                    {exercise.tags.map((tag, idx) => (
-                                        <span key={idx} className="tag">{tag}</span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )
             ) : (
                 <div className="empty-state">
                     <Search size={64} />
@@ -190,6 +301,15 @@ const Exercises = () => {
                     <p>Tente ajustar os filtros ou buscar por outro termo.</p>
                 </div>
             )}
+
+            {/* Exercise Modal */}
+            <ExerciseModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSaveExercise}
+                exercise={selectedExercise}
+                isLoading={isSaving}
+            />
         </div>
     );
 };

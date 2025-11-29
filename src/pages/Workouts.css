@@ -6,6 +6,9 @@
 }
 
 .workouts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 2rem;
 }
 
@@ -15,11 +18,33 @@
     margin-bottom: 0.5rem;
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .workouts-header p {
     color: var(--text-secondary);
+}
+
+.add-workout-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #1e3a8a;
+    /* Dark Blue */
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-workout-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 /* Grid de Planos */
@@ -74,6 +99,13 @@
     color: var(--text-primary);
 }
 
+.plan-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
 .plan-difficulty {
     font-size: 0.75rem;
     padding: 0.25rem 0.75rem;
@@ -81,6 +113,36 @@
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-secondary);
     border: 1px solid var(--border-color);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.plan-card:hover .action-buttons {
+    opacity: 1;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.icon-btn:hover {
+    background: var(--primary);
+    color: white;
 }
 
 .plan-description {
@@ -105,11 +167,12 @@
 
 /* Detalhes do Treino (Expandido) */
 .workout-details {
-    background: var(--bg-secondary);
+    background: #FFFFFF;
     border-radius: 16px;
     padding: 2rem;
     margin-top: 2rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     animation: slideUp 0.3s ease-out;
 }
 
@@ -126,20 +189,25 @@
 }
 
 .back-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
+    background: white;
+    border: 1px solid #E2E8F0;
+    color: #64748B;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
     font-size: 0.9rem;
-    padding: 0;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    font-weight: 500;
 }
 
 .back-btn:hover {
-    color: var(--primary);
+    color: #0F172A;
+    border-color: #CBD5E1;
+    background: #F8FAFC;
 }
 
 .days-list {
@@ -149,16 +217,17 @@
 }
 
 .day-card {
-    background: rgba(0, 0, 0, 0.2);
+    background: #F8FAFC;
+    /* Light Slate */
     border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid #E2E8F0;
 }
 
 .day-title {
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--primary);
+    color: #0F172A;
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
@@ -175,44 +244,52 @@
     grid-template-columns: 1fr auto auto;
     align-items: center;
     gap: 1rem;
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
+    padding: 1rem;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
     border-radius: 8px;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 
 .exercise-item:hover {
-    background: rgba(255, 255, 255, 0.06);
+    border-color: #CBD5E1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .exercise-info h4 {
     font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text-primary);
+    font-weight: 600;
+    color: #0F172A;
     margin-bottom: 0.2rem;
 }
 
 .exercise-info span {
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: #64748B;
 }
 
 .exercise-sets,
 .exercise-reps {
     font-size: 0.85rem;
-    color: var(--text-secondary);
-    background: rgba(0, 0, 0, 0.2);
+    color: #475569;
+    background: #F1F5F9;
     padding: 0.25rem 0.75rem;
     border-radius: 6px;
     white-space: nowrap;
+    font-weight: 500;
 }
 
 .exercise-notes {
     grid-column: 1 / -1;
-    font-size: 0.8rem;
-    color: #94a3b8;
+    font-size: 0.85rem;
+    color: #64748B;
     font-style: italic;
-    margin-top: -0.25rem;
-    padding-left: 0.5rem;
-    border-left: 2px solid var(--border-color);
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: #FEF2F2;
+    /* Light red/pink background for notes */
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }

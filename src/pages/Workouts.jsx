@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { useWorkouts, useExercises } from '../hooks/useSupabase';
-import { Calendar, Clock, ChevronLeft, Dumbbell, Info, Loader2 } from 'lucide-react';
+import { supabaseHelpers } from '../lib/supabase';
+import { Calendar, Clock, ChevronLeft, Dumbbell, Info, Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
+import WorkoutModal from '../components/WorkoutModal';
 import './Workouts.css';
 
 
 
 const Workouts = () => {
-    const { workouts, loading: workoutsLoading, error: workoutsError } = useWorkouts();
+    const { workouts, loading: workoutsLoading, error: workoutsError, reload } = useWorkouts();
     const { exercises, loading: exercisesLoading } = useExercises();
     const [selectedWorkout, setSelectedWorkout] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingWorkout, setEditingWorkout] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     const getExerciseDetails = (id) => {
         return exercises.find(ex => ex.id === id) || { name: 'Exercício não encontrado', muscle_group: '-' };
@@ -110,11 +115,70 @@ const Workouts = () => {
         );
     }
 
+    // CRUD Handlers
+    const handleCreateWorkout = () => {
+        setEditingWorkout(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEditWorkout = (e, workout) => {
+        e.stopPropagation(); // Prevent card click
+        setEditingWorkout(workout);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteWorkout = async (e, workout) => {
+        e.stopPropagation(); // Prevent card click
+        if (!confirm(`Tem certeza que deseja excluir "${workout.title}"?`)) {
+            return;
+        }
+
+        try {
+            await supabaseHelpers.deleteWorkout(workout.id);
+            alert('Treino excluído com sucesso!');
+            reload(); // Reload the workouts list
+            if (selectedWorkout?.id === workout.id) {
+                setSelectedWorkout(null);
+            }
+        } catch (err) {
+            console.error('Error deleting workout:', err);
+            alert('Erro ao excluir treino: ' + err.message);
+        }
+    };
+
+    const handleSaveWorkout = async (workoutData) => {
+        setIsSaving(true);
+        try {
+            if (editingWorkout) {
+                // Update existing workout
+                await supabaseHelpers.updateWorkout(editingWorkout.id, workoutData);
+                alert('Treino atualizado com sucesso!');
+            } else {
+                // Create new workout
+                await supabaseHelpers.createWorkout(workoutData);
+                alert('Treino criado com sucesso!');
+            }
+            setIsModalOpen(false);
+            reload(); // Reload the workouts list
+        } catch (err) {
+            console.error('Error saving workout:', err);
+            alert('Erro ao salvar treino: ' + err.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="workouts-container">
             <div className="workouts-header">
-                <h1>Meus Treinos</h1>
-                <p>Selecione um programa para ver os detalhes.</p>
+                <div>
+                    <h1>Meus Treinos</h1>
+                    <p>Selecione um programa para ver os detalhes.</p>
+                </div>
+                <button className="add-workout-btn" onClick={handleCreateWorkout} title="Criar novo treino">
+                    <Plus size={20} />
+                    Novo Treino
+                </button>
             </div>
 
             <div className="plans-grid">
@@ -126,7 +190,25 @@ const Workouts = () => {
                     >
                         <div className="plan-header">
                             <h3 className="plan-title">{workout.title}</h3>
-                            <span className="plan-difficulty">{workout.difficulty}</span>
+                            <div className="plan-actions">
+                                <span className="plan-difficulty">{workout.difficulty}</span>
+                                <div className="action-buttons">
+                                    <button
+                                        className="icon-btn"
+                                        onClick={(e) => handleEditWorkout(e, workout)}
+                                        title="Editar treino"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                        className="icon-btn"
+                                        onClick={(e) => handleDeleteWorkout(e, workout)}
+                                        title="Excluir treino"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <p className="plan-description">
                             {workout.description.length > 100
@@ -146,6 +228,15 @@ const Workouts = () => {
                     </div>
                 ))}
             </div>
+
+            {/* Workout Modal */}
+            <WorkoutModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSaveWorkout}
+                workout={editingWorkout}
+                isLoading={isSaving}
+            />
         </div>
     );
 };

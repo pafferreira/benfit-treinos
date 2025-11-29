@@ -83,6 +83,63 @@ export const supabaseHelpers = {
         return data
     },
 
+    async createExercise(exerciseData) {
+        // Generate a unique exercise_key from the name
+        const exercise_key = exerciseData.name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Remove accents
+            .replace(/[^a-z0-9\s]/g, '') // Remove special chars
+            .replace(/\s+/g, '_') // Replace spaces with underscore
+            .substring(0, 50); // Limit length
+
+        const { data, error } = await supabase
+            .from('b_exercises')
+            .insert({
+                exercise_key,
+                name: exerciseData.name,
+                muscle_group: exerciseData.muscle_group,
+                equipment: exerciseData.equipment,
+                video_url: exerciseData.video_url || '',
+                instructions: exerciseData.instructions || [],
+                tags: exerciseData.tags || []
+            })
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    },
+
+    async updateExercise(id, exerciseData) {
+        const { data, error } = await supabase
+            .from('b_exercises')
+            .update({
+                name: exerciseData.name,
+                muscle_group: exerciseData.muscle_group,
+                equipment: exerciseData.equipment,
+                video_url: exerciseData.video_url || '',
+                instructions: exerciseData.instructions || [],
+                tags: exerciseData.tags || []
+            })
+            .eq('id', id)
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    },
+
+    async deleteExercise(id) {
+        const { error } = await supabase
+            .from('b_exercises')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+        return true
+    },
+
     // Workouts
     async getAllWorkouts() {
         const { data, error } = await supabase
@@ -122,6 +179,57 @@ export const supabaseHelpers = {
 
         if (error) throw error
         return data
+    },
+
+    async createWorkout(workoutData) {
+        // Generate a unique workout_key
+        const workout_key = 'wk_' + Date.now().toString(36);
+
+        const { data, error } = await supabase
+            .from('b_workouts')
+            .insert({
+                workout_key,
+                title: workoutData.title,
+                description: workoutData.description,
+                difficulty: workoutData.difficulty,
+                estimated_duration: workoutData.estimated_duration,
+                days_per_week: workoutData.days_per_week,
+                is_public: workoutData.is_public
+            })
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    },
+
+    async updateWorkout(id, workoutData) {
+        const { data, error } = await supabase
+            .from('b_workouts')
+            .update({
+                title: workoutData.title,
+                description: workoutData.description,
+                difficulty: workoutData.difficulty,
+                estimated_duration: workoutData.estimated_duration,
+                days_per_week: workoutData.days_per_week,
+                is_public: workoutData.is_public
+            })
+            .eq('id', id)
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    },
+
+    async deleteWorkout(id) {
+        const { error } = await supabase
+            .from('b_workouts')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+        return true
     },
 
     // User Sessions
