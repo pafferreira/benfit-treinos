@@ -29,8 +29,8 @@
 
 .modal-content {
     background: #FFFFFF;
-    border-radius: 12px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
     max-height: 90vh;
     overflow: hidden;
     display: flex;
@@ -95,7 +95,7 @@
     /* Gray 500 */
     cursor: pointer;
     padding: 0.5rem;
-    border-radius: 6px;
+    border-radius: 10px;
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -161,10 +161,10 @@
 .form-group input,
 .form-group textarea,
 .form-group select {
-    padding: 0.625rem 0.875rem;
-    border: 1px solid #D1D5DB;
-    /* Gray 300 - Visible Border */
-    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #E6EEF8;
+    /* Very light border */
+    border-radius: 12px;
     background: #FFFFFF;
     color: #111827;
     /* Gray 900 */
@@ -178,9 +178,8 @@
 .form-group textarea:focus,
 .form-group select:focus {
     outline: none;
-    border-color: #6366F1;
-    /* Indigo 500 */
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: rgba(59, 130, 246, 0.5); /* Blue 500 */
+    box-shadow: 0 6px 18px rgba(59,130,246,0.08);
 }
 
 .form-group input::placeholder,
@@ -213,7 +212,7 @@
 .btn {
     padding: 0.625rem 1.25rem;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -274,8 +273,8 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     padding: 0.5rem;
-    border: 1px solid #D1D5DB;
-    border-radius: 6px;
+    border: 1px solid #E6EEF8;
+    border-radius: 9999px;
     background: #FFFFFF;
     min-height: 42px;
 }
@@ -289,8 +288,8 @@
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    padding: 0.25rem 0.625rem;
-    background: #EEF2FF;
+    padding: 0.35rem 0.75rem;
+    background: #F1F8FF;
     /* Indigo 50 */
     color: #4F46E5;
     /* Indigo 600 */
@@ -303,7 +302,7 @@
 .tag-remove-btn {
     background: none;
     border: none;
-    color: #6366F1;
+    color: #2563EB; /* Blue 600 */
     cursor: pointer;
     padding: 0;
     display: flex;

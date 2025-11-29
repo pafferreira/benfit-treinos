@@ -101,12 +101,12 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
     const MUSCLE_GROUPS = [
         'Peito', 'Costas', 'Pernas', 'Ombros', 'Bíceps', 'Tríceps',
         'Abdômen', 'Glúteos', 'Panturrilha', 'Cardio', 'Corpo Inteiro'
-    ];
+    ].slice().sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
 
     const EQUIPMENT_TYPES = [
         'Peso do Corpo', 'Halter', 'Barra', 'Máquina', 'Polia Alta', 'Polia Baixa',
         'Elástico', 'Kettlebell', 'Banco', 'Esteira', 'Bicicleta', 'Outro'
-    ];
+    ].slice().sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={exercise ? 'Editar Exercício' : 'Novo Exercício'} size="large">

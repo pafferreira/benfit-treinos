@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useWorkouts, useExercises } from '../hooks/useSupabase';
 import { supabaseHelpers } from '../lib/supabase';
-import { Calendar, Clock, ChevronLeft, Dumbbell, Info, Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Calendar, Clock, ChevronLeft, Dumbbell, Info, Loader2, Plus, Edit2, Trash2, Search } from 'lucide-react';
 import WorkoutModal from '../components/WorkoutModal';
 import './Workouts.css';
 
@@ -14,10 +14,34 @@ const Workouts = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingWorkout, setEditingWorkout] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [difficultyFilter, setDifficultyFilter] = useState('all');
 
     const getExerciseDetails = (id) => {
         return exercises.find(ex => ex.id === id) || { name: 'Exercício não encontrado', muscle_group: '-' };
     };
+
+    useEffect(() => {
+        // Close expanded workout detail with ESC when it's open
+        // but don't intercept if a modal is open for editing
+        if (!selectedWorkout || isModalOpen) return;
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                setSelectedWorkout(null);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [selectedWorkout, isModalOpen]);
+
+    const filteredWorkouts = useMemo(() => {
+        if (!workouts) return [];
+        return workouts.filter(w => {
+            const matchesSearch = !searchTerm || (w.title && w.title.toLowerCase().includes(searchTerm.toLowerCase())) || (w.description && w.description.toLowerCase().includes(searchTerm.toLowerCase()));
+            const matchesDifficulty = difficultyFilter === 'all' || w.difficulty === difficultyFilter;
+            return matchesSearch && matchesDifficulty;
+        });
+    }, [workouts, searchTerm, difficultyFilter]);
 
     if (selectedWorkout) {
         return (
@@ -84,6 +108,7 @@ const Workouts = () => {
     }
 
     // Loading state
+
     if (workoutsLoading || exercisesLoading) {
         return (
             <div className="workouts-container">
@@ -170,7 +195,7 @@ const Workouts = () => {
 
     return (
         <div className="workouts-container">
-            <div className="workouts-header">
+            <div className="workouts-header compact">
                 <div>
                     <h1>Meus Treinos</h1>
                     <p>Selecione um programa para ver os detalhes.</p>
@@ -181,8 +206,32 @@ const Workouts = () => {
                 </button>
             </div>
 
+            {/* compact stats and search area */}
+            <div className="workouts-topbar">
+                <div className="workouts-stats">
+                    <div className="stat-chip">Total: {filteredWorkouts.length}</div>
+                </div>
+                <div className="filter-bar compact">
+                    <div className="search-box">
+                        <Search className="search-icon" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Buscar treinos..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <select className="filter-select compact" value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value)}>
+                        <option value="all">Todos</option>
+                        <option value="Iniciante">Iniciante</option>
+                        <option value="Intermediário">Intermediário</option>
+                        <option value="Avançado">Avançado</option>
+                    </select>
+                </div>
+            </div>
+
             <div className="plans-grid">
-                {workouts.map(workout => (
+                {filteredWorkouts.map(workout => (
                     <div
                         key={workout.id}
                         className="plan-card"

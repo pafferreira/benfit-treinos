@@ -12,6 +12,12 @@
     margin-bottom: 2rem;
 }
 
+.workouts-header.compact {
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
 .workouts-header h1 {
     font-size: 2rem;
     font-weight: 700;
@@ -34,7 +40,7 @@
     /* Dark Blue */
     color: white;
     border: none;
-    padding: 0.75rem 1.5rem;
+    padding: 0.5rem 1rem;
     border-radius: 8px;
     font-weight: 500;
     cursor: pointer;
@@ -167,12 +173,14 @@
 
 /* Detalhes do Treino (Expandido) */
 .workout-details {
-    background: #FFFFFF;
+    /* Enforce light card look regardless of app theme */
+    background: var(--color-bg-card, #FFFFFF);
+    color: var(--color-text-main, #0F172A);
     border-radius: 16px;
     padding: 2rem;
     margin-top: 2rem;
-    border: 1px solid #E2E8F0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--color-border, #E2E8F0);
+    box-shadow: var(--shadow-sm, 0 4px 6px -1px rgba(0, 0, 0, 0.05));
     animation: slideUp 0.3s ease-out;
 }
 
@@ -189,9 +197,9 @@
 }
 
 .back-btn {
-    background: white;
-    border: 1px solid #E2E8F0;
-    color: #64748B;
+    background: var(--color-bg-card, #FFFFFF);
+    border: 1px solid var(--color-border, #E2E8F0);
+    color: var(--color-text-light, #64748B);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -205,9 +213,9 @@
 }
 
 .back-btn:hover {
-    color: #0F172A;
+    color: var(--color-text-main, #0F172A);
     border-color: #CBD5E1;
-    background: #F8FAFC;
+    background: var(--color-bg-app, #F8FAFC);
 }
 
 .days-list {
@@ -292,4 +300,92 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+/* Make titles in the detail view dark and plain for better readability */
+.workout-details .workouts-header h1 {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
+    color: var(--color-text-main, #0F172A) !important;
+}
+
+/* Compact topbar for filters/search */
+.workouts-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.workouts-stats .stat-chip {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background: var(--color-bg-card, #fff);
+    border: 1px solid var(--color-primary-light, #334155);
+    color: var(--color-text-main, #0F172A);
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.filter-bar.compact {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.search-box {
+    position: relative;
+}
+
+.search-box input {
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+    width: 220px;
+    border-radius: 10px;
+    border: 1px solid var(--color-primary, #0F172A);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.search-icon {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-muted);
+}
+
+.filter-select.compact {
+    padding: 0.45rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--color-primary, #0F172A);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Make the add button a bit smaller inside compact header */
+.workouts-header.compact .add-workout-btn {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 720px) {
+    .workouts-topbar {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+    .filter-bar.compact {
+        gap: 0.5rem;
+        align-items: center;
+    }
+    .search-box input {
+        width: 100%;
+    }
+    .filter-select.compact {
+        width: 100%;
+    }
 }

@@ -61,7 +61,8 @@ export const useWorkouts = () => {
                 console.log('  - Days:', workout.b_workout_days?.length)
 
                 const transformed = {
-                    id: workout.workout_key,
+                    // Use the UUID primary key returned by the DB to avoid sending non-UUID keys where UUIDs are expected
+                    id: workout.id,
                     title: workout.title,
                     description: workout.description,
                     difficulty: workout.difficulty,
@@ -71,9 +72,11 @@ export const useWorkouts = () => {
                     schedule: workout.b_workout_days?.map(day => {
                         console.log('    - Day:', day.day_name, '- Exercises:', day.b_workout_exercises?.length)
                         return {
+                            id: day.id,
                             day_name: day.day_name,
                             exercises: day.b_workout_exercises?.map(we => ({
-                                exercise_id: we.b_exercises?.exercise_key,
+                                // prefer the explicit FK (we.exercise_id) which is a UUID; fallback to nested b_exercises.id if present
+                                exercise_id: we.exercise_id || we.b_exercises?.id,
                                 sets: we.sets,
                                 reps: we.reps,
                                 notes: we.notes

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useExercises } from '../hooks/useSupabase';
 import { supabaseHelpers } from '../lib/supabase';
 import { Search, Filter, Plus, Edit2, Trash2, Target, Package, Loader2, LayoutGrid, List } from 'lucide-react';
@@ -13,13 +13,19 @@ const Exercises = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedExercise, setSelectedExercise] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [viewMode, setViewMode] = useState(() => localStorage.getItem('exercises-view') || 'grid'); // 'grid' or 'list'
 
     // Filter exercises
     const filteredExercises = useMemo(() => {
         return exercises.filter(exercise => {
-            const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                exercise.muscle_group.toLowerCase().includes(searchTerm.toLowerCase());
+            const q = searchTerm.trim().toLowerCase();
+            const matchesSearch = !q || [
+                exercise.name,
+                exercise.muscle_group,
+                exercise.equipment,
+                (exercise.tags || []).join(' '),
+                (Array.isArray(exercise.instructions) ? exercise.instructions.join(' ') : exercise.instructions || '')
+            ].some(field => (field || '').toString().toLowerCase().includes(q));
             const matchesMuscle = muscleFilter === 'all' || exercise.muscle_group === muscleFilter;
             const matchesEquipment = equipmentFilter === 'all' || exercise.equipment === equipmentFilter;
 
@@ -94,6 +100,15 @@ const Exercises = () => {
         }
     };
 
+    // Persist the user's chosen view mode (grid/list) to localStorage
+    useEffect(() => {
+        try {
+            localStorage.setItem('exercises-view', viewMode);
+        } catch (err) {
+            // Safari private mode or other storage errors
+        }
+    }, [viewMode]);
+
     // Loading state
     if (loading) {
         return (
@@ -161,7 +176,7 @@ const Exercises = () => {
                     <Search className="search-icon" size={20} />
                     <input
                         type="text"
-                        placeholder="Buscar exercícios..."
+                        placeholder="Buscar por nome, músculo, equipamento, tags, instruções..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -189,9 +204,21 @@ const Exercises = () => {
                     ))}
                 </select>
 
+                <button
+                    className="search-btn"
+                    onClick={() => { /* mantém compatibilidade com busca instantânea; foco no input */
+                        const el = document.querySelector('.search-box input');
+                        if (el) el.focus();
+                    }}
+                    title="Buscar"
+                >
+                    Buscar
+                </button>
+
                 <div className="view-toggle">
                     <button
                         className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                        aria-pressed={viewMode === 'grid'}
                         onClick={() => setViewMode('grid')}
                         title="Visualização em Grade"
                     >
@@ -199,6 +226,7 @@ const Exercises = () => {
                     </button>
                     <button
                         className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                        aria-pressed={viewMode === 'list'}
                         onClick={() => setViewMode('list')}
                         title="Visualização em Lista"
                     >
