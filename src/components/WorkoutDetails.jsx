@@ -4,8 +4,6 @@ import './WorkoutDetails.css';
 
 const WorkoutDetails = ({ workout, onBack, allExercises = [] }) => {
     // State for accordions
-    // openDays: array of day indices that are open
-    const [openDays, setOpenDays] = useState([0]);
     // openExercises: object where key is dayIndex, value is array of exercise indices
     const [openExercises, setOpenExercises] = useState({});
 
@@ -18,16 +16,7 @@ const WorkoutDetails = ({ workout, onBack, allExercises = [] }) => {
         };
     };
 
-    const toggleDay = (index) => {
-        setOpenDays(prev =>
-            prev.includes(index)
-                ? prev.filter(i => i !== index)
-                : [...prev, index]
-        );
-    };
-
-    const toggleExercise = (dayIndex, exIndex, e) => {
-        e.stopPropagation(); // Prevent triggering day toggle
+    const toggleExercise = (dayIndex, exIndex) => {
         setOpenExercises(prev => {
             const dayExercises = prev[dayIndex] || [];
             const isOpen = dayExercises.includes(exIndex);
@@ -45,163 +34,123 @@ const WorkoutDetails = ({ workout, onBack, allExercises = [] }) => {
 
     return (
         <div className="workout-details-container">
-            <button className="back-btn" onClick={onBack} style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '1rem' }}>
+            <button className="back-btn" onClick={onBack}>
                 <ChevronLeft size={20} />
                 Voltar para lista
             </button>
 
             {/* Header */}
             <div className="details-header">
-                <div className="header-top">
-                    <div className="header-title">
+                <div className="header-content">
+                    <div className="header-main">
                         <h1>{workout.title}</h1>
-                        <div className="header-description">{workout.description}</div>
+                        <p className="header-description">{workout.description}</p>
                     </div>
-                </div>
 
-                <div className="header-meta">
-                    <div className="meta-badge">
-                        <Clock size={18} />
-                        {workout.estimated_duration} min/sessão
-                    </div>
-                    <div className="meta-badge">
-                        <Calendar size={18} />
-                        {workout.days_per_week} dias/semana
-                    </div>
-                    <div className="meta-badge">
-                        <Layers size={18} />
-                        {workout.difficulty}
+                    <div className="header-stats">
+                        <div className="stat-pill">
+                            <Clock size={16} />
+                            <span>{workout.estimated_duration} min</span>
+                        </div>
+                        <div className="stat-pill">
+                            <Calendar size={16} />
+                            <span>{workout.days_per_week} dias/sem</span>
+                        </div>
+                        <div className="stat-pill">
+                            <Layers size={16} />
+                            <span>{workout.difficulty}</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Days Accordion (Level 1) */}
-            <div className="days-container">
-                {workout.schedule.map((day, dayIndex) => {
-                    const isDayOpen = openDays.includes(dayIndex);
+            {/* Days List */}
+            <div className="days-list">
+                {workout.schedule.map((day, dayIndex) => (
+                    <div key={dayIndex} className="day-section">
+                        <div className="day-header">
+                            <div className="day-badge">Dia {dayIndex + 1}</div>
+                            <h2 className="day-title">{day.day_name}</h2>
+                            <span className="day-count">{day.exercises.length} exercícios</span>
+                        </div>
 
-                    return (
-                        <div key={dayIndex} className={`accordion-item ${isDayOpen ? 'open' : ''}`}>
-                            <button
-                                className="accordion-trigger"
-                                onClick={() => toggleDay(dayIndex)}
-                            >
-                                <div className="day-header-content">
-                                    <div className="day-icon">
-                                        <Dumbbell size={20} />
-                                    </div>
-                                    <div>
-                                        <div className="day-title">{day.day_name}</div>
-                                        <div className="day-subtitle">{day.exercises.length} exercícios</div>
-                                    </div>
-                                </div>
-                                <ChevronDown className="chevron" size={20} />
-                            </button>
+                        <div className="exercises-grid">
+                            {day.exercises.map((exItem, exIndex) => {
+                                const details = getExerciseDetails(exItem.exercise_id);
+                                const isExOpen = (openExercises[dayIndex] || []).includes(exIndex);
 
-                            <div className="accordion-content">
-                                <div className="exercises-list">
-                                    {day.exercises.map((exItem, exIndex) => {
-                                        const details = getExerciseDetails(exItem.exercise_id);
-                                        const isExOpen = (openExercises[dayIndex] || []).includes(exIndex);
-
-                                        return (
-                                            <div key={exIndex} className="exercise-item">
-                                                {/* Exercise Trigger (Level 2) */}
-                                                <button
-                                                    className="exercise-trigger"
-                                                    onClick={(e) => toggleExercise(dayIndex, exIndex, e)}
-                                                >
-                                                    <div className="exercise-header-info">
-                                                        <div className="exercise-number">{exIndex + 1}</div>
-                                                        <div className="exercise-name">{details.name}</div>
-                                                    </div>
-
-                                                    <div className="exercise-summary">
-                                                        <span className="summary-tag">
-                                                            <Repeat size={14} />
-                                                            {exItem.sets} x {exItem.reps}
-                                                        </span>
-                                                        <span className="summary-tag">
-                                                            <Target size={14} />
+                                return (
+                                    <div key={exIndex} className={`exercise-card ${isExOpen ? 'open' : ''}`}>
+                                        <button
+                                            className="exercise-header"
+                                            onClick={() => toggleExercise(dayIndex, exIndex)}
+                                        >
+                                            <div className="exercise-info">
+                                                <div className="exercise-index">{exIndex + 1}</div>
+                                                <div className="exercise-main-info">
+                                                    <h3>{details.name}</h3>
+                                                    <div className="exercise-tags">
+                                                        <span className="tag">
+                                                            <Target size={12} />
                                                             {details.muscle_group}
                                                         </span>
+                                                        <span className="tag">
+                                                            <Repeat size={12} />
+                                                            {exItem.sets} x {exItem.reps}
+                                                        </span>
                                                     </div>
-
-                                                    <ChevronDown
-                                                        size={16}
-                                                        className="chevron"
-                                                        style={{ transform: isExOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                                                    />
-                                                </button>
-
-                                                {/* Exercise Details Content */}
-                                                {isExOpen && (
-                                                    <div className="exercise-details">
-                                                        <div className="detail-card">
-                                                            <div className="detail-label">
-                                                                <Layers size={14} /> Séries
-                                                            </div>
-                                                            <div className="detail-value">{exItem.sets}</div>
-                                                        </div>
-
-                                                        <div className="detail-card">
-                                                            <div className="detail-label">
-                                                                <Repeat size={14} /> Repetições
-                                                            </div>
-                                                            <div className="detail-value">{exItem.reps}</div>
-                                                        </div>
-
-                                                        <div className="detail-card">
-                                                            <div className="detail-label">
-                                                                <Timer size={14} /> Descanso
-                                                            </div>
-                                                            <div className="detail-value">
-                                                                {exItem.rest_seconds ? `${exItem.rest_seconds}s` : '-'}
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="detail-card">
-                                                            <div className="detail-label">
-                                                                <Target size={14} /> Músculo Alvo
-                                                            </div>
-                                                            <div className="detail-value">{details.muscle_group}</div>
-                                                        </div>
-
-                                                        {/* Notes Section (Highlighted) */}
-                                                        {exItem.notes && (
-                                                            <div className="detail-card notes-section">
-                                                                <div className="detail-label">
-                                                                    <Info size={14} /> Notas de Execução
-                                                                </div>
-                                                                <div className="detail-value">
-                                                                    {exItem.notes}
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Instructions Tooltip/Info */}
-                                                        {details.instructions && details.instructions.length > 0 && (
-                                                            <div className="detail-card" style={{ gridColumn: '1 / -1' }}>
-                                                                <div className="detail-label">
-                                                                    <Info size={14} /> Instruções do Exercício
-                                                                </div>
-                                                                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                                                                    {Array.isArray(details.instructions)
-                                                                        ? details.instructions.join('. ')
-                                                                        : details.instructions}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
+                                                </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                                            <ChevronDown
+                                                size={20}
+                                                className={`chevron ${isExOpen ? 'rotated' : ''}`}
+                                            />
+                                        </button>
+
+                                        <div className={`exercise-content ${isExOpen ? 'expanded' : ''}`}>
+                                            <div className="exercise-details-grid">
+                                                <div className="detail-item">
+                                                    <span className="label"><Layers size={14} /> Séries</span>
+                                                    <span className="value">{exItem.sets}</span>
+                                                </div>
+                                                <div className="detail-item">
+                                                    <span className="label"><Repeat size={14} /> Repetições</span>
+                                                    <span className="value">{exItem.reps}</span>
+                                                </div>
+                                                <div className="detail-item">
+                                                    <span className="label"><Timer size={14} /> Descanso</span>
+                                                    <span className="value">{exItem.rest_seconds ? `${exItem.rest_seconds}s` : '-'}</span>
+                                                </div>
+                                                <div className="detail-item">
+                                                    <span className="label"><Dumbbell size={14} /> Equipamento</span>
+                                                    <span className="value">{details.equipment || '-'}</span>
+                                                </div>
+                                            </div>
+
+                                            {exItem.notes && (
+                                                <div className="exercise-notes">
+                                                    <div className="note-label"><Info size={14} /> Notas</div>
+                                                    <p>{exItem.notes}</p>
+                                                </div>
+                                            )}
+
+                                            {details.instructions && details.instructions.length > 0 && (
+                                                <div className="exercise-instructions">
+                                                    <div className="instruction-label">Instruções</div>
+                                                    <p>
+                                                        {Array.isArray(details.instructions)
+                                                            ? details.instructions.join('. ')
+                                                            : details.instructions}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    );
-                })}
+                    </div>
+                ))}
             </div>
         </div>
     );
