@@ -178,8 +178,9 @@
 .form-group textarea:focus,
 .form-group select:focus {
     outline: none;
-    border-color: rgba(59, 130, 246, 0.5); /* Blue 500 */
-    box-shadow: 0 6px 18px rgba(59,130,246,0.08);
+    border-color: rgba(59, 130, 246, 0.5);
+    /* Blue 500 */
+    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.08);
 }
 
 .form-group input::placeholder,
@@ -212,7 +213,8 @@
 .btn {
     padding: 0.625rem 1.25rem;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: 9999px;
+    /* Fully rounded */
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -240,16 +242,16 @@
     background: #FFFFFF;
     color: #374151;
     /* Gray 700 */
-    border-color: #D1D5DB;
-    /* Gray 300 */
+    border-color: #9CA3AF;
+    /* Darker border (Gray 400) */
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover {
     background: #F9FAFB;
     /* Gray 50 */
-    border-color: #9CA3AF;
-    /* Gray 400 */
+    border-color: #6B7280;
+    /* Gray 500 */
     color: #111827;
 }
 
@@ -302,7 +304,8 @@
 .tag-remove-btn {
     background: none;
     border: none;
-    color: #2563EB; /* Blue 600 */
+    color: #2563EB;
+    /* Blue 600 */
     cursor: pointer;
     padding: 0;
     display: flex;

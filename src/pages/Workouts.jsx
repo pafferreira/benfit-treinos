@@ -21,6 +21,24 @@ const Workouts = () => {
         return exercises.find(ex => ex.id === id) || { name: 'Exercício não encontrado', muscle_group: '-' };
     };
 
+    // Accordion state: which days are open and which exercise details are open
+    const [openDays, setOpenDays] = useState(() => new Set());
+    const [openExercises, setOpenExercises] = useState(() => ({}));
+
+    const toggleDay = (dayIndex) => {
+        setOpenDays(prev => {
+            const next = new Set(prev);
+            if (next.has(dayIndex)) next.delete(dayIndex);
+            else next.add(dayIndex);
+            return next;
+        });
+    };
+
+    const toggleExercise = (dayIndex, exIndex) => {
+        const key = `${dayIndex}-${exIndex}`;
+        setOpenExercises(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
     useEffect(() => {
         // Close expanded workout detail with ESC when it's open
         // but don't intercept if a modal is open for editing
@@ -68,39 +86,63 @@ const Workouts = () => {
                     </div>
 
                     <div className="days-list">
-                        {selectedWorkout.schedule.map((day, index) => (
-                            <div key={index} className="day-card">
-                                <div className="day-title">
-                                    <Dumbbell size={20} />
-                                    {day.day_name}
-                                </div>
-                                <div className="exercises-list">
-                                    {day.exercises.map((exItem, idx) => {
-                                        const details = getExerciseDetails(exItem.exercise_id);
-                                        return (
-                                            <div key={idx} className="exercise-item">
-                                                <div className="exercise-info">
-                                                    <h4>{details.name}</h4>
-                                                    <span>{details.muscle_group}</span>
-                                                </div>
-                                                <div className="exercise-sets">
-                                                    {exItem.sets} séries
-                                                </div>
-                                                <div className="exercise-reps">
-                                                    {exItem.reps} reps
-                                                </div>
-                                                {exItem.notes && (
-                                                    <div className="exercise-notes">
-                                                        <Info size={12} style={{ display: 'inline', marginRight: 4 }} />
-                                                        {exItem.notes}
+                        {selectedWorkout.schedule.map((day, index) => {
+                            const dayOpen = openDays.has(index);
+                            return (
+                                <div key={index} className={`day-card ${dayOpen ? 'open' : 'collapsed'}`}>
+                                    <button
+                                        type="button"
+                                        className="day-title clickable"
+                                        onClick={() => toggleDay(index)}
+                                        aria-expanded={dayOpen}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <Dumbbell size={18} />
+                                            <div>{day.day_name}</div>
+                                        </div>
+                                        <div className="day-meta">{(day.exercises || []).length} exercícios</div>
+                                    </button>
+
+                                    <div className="exercises-list" style={{ display: dayOpen ? 'block' : 'none' }}>
+                                        {day.exercises.map((exItem, idx) => {
+                                            const details = getExerciseDetails(exItem.exercise_id);
+                                            const key = `${index}-${idx}`;
+                                            const exerciseOpen = !!openExercises[key];
+                                            return (
+                                                <div key={idx} className={`exercise-item ${exerciseOpen ? 'open' : 'collapsed'}`}>
+                                                    <div className="exercise-main" onClick={() => toggleExercise(index, idx)} role="button" tabIndex={0} onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' ') toggleExercise(index, idx); }}>
+                                                        <div className="exercise-info">
+                                                            <h4 className="exercise-name">{details.name}</h4>
+                                                            <div className="exercise-sub">{details.muscle_group} · {details.equipment || ''}</div>
+                                                        </div>
+                                                        <div className="exercise-sets">{exItem.sets}x</div>
+                                                        <div className="exercise-reps">{exItem.reps}</div>
                                                     </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+
+                                                    <div className="exercise-details" style={{ display: exerciseOpen ? 'block' : 'none' }}>
+                                                        {exItem.notes && (
+                                                            <div className="exercise-notes">
+                                                                <Info size={12} style={{ display: 'inline', marginRight: 6 }} />
+                                                                {exItem.notes}
+                                                            </div>
+                                                        )}
+                                                        {/* if we have more details in `details`, show them */}
+                                                        {details.instructions && details.instructions.length > 0 && (
+                                                            <div className="exercise-instructions">
+                                                                <strong>Instruções:</strong>
+                                                                <ul>
+                                                                    {details.instructions.map((ins, i) => <li key={i}>{ins}</li>)}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>

@@ -185,7 +185,7 @@ export const supabaseHelpers = {
         // Generate a unique workout_key
         const workout_key = 'wk_' + Date.now().toString(36);
 
-        const { data, error } = await supabase
+        const { data: workout, error: workoutError } = await supabase
             .from('b_workouts')
             .insert({
                 workout_key,
@@ -199,12 +199,57 @@ export const supabaseHelpers = {
             .select()
             .single()
 
-        if (error) throw error
-        return data
+        if (workoutError) throw workoutError
+
+        // If there is a schedule, save days and exercises
+        if (workoutData.schedule && workoutData.schedule.length > 0) {
+            for (let i = 0; i < workoutData.schedule.length; i++) {
+                const day = workoutData.schedule[i];
+
+                // Create Day
+                const { data: dayData, error: dayError } = await supabase
+                    .from('b_workout_days')
+                    .insert({
+                        workout_id: workout.id,
+                        day_number: i + 1,
+                        day_name: day.day_name
+                    })
+                    .select()
+                    .single();
+
+                if (dayError) {
+                    console.error('Error creating workout day:', dayError);
+                    continue; // Skip exercises if day creation failed
+                }
+
+                // Create Exercises for this Day
+                if (day.exercises && day.exercises.length > 0) {
+                    const exercisesToInsert = day.exercises.map((ex, index) => ({
+                        workout_day_id: dayData.id,
+                        exercise_id: ex.exercise_id,
+                        order_index: index + 1,
+                        sets: parseInt(ex.sets) || 3,
+                        reps: ex.reps || '10',
+                        notes: ex.notes || ''
+                    }));
+
+                    const { error: exercisesError } = await supabase
+                        .from('b_workout_exercises')
+                        .insert(exercisesToInsert);
+
+                    if (exercisesError) {
+                        console.error('Error creating workout exercises:', exercisesError);
+                    }
+                }
+            }
+        }
+
+        return workout
     },
 
     async updateWorkout(id, workoutData) {
-        const { data, error } = await supabase
+        // 1. Update Workout Details
+        const { data: workout, error: workoutError } = await supabase
             .from('b_workouts')
             .update({
                 title: workoutData.title,
@@ -218,8 +263,64 @@ export const supabaseHelpers = {
             .select()
             .single()
 
-        if (error) throw error
-        return data
+        if (workoutError) throw workoutError
+
+        // 2. Update Schedule (Delete existing and re-create)
+        // This is the simplest strategy to handle reordering, additions, and removals
+        if (workoutData.schedule) {
+            // Delete existing days (Cascade will delete exercises)
+            const { error: deleteError } = await supabase
+                .from('b_workout_days')
+                .delete()
+                .eq('workout_id', id);
+
+            if (deleteError) throw deleteError;
+
+            // Re-create Days and Exercises
+            if (workoutData.schedule.length > 0) {
+                for (let i = 0; i < workoutData.schedule.length; i++) {
+                    const day = workoutData.schedule[i];
+
+                    // Create Day
+                    const { data: dayData, error: dayError } = await supabase
+                        .from('b_workout_days')
+                        .insert({
+                            workout_id: id,
+                            day_number: i + 1,
+                            day_name: day.day_name
+                        })
+                        .select()
+                        .single();
+
+                    if (dayError) {
+                        console.error('Error creating workout day:', dayError);
+                        continue;
+                    }
+
+                    // Create Exercises
+                    if (day.exercises && day.exercises.length > 0) {
+                        const exercisesToInsert = day.exercises.map((ex, index) => ({
+                            workout_day_id: dayData.id,
+                            exercise_id: ex.exercise_id,
+                            order_index: index + 1,
+                            sets: parseInt(ex.sets) || 3,
+                            reps: ex.reps || '10',
+                            notes: ex.notes || ''
+                        }));
+
+                        const { error: exercisesError } = await supabase
+                            .from('b_workout_exercises')
+                            .insert(exercisesToInsert);
+
+                        if (exercisesError) {
+                            console.error('Error creating workout exercises:', exercisesError);
+                        }
+                    }
+                }
+            }
+        }
+
+        return workout
     },
 
     async deleteWorkout(id) {

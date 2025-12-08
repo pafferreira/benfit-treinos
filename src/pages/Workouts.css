@@ -177,11 +177,14 @@
     background: var(--color-bg-card, #FFFFFF);
     color: var(--color-text-main, #0F172A);
     border-radius: 16px;
-    padding: 2rem;
-    margin-top: 2rem;
-    border: 1px solid var(--color-border, #E2E8F0);
-    box-shadow: var(--shadow-sm, 0 4px 6px -1px rgba(0, 0, 0, 0.05));
-    animation: slideUp 0.3s ease-out;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        border: 1px solid var(--color-border, #E2E8F0);
+        box-shadow: var(--shadow-sm, 0 6px 18px -6px rgba(2,6,23,0.08));
+        animation: slideUp 0.28s ease-out;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
 }
 
 @keyframes slideUp {
@@ -219,44 +222,96 @@
 }
 
 .days-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    /* Render days as responsive columns on wider screens */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem 1.5rem;
+    align-items: start;
 }
 
 .day-card {
-    background: #F8FAFC;
-    /* Light Slate */
+    background: linear-gradient(180deg, #FBFDFF 0%, #F8FAFC 100%);
     border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid #E2E8F0;
+    padding: 1rem;
+    border: 1px solid #E6EEF6;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 120px;
 }
 
 .day-title {
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1.05rem;
+    font-weight: 700;
     color: #0F172A;
-    margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    justify-content: space-between;
+}
+
+.day-title.clickable {
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.day-title .day-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
 }
 
 .exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.exercise-item {
+    transition: background 0.18s, border-color 0.18s;
+}
+
+.exercise-main {
     display: grid;
+    grid-template-columns: 1fr 72px 72px;
     gap: 0.75rem;
+    align-items: center;
+    padding: 0.6rem;
+    cursor: pointer;
+}
+
+.exercise-main:focus,
+.exercise-main:hover {
+    background: #FBFDFF;
+}
+
+.exercise-details {
+    padding: 0.5rem 0.6rem 0 0.6rem;
+    border-left: 2px solid rgba(14, 165, 233, 0.06);
+    margin-left: 0.4rem;
+}
+
+.exercise-instructions ul {
+    margin: 0.35rem 0 0.35rem 1rem;
 }
 
 .exercise-item {
     display: grid;
     grid-template-columns: 1fr auto auto;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
+    gap: 0.75rem;
+    padding: 0.85rem;
     background: #FFFFFF;
-    border: 1px solid #E2E8F0;
+    border: 1px solid #EEF6FB;
     border-radius: 8px;
-    transition: all 0.2s;
+    transition: all 0.18s ease-in-out;
 }
 
 .exercise-item:hover {
@@ -266,9 +321,10 @@
 
 .exercise-info h4 {
     font-size: 0.95rem;
-    font-weight: 600;
+    font-weight: 700;
     color: #0F172A;
-    margin-bottom: 0.2rem;
+    margin: 0 0 0.15rem 0;
+    line-height: 1.2;
 }
 
 .exercise-info span {
@@ -279,27 +335,35 @@
 .exercise-sets,
 .exercise-reps {
     font-size: 0.85rem;
-    color: #475569;
-    background: #F1F5F9;
-    padding: 0.25rem 0.75rem;
-    border-radius: 6px;
+    color: #1F2937;
+    background: #F8FAFC;
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
     white-space: nowrap;
-    font-weight: 500;
+    font-weight: 600;
+    border: 1px solid #E6EEF6;
 }
 
 .exercise-notes {
     grid-column: 1 / -1;
-    font-size: 0.85rem;
-    color: #64748B;
+    font-size: 0.86rem;
+    color: #475569;
     font-style: italic;
     margin-top: 0.5rem;
-    padding: 0.5rem;
-    background: #FEF2F2;
-    /* Light red/pink background for notes */
-    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(90deg, #FFF8F8, #FEF7F3);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    border: 1px solid rgba(249, 115, 119, 0.12);
+}
+
+/* Small helper: if a day has many exercises, allow the list to scroll inside the card on small heights */
+.day-card .exercises-list-scrollable {
+    max-height: 420px;
+    overflow: auto;
+    padding-right: 4px;
 }
 
 /* Make titles in the detail view dark and plain for better readability */
@@ -384,8 +448,13 @@
     }
     .search-box input {
         width: 100%;
-    }
+         }
     .filter-select.compact {
         width: 100%;
-    }
+        }
+
+        /* Make days list stack full-width on small screens */
+        .days-list {
+            grid-template-columns: 1fr;
+        }
 }

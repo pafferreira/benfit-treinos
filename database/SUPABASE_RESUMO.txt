@@ -47,7 +47,7 @@ ARQUIVOS CRIADOS
    - Constraints e validações
 
 ================================================================================
-ESTRUTURA DO BANCO DE DADOS
+BENFIT - ESTRUTURA DO BANCO DE DADOS
 ================================================================================
 
 TABELAS CRIADAS (10):
