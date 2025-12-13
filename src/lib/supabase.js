@@ -105,7 +105,7 @@ export const supabaseHelpers = {
                 tags: exerciseData.tags || []
             })
             .select()
-            .single()
+            .maybeSingle()
 
         if (error) throw error
         return data
@@ -124,7 +124,7 @@ export const supabaseHelpers = {
             })
             .eq('id', id)
             .select()
-            .single()
+            .maybeSingle()
 
         if (error) throw error
         return data
@@ -182,10 +182,15 @@ export const supabaseHelpers = {
     },
 
     async createWorkout(workoutData) {
+        // Get current user for creator_id
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) throw new Error('Usuário não autenticado');
+
         // Generate a unique workout_key
         const workout_key = 'wk_' + Date.now().toString(36);
 
-        const { data: workout, error: workoutError } = await supabase
+        const { data: workoutResult, error: workoutError } = await supabase
             .from('b_workouts')
             .insert({
                 workout_key,
@@ -194,12 +199,15 @@ export const supabaseHelpers = {
                 difficulty: workoutData.difficulty,
                 estimated_duration: workoutData.estimated_duration,
                 days_per_week: workoutData.days_per_week,
-                is_public: workoutData.is_public
+                is_public: workoutData.is_public,
+                creator_id: user.id
             })
             .select()
-            .single()
+
+        const workout = workoutResult ? workoutResult[0] : null;
 
         if (workoutError) throw workoutError
+        if (!workout) throw new Error('Falha ao criar treino: Nenhum dado retornado. Verifique as permissões (RLS).');
 
         // If there is a schedule, save days and exercises
         if (workoutData.schedule && workoutData.schedule.length > 0) {
@@ -207,19 +215,25 @@ export const supabaseHelpers = {
                 const day = workoutData.schedule[i];
 
                 // Create Day
-                const { data: dayData, error: dayError } = await supabase
+                const { data: dayDataResult, error: dayError } = await supabase
                     .from('b_workout_days')
                     .insert({
                         workout_id: workout.id,
                         day_number: i + 1,
                         day_name: day.day_name
                     })
-                    .select()
-                    .single();
+                    .select();
+
+                const dayData = dayDataResult ? dayDataResult[0] : null;
 
                 if (dayError) {
                     console.error('Error creating workout day:', dayError);
                     continue; // Skip exercises if day creation failed
+                }
+
+                if (!dayData) {
+                    console.error('Error creating workout day: No data returned (RLS?)');
+                    continue;
                 }
 
                 // Create Exercises for this Day
@@ -248,8 +262,11 @@ export const supabaseHelpers = {
     },
 
     async updateWorkout(id, workoutData) {
+        // Get current user to ensure ownership
+        const { data: { user } } = await supabase.auth.getUser();
+
         // 1. Update Workout Details
-        const { data: workout, error: workoutError } = await supabase
+        const { data: workoutResult, error: workoutError } = await supabase
             .from('b_workouts')
             .update({
                 title: workoutData.title,
@@ -257,13 +274,16 @@ export const supabaseHelpers = {
                 difficulty: workoutData.difficulty,
                 estimated_duration: workoutData.estimated_duration,
                 days_per_week: workoutData.days_per_week,
-                is_public: workoutData.is_public
+                is_public: workoutData.is_public,
+                creator_id: user ? user.id : undefined // Claim ownership if possible
             })
             .eq('id', id)
             .select()
-            .single()
+
+        const workout = workoutResult ? workoutResult[0] : null;
 
         if (workoutError) throw workoutError
+        if (!workout) throw new Error('Falha ao atualizar treino: Nenhum dado retornado. Verifique as permissões (RLS).');
 
         // 2. Update Schedule (Delete existing and re-create)
         // This is the simplest strategy to handle reordering, additions, and removals
@@ -282,18 +302,24 @@ export const supabaseHelpers = {
                     const day = workoutData.schedule[i];
 
                     // Create Day
-                    const { data: dayData, error: dayError } = await supabase
+                    const { data: dayDataResult, error: dayError } = await supabase
                         .from('b_workout_days')
                         .insert({
                             workout_id: id,
                             day_number: i + 1,
                             day_name: day.day_name
                         })
-                        .select()
-                        .single();
+                        .select();
+
+                    const dayData = dayDataResult ? dayDataResult[0] : null;
 
                     if (dayError) {
                         console.error('Error creating workout day:', dayError);
+                        continue;
+                    }
+
+                    if (!dayData) {
+                        console.error('Error creating workout day: No data returned (RLS?)');
                         continue;
                     }
 

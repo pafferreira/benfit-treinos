@@ -1,0 +1,97 @@
+Controle de Treinos - Prompt
+
+Vamos criar um aplicativo de acompanhamento de treinos e exercícios físicos
+Possui um treinador chamado Benfit, um avatar de um rapaz simpático, jovem, cabelo escuro, olhos grandes, forte com os músculos definidos mas sem exagero.
+Este treinador será um agente que conhece muito de exercícios físicos, entende de fisiologia e sabe dosar os treinos para cada tipo de usuário, homens, mulheres, velho, jovem, e definir os objetivos dos exercícios. Tem um leve toque de humor e inteligência.
+Utilize como mudelo de aplicativo o mesmo visual da da academi Smartfit
+
+O aplicativo deve ter algumas telas, sugiro ser parecido com o app da smartfit tendo:
+Tela inicial 
+- identificação do usuário com nome, possibilidade de criar novo usuário
+- quantidade de sessões de exercícios ex: 05/30
+- dashboard resumido com quantidade de exercícios por grupo
+- Apresentação do Benfit como seu treinador , pode incluir um avatar no formato de desenho 3D
+- Cada usuário pode escolher entre 10 avatares para seu perfil. A imagens devem ser apenas de busto variando entre homens e mulheres
+
+Botões de Criar Novo Treino , Meu Treino
+Tela Criar Novo Treino
+- Benfit vai criar uma sessão de treinos perguntando, Objetivo, Grupo de Músculos, frequência de dias por semana
+- O Benfit deve criar e manter listas de exercício previamente em umbanco de dados
+- Vai apresentar as sessões de exercícios remcomendadas dentro de um mês 
+
+Tela de Meu Treino
+- Apresenta a sessões criadas para o usuários, como Treino A, Treino B, Treino C
+- Após escolher o Treino abre a lista de exercícios com Chechbox de feito, imagem do exercício e/ou aparelho, Nome do exercício, repetições e dicas
+- Apresentar um pequeno cronômetro para medir o tempo de exercício e/ou descanso
+
+Apresenta o seguinte escopo:
+#1 Tela inicial (estilo da academia SmartFit)
+  - selecionar/criar usuário
+  - progresso mensal “sessões”: 05/30
+  - dashboard por grupo (usa o plano salvo)
+  - apresentação do Benfit com avatar 3D em busto
+  - 10+ avatares para escolher (homens e mulheres)
+  - botões Criar novo treino e Meu treino
+
+#2 Tela Criar Novo Treino
+  - Benfit pergunta Objetivo, Grupos de músculos (multi), Frequência (dias/semana)
+  - Gera 3–4 sessões (A/B/C/D) automáticas para 1 mês
+  - As listas vêm de uma biblioteca de exercícios (somente imagens de aparelhos/pesos)
+
+#3 Tela Meu Treino
+  - mostra as sessões do plano (A/B/C/D)
+  - ao escolher a sessão: checkbox Feito, imagem, nome, reps/séries/descanso, dicas
+  - cronômetro simples para descanso (usa o menor valor do intervalo, ex. 60–90s → 60s)
+
+Pensei num formato de gamificação para calcular pontuação e premiar com imagens de shapes e trofeus e frases de incentivo
+
+Gamificação
+  +50 pontos por sessão concluída
+  níveis (Bronze, Prata, Ouro, Diamante), troféu e frases de incentivo
+Persistência local por usuário (plano, avatar, progresso e “feito” por dia/sessão)
+
+=============================================================
+
+Implementation Plan - Benfit Treinos
+
+Goal Description
+Create a fitness tracking web application "Benfit Treinos" featuring a virtual trainer "Benfit". The app will allow users to manage profiles, generate workout plans based on goals, track progress, and engage with gamification elements. The design will mimic the "Smartfit" aesthetic (Modern, Dark, Yellow accents).
+
+User Review Required
+IMPORTANT
+
+Tech Stack: I am proposing Vite + React for this application to handle the complex state management (user profiles, active workout tracking, gamification) effectively. The prompt mentions "Web App", and React is standard for this level of interactivity. Assets: I will use generated placeholders or standard UI elements for the avatars and exercise images initially, as I cannot browse the live web for specific copyrighted assets.
+
+Proposed Changes
+Project Structure
+Framework: Vite + React
+Styling: Vanilla CSS (with CSS Variables for theming)
+State/Persistence: React Context + LocalStorage
+Core Components
+[NEW] src/data
+exercises.js: Static database of exercises (Name, Muscle Group, Image Placeholder, Default Reps).
+storage.js: Helper functions to read/write users and plans to localStorage.
+[NEW] src/components
+Layout.jsx: Main app shell with navigation.
+BenfitAvatar.jsx: 3D-style avatar component (using image assets).
+Timer.jsx: Countdown timer for rest periods.
+ProgressBar.jsx: Visual indicator for gamification/levels.
+[NEW] src/pages
+Home.jsx: User selection, Dashboard summary, Benfit greeting.
+CreateWorkout.jsx: Form wizard for Benfit to gather inputs (Goal, Frequency) and generate a plan.
+MyWorkout.jsx: List of available sessions (A/B/C).
+ActiveSession.jsx: The actual workout tracking screen with checkboxes and timer.
+Gamification Logic
+Points: +50 per completed session.
+Levels:
+Bronze: 0 - 500
+Prata: 501 - 1500
+Ouro: 1501 - 3000
+Diamante: 3000+
+Rewards: Unlockable trophy icons displayed on the profile.
+Verification Plan
+Manual Verification
+User Flow: Create a new user -> Generate a plan (3 days/week) -> Complete "Treino A" -> Verify points increase and history update.
+Persistence: Reload page and ensure user session and plan data remain.
+Responsiveness: Check layout on mobile and desktop viewports.
+
