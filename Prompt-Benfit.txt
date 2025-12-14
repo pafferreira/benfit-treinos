@@ -1,0 +1,86 @@
+-- Prompt para Controle de Treinos - BENFIT
+-- 01/12/2025 - Paulo Affonso
+
+Vamos criar um aplicativo de acompanhamento de treinos e exercícios físicos
+Possui um treinador chamado Benfit, um avatar de um rapaz simpático, jovem, cabelo escuro, olhos grandes, forte com os músculos definidos mas sem exagero.
+Este treinador será um agente de IA que conhece muito de exercícios físicos, entende de fisiologia e sabe dosar os treinos para cada tipo de usuário, homens, mulheres, velho, jovem, e definir os objetivos dos exercícios. Tem um leve toque de humor e inteligência.
+Este aplicativo vai incluir conquistas de medalhas e trofeus como gamificação. 
+Procure um modelo de aplicativo com UI/UX das melhores academias globais.
+Vamos apresentar um visual agradável com cores claras, utilizando avatares para representar os usuários.
+Procure alguns Avatars com imagem 3D , simpaticos e levemente engraçados.
+
+O aplicativo deve ser para mobile e apresentar interface de fácil navegação, otimizando espaço visual tendo:
+Tela inicial 
+- identificação do usuário com nome, possibilidade de criar novo usuário
+- quantidade de sessões de exercícios ex: 05/30
+- dashboard resumido com quantidade de exercícios, metas, medalhas e trofeus conquistados
+- Apresentação do Benfit como seu treinador , pode incluir um avatar no formato de desenho 3D
+- Cada usuário pode escolher entre 10 avatares para seu perfil com  imagens de avatares entre homens e mulheres.
+
+Botões de Criar Novo Treino , Meu Treino
+Tela Criar Novo Treino
+- Benfit vai criar uma sessão de treinos perguntando, Objetivo, Grupo de Músculos, frequência de dias por semana
+- O Benfit deve criar e manter listas de exercício previamente em umbanco de dados
+- Vai apresentar as sessões de exercícios remcomendadas dentro de um mês 
+
+Tela de Meu Treino
+- Apresenta a sessões criadas para o usuários, como Treino A, Treino B, Treino C
+- Após escolher o Treino abre o accordion com a lista de exercícios com Chechbox de feito, imagem do exercício e/ou aparelho, Nome do exercício, repetições e dicas
+- Quando executar um exercício, apresentar um pequeno cronômetro para medir o tempo de exercício e/ou descanso
+
+Apresenta o seguinte escopo:
+#1 Tela inicial (imagem de fundo de academia com aparelhos e pesos)
+Tela de Boas-Vindas: Transforme-se com qualidade de Vida. Planos personalizados e acompanhamento de progresso para atingir seus objetivos.
+
+#2 Tela de Registro/Login: 
+  - - Permite que novos usuários criem uma conta ou que usuários existentes façam login.
+  - selecionar/criar usuário
+
+#3 Tela 
+  - Nome do usuário com seu avatar
+  - progresso mensal “sessões”: 05/30
+  - Treinos da semana
+  - dashboard (sessões completadas, plano atual, Medalhas e/ou Trofeu)
+  - Meta(s) definida(s) em Perfil - se autorizado
+  - apresenta o avatar do Benfit (AI Coach) um círculo flutuando no canto inferior direito 
+
+#4 Treinos
+  - Apresenta planos de treino executando, executados ou Planos pré-definidos
+  - Elemento de filtro por categoria (iniciante, intermediário, avançado) e busca por grupo de músculos (abdomen, bíceps, cardio, etc) , aparelho, músculo, isométrico, tapete
+  - Ao escolher um plano em excução ou executado abre a tela de detalhes
+  - Pode criar seu próprio plano
+  - Pode pedir para o Benfit sugerir, leva à tela do Benfit Coach 
+
+#5 Tela Criar Novo Treino
+  - Benfit pergunta Objetivo, Grupos de músculos (multi), Frequência (dias/semana)
+  - Gera 3–4 sessões (A/B/C/D) automáticas para 1 mês
+  - As listas vêm de uma biblioteca de exercícios (somente imagens de aparelhos/pesos)
+
+#3 Tela Meu Treino
+  - mostra as sessões do plano (A/B/C/D)
+  - ao escolher a sessão: checkbox Feito, imagem, nome, reps/séries/descanso, dicas
+  - cronômetro simples para descanso (usa o menor valor do intervalo, ex. 60–90s → 60s)
+
+#X Perfil do Usuário
+  - Registrar informações do usuário (nome, peso, altura)
+  - 10+ avatares para escolher (homens e mulheres)
+  - Metas a alcançar (peso, caminhada ou distância 10K-20K, Flexibilidade e Foça, Bem-estar com yoga, alongamento, resistência (pode escolher mais de uma)
+
+
+Pensei num formato de gamificação para calcular pontuação e premiar com imagens de shapes e trofeus e frases de incentivo
+
+Gamificação
+  +50 pontos por sessão concluída
+  níveis (Bronze, Prata, Ouro, Diamante), troféu e frases de incentivo
+Persistência local por usuário (plano, avatar, progresso e “feito” por dia/sessão)
+
+
+=====================================
+Para criar um aplicativo abrangente de exercícios físicos, baseado nas melhores academias, podemos considerar as seguintes telas:
+
+Tela de Boas-Vindas: Apresenta o aplicativo e seus principais benefícios para o usuário.
+Tela de Registro/Login: Permite que novos usuários criem uma conta ou que usuários existentes façam login.
+Dashboard de Atividades: Exibe um resumo das atividades do usuário, progresso, treinos recentes e metas de fitness em um layout limpo.
+Tela de Planos de Treino: Permite aos usuários explorar e selecionar diferentes planos de treino ou criar planos de treino personalizados, com filtros fáceis.
+Tela de Detalhes do Exercício: Fornece informações detalhadas sobre um exercício específico, incluindo instruções, músculos trabalhados e vídeos de demonstração e opções para adicionar exercícios a um treino.
+Tela de Perfil do Usuário: Onde os usuários podem visualizar e editar suas informações pessoais, metas e histórico de treinos.
