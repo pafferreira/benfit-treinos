@@ -1,68 +1,57 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
 
 :root {
-    /* Benfit Premium Theme - Inspired by Smartfit but Elegant */
+    /* Benfit Premium Theme - Updated from User Request */
 
     /* Primary Colors */
-    --color-primary: #0F172A;
-    /* Slate 900 - Sophisticated Dark */
-    --color-primary-light: #334155;
-    /* Slate 700 */
-
-    /* Accent Colors - Energy */
-    --color-accent: #F59E0B;
-    /* Amber 500 - Gold/Yellow */
-    --color-accent-hover: #D97706;
-    /* Amber 600 */
-    --color-accent-light: #FEF3C7;
-    /* Amber 100 */
-    --color-accent-pink: #F472B6;
-    /* Keeping for compatibility if needed */
-
-    /* Secondary/Functional */
-    --color-success: #10B981;
-    /* Emerald 500 */
-    --color-danger: #EF4444;
-    /* Red 500 */
-    --color-info: #3B82F6;
-    /* Blue 500 */
+    --color-primary: #3B82F6;
+    /* Blue */
     --color-secondary: #10B981;
-    /* Alias for compatibility */
+    /* Green */
 
     /* Backgrounds */
-    --color-bg-app: #F8FAFC;
-    /* Slate 50 - Very light grey, softer than white */
-    --color-bg-card: #FFFFFF;
-    --color-bg-sidebar: #FFFFFF;
+    --color-background-light: #F3F4F6;
+    --color-background-dark: #111827;
+    --color-card-light: #FFFFFF;
+    --color-card-dark: #1F2937;
+    --color-bg-app: #F3F4F6;
+    /* Mapping to background-light */
 
     /* Text */
-    --color-text-main: #0F172A;
-    /* Darkest Slate */
-    --color-text-muted: #64748B;
-    /* Slate 500 */
-    --color-text-light: #94A3B8;
-    /* Slate 400 */
-    --color-text-on-dark: #FFFFFF;
+    --color-text-light: #1F2937;
+    --color-text-dark: #F9FAFB;
+    --color-subtext-light: #6B7280;
+    --color-subtext-dark: #9CA3AF;
+    --color-text-main: #1F2937;
+    /* Mapping to text-light */
 
-    /* Borders */
-    --color-border: #E2E8F0;
-    /* Slate 200 */
+    /* Accents & Others (keeping some existing for compatibility) */
+    --color-accent: #F59E0B;
+    --color-danger: #EF4444;
+    --color-success: #10B981;
+    --color-info: #3B82F6;
 
-    /* Shadows - Soft & Premium */
+    /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-    --shadow-card: 0 0 20px rgba(0, 0, 0, 0.03);
-    --shadow-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+    /* Border Radius */
+    --radius-default: 1rem;
+    --radius-xl: 1.5rem;
+    --radius-2xl: 2rem;
 }
 
 body {
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    background-color: var(--color-bg-app);
-    color: var(--color-text-main);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-background-light);
+    color: var(--color-text-light);
+    font-family: 'Nunito', 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -85,6 +74,8 @@ h6 {
 button {
     cursor: pointer;
     font-family: inherit;
+    border: none;
+    background: none;
 }
 
 a {
@@ -109,6 +100,15 @@ a {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* Spinner Animation */

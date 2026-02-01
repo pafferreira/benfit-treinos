@@ -1,16 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useWorkouts, useExercises } from '../hooks/useSupabase';
 import { supabaseHelpers } from '../lib/supabase';
-import { Calendar, Clock, ChevronLeft, Dumbbell, Info, Loader2, Plus, Edit2, Trash2, Search } from 'lucide-react';
+import { Calendar, Clock, Plus, Edit2, Trash2, Search, Loader2, Dumbbell } from 'lucide-react';
 import WorkoutModal from '../components/WorkoutModal';
 import WorkoutDetails from '../components/WorkoutDetails';
 import './Workouts.css';
 
-
-
 const Workouts = () => {
     const { workouts, loading: workoutsLoading, error: workoutsError, reload } = useWorkouts();
-    const { exercises, loading: exercisesLoading } = useExercises();
+    const { exercises } = useExercises();
     const [selectedWorkout, setSelectedWorkout] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingWorkout, setEditingWorkout] = useState(null);
@@ -18,15 +16,7 @@ const Workouts = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [difficultyFilter, setDifficultyFilter] = useState('all');
 
-    const getExerciseDetails = (id) => {
-        return exercises.find(ex => ex.id === id) || { name: 'Exercício não encontrado', muscle_group: '-' };
-    };
-
-
-
     useEffect(() => {
-        // Close expanded workout detail with ESC when it's open
-        // but don't intercept if a modal is open for editing
         if (!selectedWorkout || isModalOpen) return;
         const onKeyDown = (e) => {
             if (e.key === 'Escape' || e.key === 'Esc') {
@@ -56,39 +46,6 @@ const Workouts = () => {
         );
     }
 
-    // Loading state
-
-    if (workoutsLoading || exercisesLoading) {
-        return (
-            <div className="workouts-container">
-                <div className="workouts-header">
-                    <h1>Meus Treinos</h1>
-                    <p>Carregando treinos...</p>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                    <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
-                </div>
-            </div>
-        );
-    }
-
-    // Error state
-    if (workoutsError) {
-        return (
-            <div className="workouts-container">
-                <div className="workouts-header">
-                    <h1>Meus Treinos</h1>
-                    <p style={{ color: 'var(--error, #ef4444)' }}>
-                        ⚠️ Erro ao carregar treinos: {workoutsError}
-                    </p>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        Usando dados locais como fallback.
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
     // CRUD Handlers
     const handleCreateWorkout = () => {
         setEditingWorkout(null);
@@ -96,13 +53,13 @@ const Workouts = () => {
     };
 
     const handleEditWorkout = (e, workout) => {
-        e.stopPropagation(); // Prevent card click
+        e.stopPropagation();
         setEditingWorkout(workout);
         setIsModalOpen(true);
     };
 
     const handleDeleteWorkout = async (e, workout) => {
-        e.stopPropagation(); // Prevent card click
+        e.stopPropagation();
         if (!confirm(`Tem certeza que deseja excluir "${workout.title}"?`)) {
             return;
         }
@@ -110,7 +67,7 @@ const Workouts = () => {
         try {
             await supabaseHelpers.deleteWorkout(workout.id);
             alert('Treino excluído com sucesso!');
-            reload(); // Reload the workouts list
+            reload();
             if (selectedWorkout?.id === workout.id) {
                 setSelectedWorkout(null);
             }
@@ -124,16 +81,14 @@ const Workouts = () => {
         setIsSaving(true);
         try {
             if (editingWorkout) {
-                // Update existing workout
                 await supabaseHelpers.updateWorkout(editingWorkout.id, workoutData);
                 alert('Treino atualizado com sucesso!');
             } else {
-                // Create new workout
                 await supabaseHelpers.createWorkout(workoutData);
                 alert('Treino criado com sucesso!');
             }
             setIsModalOpen(false);
-            reload(); // Reload the workouts list
+            reload();
         } catch (err) {
             console.error('Error saving workout:', err);
             alert('Erro ao salvar treino: ' + err.message);
@@ -142,89 +97,90 @@ const Workouts = () => {
         }
     };
 
+    if (workoutsLoading) {
+        return (
+            <div className="loading-container">
+                <Loader2 size={48} className="spinner" />
+                <p>Carregando treinos...</p>
+            </div>
+        );
+    }
+
+    if (workoutsError) {
+        return (
+            <div className="error-container">
+                <p>⚠️ Erro ao carregar treinos: {workoutsError}</p>
+            </div>
+        );
+    }
+
     return (
         <div className="workouts-container">
-            <div className="workouts-header compact">
-                <div>
-                    <h1>Meus Treinos</h1>
-                    <p>Selecione um programa para ver os detalhes.</p>
-                </div>
-                <button className="add-workout-btn" onClick={handleCreateWorkout} title="Criar novo treino">
-                    <Plus size={20} />
-                    Novo Treino
+            {/* Header */}
+            <div className="workouts-topbar">
+                <h3 className="section-title">Active Plans</h3>
+                <button className="new-plan-btn" onClick={handleCreateWorkout}>
+                    <Plus size={16} /> New Plan
                 </button>
             </div>
 
-            {/* compact stats and search area */}
-            <div className="workouts-topbar">
-                <div className="workouts-stats">
-                    <div className="stat-chip">Total: {filteredWorkouts.length}</div>
-                </div>
-                <div className="filter-bar compact">
-                    <div className="search-box">
-                        <Search className="search-icon" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Buscar treinos..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <select className="filter-select compact" value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value)}>
-                        <option value="all">Todos</option>
-                        <option value="Iniciante">Iniciante</option>
-                        <option value="Intermediário">Intermediário</option>
-                        <option value="Avançado">Avançado</option>
-                    </select>
-                </div>
-            </div>
-
+            {/* Workouts List */}
             <div className="plans-grid">
-                {filteredWorkouts.map(workout => (
-                    <div
-                        key={workout.id}
-                        className="plan-card"
-                        onClick={() => setSelectedWorkout(workout)}
-                    >
-                        <div className="plan-header">
-                            <h3 className="plan-title">{workout.title}</h3>
-                            <div className="plan-actions">
-                                <span className="plan-difficulty">{workout.difficulty}</span>
-                                <div className="action-buttons">
-                                    <button
-                                        className="icon-btn"
-                                        onClick={(e) => handleEditWorkout(e, workout)}
-                                        title="Editar treino"
-                                    >
-                                        <Edit2 size={16} />
-                                    </button>
-                                    <button
-                                        className="icon-btn"
-                                        onClick={(e) => handleDeleteWorkout(e, workout)}
-                                        title="Excluir treino"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                {filteredWorkouts.map((workout, index) => {
+                    // Mock data for visual matching
+                    const isEven = index % 2 === 0;
+                    const iconColor = isEven ? 'green' : 'orange';
+                    const status = isEven ? 'Active' : 'Paused';
+                    const progress = isEven ? 65 : 20;
+                    const weeksLeft = isEven ? '4 weeks left' : 'Paused';
+
+                    return (
+                        <div
+                            key={workout.id}
+                            className={`plan-card ${!isEven ? 'opacity-60' : ''}`}
+                            onClick={() => setSelectedWorkout(workout)}
+                        >
+                            <div className={`plan-icon-container ${iconColor}`}>
+                                {isEven ? <Dumbbell size={32} className="text-secondary" /> : <Clock size={32} className="text-orange" />}
+                            </div>
+                            <div className="plan-details">
+                                <div className="plan-header">
+                                    <div>
+                                        <h4 className="plan-title">{workout.title}</h4>
+                                        <p className="plan-meta">{workout.difficulty} • {weeksLeft}</p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <span className={`status-badge ${status.toLowerCase()}`}>{status}</span>
+                                        {/* Hidden actions for now, or maybe show on hover? Keeping them accessible via long press or similar in future */}
+                                        <button
+                                            className="action-btn"
+                                            onClick={(e) => handleEditWorkout(e, workout)}
+                                            style={{ padding: '0.25rem' }}
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+                                        <button
+                                            className="action-btn"
+                                            onClick={(e) => handleDeleteWorkout(e, workout)}
+                                            style={{ padding: '0.25rem' }}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="progress-container">
+                                    <div className="progress-bar-bg">
+                                        <div className={`progress-bar-fill ${iconColor}`} style={{ width: `${progress}%` }}></div>
+                                    </div>
+                                    <div className="progress-text">
+                                        <span>{progress}% Completed</span>
+                                        {isEven && <span className="week-text">Week 4/12</span>}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <p className="plan-description">
-                            {workout.description.length > 100
-                                ? workout.description.substring(0, 100) + '...'
-                                : workout.description}
-                        </p>
-                        <div className="plan-meta">
-                            <div className="meta-item">
-                                <Clock size={14} />
-                                {workout.estimated_duration} min
-                            </div>
-                            <div className="meta-item">
-                                <Calendar size={14} />
-                                {workout.days_per_week} dias/sem
-                            </div>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Workout Modal */}

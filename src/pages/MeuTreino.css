@@ -1,0 +1,78 @@
+/* MeuTreino.css */
+
+.meu-treino-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    color: var(--color-subtext-light);
+}
+
+.routine-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.routine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.routine-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+}
+
+.dark .routine-title {
+    color: var(--color-text-dark);
+}
+
+.see-details-btn {
+    color: var(--color-primary);
+    font-size: 0.875rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.see-details-btn:hover {
+    gap: 0.5rem;
+}
+
+.routine-meta {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.meta-item {
+    font-size: 0.875rem;
+    color: var(--color-subtext-light);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.dark .meta-item {
+    color: var(--color-subtext-dark);
+}
+
+.exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}

@@ -1,0 +1,215 @@
+/* ExerciseCard.css */
+
+.exercise-card-container {
+    background-color: var(--color-card-light);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid #F3F4F6;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.dark .exercise-card-container {
+    background-color: var(--color-card-dark);
+    border-color: #1F2937;
+}
+
+.exercise-card-container.completed {
+    opacity: 0.7;
+}
+
+.exercise-card-main {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    cursor: pointer;
+}
+
+.exercise-card-image {
+    width: 5rem;
+    height: 5rem;
+    flex-shrink: 0;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background-color: #F3F4F6;
+}
+
+.dark .exercise-card-image {
+    background-color: #374151;
+}
+
+.exercise-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.exercise-card-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.exercise-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.exercise-card-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+.dark .exercise-card-name {
+    color: var(--color-text-dark);
+}
+
+.exercise-card-muscle {
+    font-size: 0.75rem;
+    color: var(--color-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 600;
+}
+
+.exercise-checkbox {
+    position: relative;
+    cursor: pointer;
+}
+
+.exercise-checkbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.checkmark {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    border: 2px solid #D1D5DB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: transparent;
+}
+
+.dark .checkmark {
+    border-color: #4B5563;
+}
+
+.exercise-checkbox input:checked~.checkmark {
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary);
+    color: white;
+}
+
+.exercise-card-meta {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.meta-item {
+    font-size: 0.75rem;
+    color: var(--color-subtext-light);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.dark .meta-item {
+    color: var(--color-subtext-dark);
+}
+
+.set-selector {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.set-btn {
+    min-width: 5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-xl);
+    background-color: #F3F4F6;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+}
+
+.dark .set-btn {
+    background-color: #374151;
+}
+
+.set-btn.active {
+    background-color: white;
+    border-color: var(--color-primary);
+}
+
+.dark .set-btn.active {
+    background-color: #1F2937;
+}
+
+.set-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--color-subtext-light);
+    text-transform: uppercase;
+}
+
+.dark .set-label {
+    color: var(--color-subtext-dark);
+}
+
+.set-value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+}
+
+.dark .set-value {
+    color: var(--color-text-dark);
+}
+
+.set-weight {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.timer-section {
+    margin-top: 0.5rem;
+}
+
+.start-rest-btn {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: var(--radius-xl);
+    background-color: var(--color-primary);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.start-rest-btn:hover {
+    background-color: #2563EB;
+}

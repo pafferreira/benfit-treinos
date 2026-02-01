@@ -1,0 +1,143 @@
+/* RestTimer.css */
+
+.rest-timer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: var(--color-card-light);
+    border-radius: var(--radius-xl);
+    border: 1px solid #F3F4F6;
+}
+
+.dark .rest-timer {
+    background-color: var(--color-card-dark);
+    border-color: #1F2937;
+}
+
+.timer-display {
+    position: relative;
+}
+
+.timer-circle {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    background: conic-gradient(var(--color-primary) 0%,
+            var(--color-primary) var(--progress, 0%),
+            #E5E7EB var(--progress, 0%),
+            #E5E7EB 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.dark .timer-circle {
+    background: conic-gradient(var(--color-primary) 0%,
+            var(--color-primary) var(--progress, 0%),
+            #374151 var(--progress, 0%),
+            #374151 100%);
+}
+
+.timer-circle::before {
+    content: '';
+    position: absolute;
+    width: 4.25rem;
+    height: 4.25rem;
+    border-radius: 50%;
+    background-color: var(--color-card-light);
+}
+
+.dark .timer-circle::before {
+    background-color: var(--color-card-dark);
+}
+
+.timer-text {
+    position: relative;
+    z-index: 2;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+}
+
+.dark .timer-text {
+    color: var(--color-text-dark);
+}
+
+.timer-presets {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.preset-btn {
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background-color: #F3F4F6;
+    color: var(--color-text-light);
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dark .preset-btn {
+    background-color: #374151;
+    color: var(--color-text-dark);
+}
+
+.preset-btn.active {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.preset-btn:hover:not(.active) {
+    background-color: #E5E7EB;
+}
+
+.dark .preset-btn:hover:not(.active) {
+    background-color: #4B5563;
+}
+
+.timer-controls {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.control-btn {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-xl);
+    background-color: #F3F4F6;
+    color: var(--color-text-light);
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.dark .control-btn {
+    background-color: #374151;
+    color: var(--color-text-dark);
+}
+
+.control-btn.primary {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.control-btn:hover {
+    transform: scale(1.02);
+}
+
+.control-btn.primary:hover {
+    background-color: #2563EB;
+}

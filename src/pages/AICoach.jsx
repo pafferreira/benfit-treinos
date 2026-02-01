@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, BrainCircuit } from 'lucide-react';
+import { Send, Bot, User, Sparkles } from 'lucide-react';
 import './AICoach.css';
 
 const AICoach = () => {
@@ -20,7 +20,7 @@ const AICoach = () => {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, isTyping]);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
@@ -96,28 +96,14 @@ const AICoach = () => {
     ];
 
     return (
-        <div className="page-container" style={{ height: '100%' }}>
+        <div className="page-container">
             <div className="chat-container">
-                {/* Header */}
-                <div className="chat-header">
-                    <div className="coach-avatar-wrapper">
-                        <BrainCircuit size={28} />
-                    </div>
-                    <div className="coach-info">
-                        <h2>Benfit Coach</h2>
-                        <div className="coach-status">
-                            <div className="status-dot"></div>
-                            Online • Especialista em Treinos e Nutrição
-                        </div>
-                    </div>
-                </div>
-
                 {/* Messages */}
                 <div className="messages-area">
                     {messages.map((msg) => (
                         <div key={msg.id} className={`message ${msg.sender}`}>
                             <div className="message-avatar">
-                                {msg.sender === 'ai' ? <Bot size={20} /> : <User size={20} />}
+                                {msg.sender === 'ai' ? <Bot size={18} /> : <User size={18} />}
                             </div>
                             <div className="message-bubble">
                                 {msg.text}
@@ -126,7 +112,7 @@ const AICoach = () => {
                     ))}
                     {isTyping && (
                         <div className="message ai">
-                            <div className="message-avatar"><Bot size={20} /></div>
+                            <div className="message-avatar"><Bot size={18} /></div>
                             <div className="message-bubble" style={{ fontStyle: 'italic', color: '#94a3b8' }}>
                                 Digitando...
                             </div>
@@ -155,12 +141,12 @@ const AICoach = () => {
                         <input
                             type="text"
                             className="chat-input"
-                            placeholder="Pergunte sobre treinos, dieta ou dicas de saúde..."
+                            placeholder="Pergunte sobre treinos, dieta..."
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                         />
                         <button type="submit" className="send-btn" disabled={!inputValue.trim() || isTyping}>
-                            <Send size={20} />
+                            <Send size={18} />
                         </button>
                     </form>
                 </div>

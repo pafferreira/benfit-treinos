@@ -1,0 +1,106 @@
+/* MiniCalendar.css */
+
+.mini-calendar {
+    background-color: var(--color-card-light);
+    border-radius: var(--radius-2xl);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid #F3F4F6;
+}
+
+.dark .mini-calendar {
+    background-color: var(--color-card-dark);
+    border-color: #1F2937;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.calendar-month {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    text-transform: capitalize;
+}
+
+.dark .calendar-month {
+    color: var(--color-text-dark);
+}
+
+.week-badge {
+    background-color: #DBEAFE;
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+}
+
+.dark .week-badge {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+}
+
+.day-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.day-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-subtext-light);
+}
+
+.dark .day-label {
+    color: var(--color-subtext-dark);
+}
+
+.day-circle {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-light);
+    background-color: transparent;
+    transition: all 0.2s;
+}
+
+.dark .day-circle {
+    color: var(--color-text-dark);
+}
+
+.day-circle.today {
+    background-color: var(--color-primary);
+    color: white;
+    font-weight: 700;
+}
+
+.day-circle.completed {
+    background-color: #DCFCE7;
+    color: var(--color-secondary);
+}
+
+.dark .day-circle.completed {
+    background-color: rgba(16, 185, 129, 0.2);
+}
+
+.day-circle.completed.today {
+    background-color: var(--color-primary);
+    color: white;
+}

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { Play, Loader2, CheckCircle, XCircle, AlertTriangle, FileJson } from 'lucide-react';
+import './SupabaseDiagnostic.css';
 
 const SupabaseDiagnostic = () => {
     const [result, setResult] = useState(null);
@@ -10,8 +12,8 @@ const SupabaseDiagnostic = () => {
         const diagnosticResults = {
             timestamp: new Date().toISOString(),
             env: {
-                url: import.meta.env.VITE_SUPABASE_URL ? '✅ Configured' : '❌ Missing',
-                key: import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Configured' : '❌ Missing',
+                url: import.meta.env.VITE_SUPABASE_URL ? 'Configured' : 'Missing',
+                key: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Configured' : 'Missing',
             },
             tables: {}
         };
@@ -38,19 +40,19 @@ const SupabaseDiagnostic = () => {
 
                 if (error) {
                     diagnosticResults.tables[table] = {
-                        status: '❌ Error',
+                        status: 'Error',
                         error: error.message,
                         code: error.code
                     };
                 } else {
                     diagnosticResults.tables[table] = {
-                        status: '✅ OK',
+                        status: 'OK',
                         count: count || 0
                     };
                 }
             } catch (err) {
                 diagnosticResults.tables[table] = {
-                    status: '❌ Exception',
+                    status: 'Exception',
                     error: err.message
                 };
             }
@@ -61,108 +63,84 @@ const SupabaseDiagnostic = () => {
     };
 
     return (
-        <div style={{
-            padding: '2rem',
-            maxWidth: '800px',
-            margin: '0 auto',
-            fontFamily: 'monospace'
-        }}>
-            <h1>🔍 Supabase Diagnostic</h1>
+        <div className="diagnostic-container">
+            <div className="diagnostic-header">
+                <h1 className="diagnostic-title">System Check</h1>
+                <p>Verify your Supabase connection and database status.</p>
+            </div>
 
             <button
+                className="run-btn"
                 onClick={runDiagnostic}
                 disabled={loading}
-                style={{
-                    padding: '0.75rem 1.5rem',
-                    background: loading ? '#ccc' : '#F59E0B',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: 'bold',
-                    marginBottom: '2rem'
-                }}
             >
-                {loading ? '🔄 Running...' : '▶️ Run Diagnostic'}
+                {loading ? <Loader2 className="spinner" /> : <Play size={20} />}
+                {loading ? 'Running Diagnostic...' : 'Run Diagnostic'}
             </button>
 
             {result && (
-                <div>
-                    <h2>📊 Results</h2>
-
-                    <div style={{
-                        background: '#f5f5f5',
-                        padding: '1rem',
-                        borderRadius: '8px',
-                        marginBottom: '1rem'
-                    }}>
-                        <h3>Environment Variables</h3>
-                        <p>VITE_SUPABASE_URL: {result.env.url}</p>
-                        <p>VITE_SUPABASE_ANON_KEY: {result.env.key}</p>
+                <div className="results-section">
+                    {/* Environment */}
+                    <div className="result-card">
+                        <h3 className="result-title">Environment Variables</h3>
+                        <div className={`status-row ${result.env.url === 'Configured' ? 'success' : 'error'}`}>
+                            <span>VITE_SUPABASE_URL</span>
+                            <span>{result.env.url}</span>
+                        </div>
+                        <div className={`status-row ${result.env.key === 'Configured' ? 'success' : 'error'}`}>
+                            <span>VITE_SUPABASE_ANON_KEY</span>
+                            <span>{result.env.key}</span>
+                        </div>
                     </div>
 
-                    <div style={{
-                        background: '#f5f5f5',
-                        padding: '1rem',
-                        borderRadius: '8px'
-                    }}>
-                        <h3>Database Tables</h3>
+                    {/* Tables */}
+                    <div className="result-card">
+                        <h3 className="result-title">Database Tables</h3>
                         {Object.entries(result.tables).map(([table, info]) => (
-                            <div key={table} style={{
-                                padding: '0.5rem',
-                                marginBottom: '0.5rem',
-                                background: info.status.includes('✅') ? '#d4edda' : '#f8d7da',
-                                borderRadius: '4px'
-                            }}>
-                                <strong>{table}</strong>: {info.status}
-                                {info.count !== undefined && ` (${info.count} rows)`}
-                                {info.error && (
-                                    <div style={{ fontSize: '0.85rem', color: '#721c24', marginTop: '0.25rem' }}>
-                                        Error: {info.error}
-                                        {info.code && ` (Code: ${info.code})`}
-                                    </div>
-                                )}
+                            <div
+                                key={table}
+                                className={`status-row ${info.status === 'OK' ? 'success' : 'error'}`}
+                            >
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <strong>{table}</strong>
+                                    {info.error && <span style={{ fontSize: '0.75rem' }}>{info.error}</span>}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    {info.status === 'OK' ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                                    {info.count !== undefined && <span>{info.count} rows</span>}
+                                </div>
                             </div>
                         ))}
                     </div>
 
-                    <div style={{
-                        marginTop: '2rem',
-                        padding: '1rem',
-                        background: '#fff3cd',
-                        borderRadius: '8px',
-                        fontSize: '0.9rem'
-                    }}>
-                        <h3>💡 Next Steps</h3>
-                        {result.env.url === '❌ Missing' || result.env.key === '❌ Missing' ? (
+                    {/* Next Steps */}
+                    <div className="next-steps">
+                        <h3 className="result-title" style={{ color: 'inherit' }}>
+                            <AlertTriangle size={18} style={{ display: 'inline', marginRight: '0.5rem' }} />
+                            Next Steps
+                        </h3>
+                        {result.env.url === 'Missing' || result.env.key === 'Missing' ? (
                             <p>⚠️ Configure your .env file with Supabase credentials</p>
-                        ) : Object.values(result.tables).some(t => t.status.includes('❌')) ? (
-                            <>
+                        ) : Object.values(result.tables).some(t => t.status !== 'OK') ? (
+                            <div>
                                 <p>⚠️ Some tables are missing or have errors</p>
                                 <p>📝 Execute these SQL scripts in Supabase Dashboard:</p>
-                                <ol>
+                                <ol style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
                                     <li>database/supabase_database_script.sql</li>
                                     <li>database/supabase_data_population.sql</li>
                                 </ol>
-                            </>
+                            </div>
                         ) : (
                             <p>✅ Everything looks good! Your Supabase integration is working.</p>
                         )}
                     </div>
 
-                    <details style={{ marginTop: '2rem' }}>
-                        <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
-                            📋 Raw JSON Results
+                    {/* Raw JSON */}
+                    <details>
+                        <summary style={{ cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            <FileJson size={18} /> Raw JSON Results
                         </summary>
-                        <pre style={{
-                            background: '#1e1e1e',
-                            color: '#d4d4d4',
-                            padding: '1rem',
-                            borderRadius: '8px',
-                            overflow: 'auto',
-                            fontSize: '0.85rem'
-                        }}>
+                        <pre className="raw-json">
                             {JSON.stringify(result, null, 2)}
                         </pre>
                     </details>
