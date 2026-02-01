@@ -4,16 +4,16 @@ import './DashboardHome.css';
 const DashboardHome = () => {
     return (
         <>
-            {/* AI Coach Section */}
+            {/* AI Coach Card Section */}
             <section className="coach-section">
                 <div className="coach-content">
                     <div className="coach-badge">
-                        <Bot size={16} className="mr-1" /> BENFIT COACH
+                        <Bot size={16} className="mr-1" /> COACH BENFIT
                     </div>
-                    <h2 className="coach-title">Need a custom plan?</h2>
-                    <p className="coach-subtitle">Let AI build a routine just for you.</p>
+                    <h2 className="coach-title">Precisa de um plano personalizado?</h2>
+                    <p className="coach-subtitle">Deixe a IA criar uma rotina perfeita para você.</p>
                     <button className="coach-button">
-                        Ask Benfit
+                        Perguntar ao Benfit
                     </button>
                 </div>
                 <div className="coach-image-container">
@@ -28,9 +28,9 @@ const DashboardHome = () => {
             {/* Active Plans Section */}
             <section className="plans-section">
                 <div className="section-header">
-                    <h3 className="section-title">Active Plans</h3>
+                    <h3 className="section-title">Planos Ativos</h3>
                     <button className="new-plan-btn">
-                        <PlusCircle size={16} className="mr-1" /> New Plan
+                        <PlusCircle size={16} className="mr-1" /> Novo Plano
                     </button>
                 </div>
 
@@ -43,17 +43,17 @@ const DashboardHome = () => {
                         <div className="plan-header">
                             <div>
                                 <h4 className="plan-name">Muscle Build Pro</h4>
-                                <p className="plan-meta">Intermediate • 4 weeks left</p>
+                                <p className="plan-meta">Intermediário • 4 semanas restantes</p>
                             </div>
-                            <span className="status-badge active">Active</span>
+                            <span className="status-badge active">Ativo</span>
                         </div>
                         <div className="progress-container">
                             <div className="progress-bar-bg">
                                 <div className="progress-bar-fill green" style={{ width: '65%' }}></div>
                             </div>
                             <div className="progress-text">
-                                <span>65% Completed</span>
-                                <span className="week-text">Week 4/12</span>
+                                <span>65% Concluído</span>
+                                <span className="week-text">Semana 4/12</span>
                             </div>
                         </div>
                     </div>
@@ -67,17 +67,17 @@ const DashboardHome = () => {
                     <div className="plan-details">
                         <div className="plan-header">
                             <div>
-                                <h4 className="plan-name">Morning Cardio</h4>
-                                <p className="plan-meta">Beginner • Paused</p>
+                                <h4 className="plan-name">Cardio Matinal</h4>
+                                <p className="plan-meta">Iniciante • Pausado</p>
                             </div>
-                            <span className="status-badge paused">Paused</span>
+                            <span className="status-badge paused">Pausado</span>
                         </div>
                         <div className="progress-container">
                             <div className="progress-bar-bg">
                                 <div className="progress-bar-fill orange" style={{ width: '20%' }}></div>
                             </div>
                             <div className="progress-text">
-                                <span>20% Completed</span>
+                                <span>20% Concluído</span>
                             </div>
                         </div>
                     </div>
@@ -86,14 +86,14 @@ const DashboardHome = () => {
 
             {/* Completed History Section */}
             <section className="history-section">
-                <h3 className="section-title">Completed History</h3>
+                <h3 className="section-title">Histórico de Concluídos</h3>
                 <div className="history-grid">
                     <div className="history-card">
                         <div className="history-icon blue">
                             <Waves size={24} />
                         </div>
-                        <h5 className="history-name">Summer Swim</h5>
-                        <p className="history-date">Aug 2023</p>
+                        <h5 className="history-name">Natação de Verão</h5>
+                        <p className="history-date">Ago 2023</p>
                         <div className="rating">
                             <Star size={14} fill="currentColor" />
                             <Star size={14} fill="currentColor" />
@@ -106,8 +106,8 @@ const DashboardHome = () => {
                         <div className="history-icon purple">
                             <User size={24} />
                         </div>
-                        <h5 className="history-name">Yoga Basics</h5>
-                        <p className="history-date">June 2023</p>
+                        <h5 className="history-name">Yoga Básico</h5>
+                        <p className="history-date">Jun 2023</p>
                         <div className="rating">
                             <Star size={14} fill="currentColor" />
                             <Star size={14} fill="currentColor" />
@@ -129,8 +129,8 @@ const DashboardHome = () => {
                     />
                 </div>
                 <div className="friends-content">
-                    <h4 className="friends-title">Train with Friends</h4>
-                    <p className="friends-subtitle">Invite friends to join your plan.</p>
+                    <h4 className="friends-title">Treine com Amigos</h4>
+                    <p className="friends-subtitle">Convide amigos para se juntarem ao seu plano.</p>
                 </div>
                 <button className="friends-arrow">
                     <ChevronRight size={16} />

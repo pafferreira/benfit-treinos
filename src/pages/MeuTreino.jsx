@@ -38,8 +38,8 @@ const MeuTreino = () => {
             // Mock today's workout
             const mockWorkout = {
                 id: '1',
-                title: 'Upper Body Strength',
-                day_name: 'Day 1 - Chest & Triceps',
+                title: 'Força de Tronco',
+                day_name: 'Dia 1 - Peito & Tríceps',
                 estimated_duration: 45,
                 exercise_count: 6
             };
@@ -50,25 +50,25 @@ const MeuTreino = () => {
                 {
                     exercise: {
                         id: '1',
-                        name: 'Dumbbell Press',
-                        muscle_group: 'Chest & Triceps',
+                        name: 'Supino com Halteres',
+                        muscle_group: 'Peito & Tríceps',
                         video_url: null,
-                        instructions: ['Keep your back flat on the bench', 'Lower the weights slowly', 'Press up explosively']
+                        instructions: ['Mantenha as costas apoiadas no banco', 'Abaixe os pesos lentamente', 'Empurre para cima de forma explosiva']
                     },
                     workoutExercise: {
                         sets: 3,
                         reps: '12',
                         rest_seconds: 60,
-                        notes: 'Focus on form over weight'
+                        notes: 'Foque na forma mais do que no peso'
                     }
                 },
                 {
                     exercise: {
                         id: '2',
-                        name: 'Kettlebell Swings',
-                        muscle_group: 'Full Body',
+                        name: 'Swing com Kettlebell',
+                        muscle_group: 'Corpo Inteiro',
                         video_url: null,
-                        instructions: ['Hinge at the hips', 'Keep your core tight', 'Drive through your heels']
+                        instructions: ['Faça o movimento com os quadris', 'Mantenha o core contraído', 'Empurre através dos calcanhares']
                     },
                     workoutExercise: {
                         sets: 3,
@@ -80,16 +80,16 @@ const MeuTreino = () => {
                 {
                     exercise: {
                         id: '3',
-                        name: 'Warm-Up Cardio',
+                        name: 'Aquecimento Cardio',
                         muscle_group: 'Cardio',
                         video_url: null,
-                        instructions: ['Start slow', 'Gradually increase intensity', 'Maintain steady breathing']
+                        instructions: ['Comece devagar', 'Aumente a intensidade gradualmente', 'Mantenha a respiração estável']
                     },
                     workoutExercise: {
                         sets: 1,
                         reps: '10 Min',
                         rest_seconds: 0,
-                        notes: 'Light jog or bike'
+                        notes: 'Corrida leve ou bicicleta'
                     }
                 }
             ];
@@ -130,7 +130,7 @@ const MeuTreino = () => {
     if (loading) {
         return (
             <div className="loading-container">
-                <p>Loading your workout...</p>
+                <p>Carregando seu treino...</p>
             </div>
         );
     }
@@ -145,17 +145,17 @@ const MeuTreino = () => {
 
             {/* Motivational Card */}
             <MotivationalCard
-                message="Let's crush it!"
-                subtitle="Today is upper body strength. Ready to beat your PR?"
-                intensity="High Intensity"
+                message="Vamos com tudo!"
+                subtitle="Hoje é treino de força para o tronco. Pronto para bater seu recorde?"
+                intensity="Alta Intensidade"
             />
 
             {/* Today's Routine */}
             <div className="routine-section">
                 <div className="routine-header">
-                    <h2 className="routine-title">Today's Routine</h2>
+                    <h2 className="routine-title">Rotina de Hoje</h2>
                     <button className="see-details-btn">
-                        See Details
+                        Ver Detalhes
                         <ChevronRight size={16} />
                     </button>
                 </div>
@@ -167,7 +167,7 @@ const MeuTreino = () => {
                     </span>
                     <span className="meta-item">
                         <Dumbbell size={16} />
-                        {exercises.length} Exercises
+                        {exercises.length} Exercícios
                     </span>
                 </div>
             </div>

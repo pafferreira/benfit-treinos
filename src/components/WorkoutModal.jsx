@@ -212,7 +212,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                                             type="button"
                                             onClick={(e) => removeDay(dayIndex, e)}
                                             className="btn-icon-danger"
-                                            title="Remover Dia"
+                                            data-tooltip="Remover Dia"
                                         >
                                             <Trash2 size={18} />
                                         </button>
@@ -221,7 +221,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                                     <div className="day-content">
                                         {day.exercises.map((ex, exIndex) => (
                                             <div key={exIndex} className="exercise-row">
-                                                <div className="exercise-field">
+                                                <div className="exercise-field" style={{ gridColumn: '1 / -1', marginBottom: '0.5rem' }}>
                                                     <label>Exercício</label>
                                                     <select
                                                         value={ex.exercise_id}
@@ -236,42 +236,48 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                                                     </select>
                                                 </div>
 
-                                                <div className="exercise-field">
-                                                    <label>Séries</label>
-                                                    <input
-                                                        type="number"
-                                                        value={ex.sets}
-                                                        onChange={(e) => updateExercise(dayIndex, exIndex, 'sets', e.target.value)}
-                                                        placeholder="3"
-                                                        className="sets-input"
-                                                        min="1"
-                                                    />
-                                                </div>
+                                                <div className="exercise-grid-details" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr auto', gap: '0.75rem', alignItems: 'end', width: '100%' }}>
+                                                    <div className="exercise-field">
+                                                        <label>Séries</label>
+                                                        <input
+                                                            type="number"
+                                                            value={ex.sets}
+                                                            onChange={(e) => updateExercise(dayIndex, exIndex, 'sets', e.target.value)}
+                                                            placeholder="3"
+                                                            className="sets-input"
+                                                            min="1"
+                                                        />
+                                                    </div>
 
-                                                <div className="exercise-field">
-                                                    <label>Reps</label>
-                                                    <input
-                                                        type="text"
-                                                        value={ex.reps}
-                                                        onChange={(e) => updateExercise(dayIndex, exIndex, 'reps', e.target.value)}
-                                                        placeholder="10-12"
-                                                        className="reps-input"
-                                                    />
-                                                </div>
+                                                    <div className="exercise-field">
+                                                        <label>Reps</label>
+                                                        <input
+                                                            type="text"
+                                                            value={ex.reps}
+                                                            onChange={(e) => updateExercise(dayIndex, exIndex, 'reps', e.target.value)}
+                                                            placeholder="10-12"
+                                                            className="reps-input"
+                                                        />
+                                                    </div>
 
-                                                <div className="exercise-field">
-                                                    <label>Notas</label>
-                                                    <input
-                                                        type="text"
-                                                        value={ex.notes || ''}
-                                                        onChange={(e) => updateExercise(dayIndex, exIndex, 'notes', e.target.value)}
-                                                        placeholder="Ex: Drop-set na última"
-                                                        className="notes-input"
-                                                    />
-                                                </div>
+                                                    <div className="exercise-field">
+                                                        <label>Notas</label>
+                                                        <input
+                                                            type="text"
+                                                            value={ex.notes || ''}
+                                                            onChange={(e) => updateExercise(dayIndex, exIndex, 'notes', e.target.value)}
+                                                            placeholder="Ex: Drop-set"
+                                                            className="notes-input"
+                                                        />
+                                                    </div>
 
-                                                <div style={{ marginTop: '1.25rem' }}>
-                                                    <button type="button" onClick={() => removeExerciseFromDay(dayIndex, exIndex)} className="btn-icon-danger" title="Remover Exercício">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeExerciseFromDay(dayIndex, exIndex)}
+                                                        className="btn-icon-danger"
+                                                        data-tooltip="Remover Exercício"
+                                                        style={{ marginBottom: '2px' }}
+                                                    >
                                                         <X size={18} />
                                                     </button>
                                                 </div>

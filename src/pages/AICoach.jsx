@@ -145,7 +145,7 @@ const AICoach = () => {
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                         />
-                        <button type="submit" className="send-btn" disabled={!inputValue.trim() || isTyping}>
+                        <button type="submit" className="send-btn" disabled={!inputValue.trim() || isTyping} data-tooltip="Enviar">
                             <Send size={18} />
                         </button>
                     </form>

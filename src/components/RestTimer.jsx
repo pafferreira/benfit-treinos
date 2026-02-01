@@ -80,17 +80,17 @@ const RestTimer = ({ suggestedRestSeconds = 60, onComplete }) => {
                 {!isRunning ? (
                     <button className="control-btn primary" onClick={handleStart}>
                         <Play size={18} fill="currentColor" />
-                        Start
+                        Iniciar
                     </button>
                 ) : (
                     <button className="control-btn" onClick={handlePause}>
                         <Pause size={18} />
-                        Pause
+                        Pausar
                     </button>
                 )}
                 <button className="control-btn" onClick={handleReset}>
                     <RotateCcw size={18} />
-                    Reset
+                    Redefinir
                 </button>
             </div>
         </div>

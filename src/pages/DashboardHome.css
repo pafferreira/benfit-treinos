@@ -1,82 +1,98 @@
 /* DashboardHome.css */
 
-/* Coach Section */
+/* Coach Section - Restored for PAF */
 .coach-section {
     position: relative;
-    background: linear-gradient(to right, #3B82F6, #4F46E5);
-    /* blue-500 to indigo-600 */
-    border-radius: var(--radius-2xl);
-    padding: 1.5rem;
+    background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);
+    /* Example gradient, adjusting to look more like the screenshot */
+    background: linear-gradient(to right, #407BFF, #5E56FF);
+    border-radius: 2.25rem;
+    padding: 2rem 1.75rem;
     color: white;
-    box-shadow: var(--shadow-lg);
-    overflow: hidden;
+    min-height: 16rem;
+    /* Ensures the card is tall enough as per PAF's request */
+    box-shadow: 0 15px 20px -5px rgba(64, 123, 255, 0.3);
+    overflow: visible;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .coach-content {
     position: relative;
     z-index: 10;
-    width: 66.666667%;
+    width: 90%;
+    /* Allow text to overlap image */
 }
 
 .coach-badge {
     display: inline-flex;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(4px);
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .coach-title {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: 1.5rem;
+    font-weight: 800;
     margin-bottom: 0.5rem;
-    line-height: 1.25;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
 }
 
 .coach-subtitle {
-    color: #DBEAFE;
-    /* blue-100 */
-    font-size: 0.875rem;
-    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+    line-height: 1.4;
+    max-width: 90%;
 }
 
 .coach-button {
     background-color: white;
-    color: #2563EB;
-    /* blue-600 */
-    padding: 0.5rem 1.25rem;
-    border-radius: var(--radius-xl);
-    font-size: 0.875rem;
+    color: #407BFF;
+    padding: 0.65rem 1.5rem;
+    border-radius: 1rem;
+    font-size: 0.9rem;
     font-weight: 700;
-    box-shadow: var(--shadow-md);
-    transition: transform 0.1s;
+    box-shadow: 0 10px 22px rgba(23, 22, 22, 0.1);
+    transition: all 0.2s;
     border: none;
     cursor: pointer;
 }
 
 .coach-button:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
 }
 
 .coach-image-container {
     position: absolute;
-    right: -1rem;
-    bottom: 0;
-    width: 9rem;
-    height: 9rem;
+    right: 1rem;
+    top: 2rem;
+    width: 9.5rem;
+    height: 9.5rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
 }
 
 .coach-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: top;
-    border-top-left-radius: var(--radius-2xl);
-    border-bottom-left-radius: var(--radius-xl);
+    object-position: top center;
+    box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.4), 0 15px 15px -5px rgba(0, 0, 0, 0.2);
+    /* Enhanced shadow */
+    border-radius: 1.5rem;
+    /* All 4 corners rounded */
 }
 
 /* Plans Section */

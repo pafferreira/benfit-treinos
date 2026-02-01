@@ -65,7 +65,7 @@ const ExerciseCard = ({
                     <div className="exercise-card-meta">
                         <span className="meta-item">
                             <Repeat size={14} />
-                            {sets} Sets • {reps} Reps
+                            {sets} Séries • {reps} Reps
                         </span>
                     </div>
 
@@ -79,7 +79,7 @@ const ExerciseCard = ({
                                     setSelectedSet(setNum);
                                 }}
                             >
-                                <div className="set-label">SET {setNum}</div>
+                                <div className="set-label">SÉRIE {setNum}</div>
                                 <div className="set-value">{reps.split('-')[0]} x</div>
                                 <div className="set-weight">15kg</div>
                             </button>
@@ -102,7 +102,7 @@ const ExerciseCard = ({
                             }}
                         >
                             <Timer size={16} />
-                            Start Rest ({restSeconds}s)
+                            Iniciar Descanso ({restSeconds}s)
                         </button>
                     )}
                 </div>

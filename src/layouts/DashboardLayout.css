@@ -36,10 +36,10 @@
 
 /* Header */
 .layout-header {
-    padding-top: 1rem;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-    padding-bottom: 1rem;
+    padding-top: 0.75rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    padding-bottom: 0.75rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -47,26 +47,19 @@
     border-bottom-left-radius: var(--radius-2xl);
     border-bottom-right-radius: var(--radius-2xl);
     /* box-shadow: var(--shadow-sm); */
-    z-index: 30;
+    z-index: 100;
     position: absolute;
     top: 0;
     width: 100%;
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, background-color 0.2s;
-    opacity: 1;
-}
-
-.layout-header.header-hidden {
-    transform: translateY(-100%);
-    opacity: 0;
-    pointer-events: none;
+    z-index: 100;
 }
 
 .dashboard-layout.dark .layout-header {
-    background-color: var(--color-card-dark);
+    background-color: var(--color-background-dark);
 }
 
 .header-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 800;
     color: var(--color-primary);
     letter-spacing: -0.025em;
@@ -107,13 +100,14 @@
 /* Main Content */
 .layout-content {
     flex: 1;
-    padding: 1.5rem;
+    padding: 1.25rem;
     /* Add padding to account for fixed header and footer */
-    padding-top: 8rem;
-    padding-bottom: 7rem;
+    padding-top: 6rem;
+    /* Accurate padding to clear the white header area in the screenshot */
+    padding-bottom: 6rem;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
     overflow-y: auto;
     height: 100%;
     /* Fill the container */

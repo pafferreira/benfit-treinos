@@ -5,7 +5,6 @@ import './DashboardLayout.css';
 
 const DashboardLayout = () => {
     const [darkMode, setDarkMode] = useState(false);
-    const [isHeaderVisible, setIsHeaderVisible] = useState(true);
     const lastScrollY = useRef(0);
     const mainContentRef = useRef(null);
     const location = useLocation();
@@ -17,41 +16,7 @@ const DashboardLayout = () => {
         document.documentElement.classList.toggle('dark');
     };
 
-    // Scroll Handler for Retractable Header/Footer
-    useEffect(() => {
-        const handleScroll = () => {
-            const currentScrollY = mainContentRef.current.scrollTop;
-
-            // Always show if at the very top (or close to it)
-            if (currentScrollY < 10) {
-                setIsHeaderVisible(true);
-                lastScrollY.current = currentScrollY;
-                return;
-            }
-
-            // Determine direction
-            if (currentScrollY > lastScrollY.current) {
-                // Scrolling Down -> Hide
-                setIsHeaderVisible(false);
-            } else {
-                // Scrolling Up -> Show
-                setIsHeaderVisible(true);
-            }
-
-            lastScrollY.current = currentScrollY;
-        };
-
-        const mainElement = mainContentRef.current;
-        if (mainElement) {
-            mainElement.addEventListener('scroll', handleScroll);
-        }
-
-        return () => {
-            if (mainElement) {
-                mainElement.removeEventListener('scroll', handleScroll);
-            }
-        };
-    }, []);
+    // Header remains fixed for PAF
 
     // Determine Header Content based on Route
     const getHeaderContent = (pathname) => {
@@ -59,17 +24,17 @@ const DashboardLayout = () => {
             case '/treinos':
                 return { title: 'Meus Treinos', subtitle: 'Seus programas personalizados' };
             case '/meu-treino':
-                return { title: 'My Training', subtitle: 'Seu treino de hoje' };
+                return { title: 'Meu Treino', subtitle: 'Seu treino de hoje' };
             case '/exercicios':
                 return { title: 'Exercícios', subtitle: 'Biblioteca completa' };
             case '/coach':
-                return { title: 'AI Coach', subtitle: 'Seu assistente pessoal' };
+                return { title: 'Coach IA', subtitle: 'Seu assistente pessoal' };
             case '/perfil':
                 return { title: 'Perfil', subtitle: 'Suas configurações' };
             case '/diagnostic':
                 return { title: 'Diagnóstico', subtitle: 'Verificação do sistema' };
             default:
-                return { title: 'BENFIT', subtitle: "Let's get moving!" };
+                return { title: 'BENFIT', subtitle: "Vamos lá!" };
         }
     };
 
@@ -89,13 +54,13 @@ const DashboardLayout = () => {
     return (
         <div className={`dashboard-layout ${darkMode ? 'dark' : ''}`}>
             <div className="mobile-container">
-                {/* Header */}
-                <header className={`layout-header ${!isHeaderVisible ? 'header-hidden' : ''}`}>
+                {/* Fixed Header */}
+                <header className="layout-header">
                     <div>
                         <h1 className="header-title">{title}</h1>
                         <p className="header-subtitle">{subtitle}</p>
                     </div>
-                    <div className="user-avatar-container" onClick={() => navigate('/perfil')}>
+                    <div className="user-avatar-container" onClick={() => navigate('/perfil')} data-tooltip="Meu Perfil">
                         <img
                             alt="User Profile Avatar"
                             className="user-avatar"
@@ -113,44 +78,48 @@ const DashboardLayout = () => {
                 </main>
 
                 {/* Bottom Navigation */}
-                <nav className={`bottom-nav ${!isHeaderVisible ? 'nav-hidden' : ''}`}>
+                <nav className="bottom-nav">
                     <button
                         className={`nav-btn ${isActive('/') ? 'active' : ''}`}
                         onClick={() => handleNav('/')}
+                        data-tooltip="Início"
                     >
                         <Home size={24} />
-                        <span>Home</span>
+                        <span>Início</span>
                     </button>
                     <button
                         className={`nav-btn ${isActive('/treinos') ? 'active' : ''}`}
                         onClick={() => handleNav('/treinos')}
+                        data-tooltip="Meus Planos"
                     >
                         <ClipboardList size={24} />
-                        <span>Plans</span>
+                        <span>Planos</span>
                     </button>
-                    <button className="fab-btn" onClick={() => handleNav('/coach')}>
+                    <button className="fab-btn" onClick={() => handleNav('/coach')} data-tooltip="Coach IA">
                         <Play size={28} fill="currentColor" />
                     </button>
                     <button
                         className={`nav-btn ${isActive('/exercicios') ? 'active' : ''}`}
                         onClick={() => handleNav('/exercicios')}
+                        data-tooltip="Exercícios"
                     >
-                        <BarChart2 size={24} /> {/* Using BarChart2 for Exercises temporarily or Stats if preferred */}
-                        <span>Exercises</span>
+                        <BarChart2 size={24} />
+                        <span>Exercícios</span>
                     </button>
                     <button
                         className={`nav-btn ${isActive('/perfil') ? 'active' : ''}`}
                         onClick={() => handleNav('/perfil')}
+                        data-tooltip="Perfil"
                     >
                         <User size={24} />
-                        <span>Profile</span>
+                        <span>Perfil</span>
                     </button>
                 </nav>
             </div>
 
             {/* Dark Mode Toggle (Floating) */}
-            <div className={`dark-mode-toggle ${!isHeaderVisible ? 'nav-hidden' : ''}`}>
-                <button className="toggle-btn" onClick={toggleDarkMode}>
+            <div className="dark-mode-toggle">
+                <button className="toggle-btn" onClick={toggleDarkMode} data-tooltip={darkMode ? "Modo Claro" : "Modo Escuro"}>
                     {darkMode ? <Sun size={24} /> : <Moon size={24} />}
                 </button>
             </div>

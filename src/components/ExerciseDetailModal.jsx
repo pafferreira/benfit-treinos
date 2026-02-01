@@ -69,7 +69,7 @@ const ExerciseDetailModal = ({
                 <div className="modal-body">
                     {/* Sets Section */}
                     <div className="sets-section">
-                        <h3 className="section-title">Sets & Reps</h3>
+                        <h3 className="section-title">Séries & Repetições</h3>
                         <div className="sets-grid">
                             {Array.from({ length: sets }, (_, i) => i + 1).map(setNum => (
                                 <div
@@ -77,7 +77,7 @@ const ExerciseDetailModal = ({
                                     className={`set-item ${completedSets.has(setNum) ? 'completed' : ''}`}
                                 >
                                     <div className="set-info">
-                                        <div className="set-number">SET {setNum}</div>
+                                        <div className="set-number">SÉRIE {setNum}</div>
                                         <div className="set-prescription">{reps.split('-')[0]} x 15kg</div>
                                     </div>
                                     <label className="set-checkbox">
@@ -97,7 +97,7 @@ const ExerciseDetailModal = ({
 
                     {/* Rest Timer Section */}
                     <div className="rest-section">
-                        <h3 className="section-title">Rest Timer</h3>
+                        <h3 className="section-title">Descanso</h3>
                         <RestTimer suggestedRestSeconds={restSeconds} />
                     </div>
 
@@ -105,7 +105,7 @@ const ExerciseDetailModal = ({
                     <div className="instructions-section">
                         <h3 className="section-title">
                             <Info size={18} />
-                            Tips & Instructions
+                            Dicas & Instruções
                         </h3>
                         <ul className="instructions-list">
                             {instructions.map((instruction, idx) => (
@@ -114,7 +114,7 @@ const ExerciseDetailModal = ({
                         </ul>
                         {notes && (
                             <div className="exercise-notes">
-                                <strong>Note:</strong> {notes}
+                                <strong>Nota:</strong> {notes}
                             </div>
                         )}
                     </div>

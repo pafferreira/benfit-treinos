@@ -48,11 +48,11 @@ const MiniCalendar = ({ completedDates = [], currentDate = new Date() }) => {
         <div className="mini-calendar">
             <div className="calendar-header">
                 <h3 className="calendar-month">{monthYear}</h3>
-                <div className="week-badge">Week {weekNumber}</div>
+                <div className="week-badge">Semana {weekNumber}</div>
             </div>
 
             <div className="calendar-days">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => (
+                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => (
                     <div key={day} className="day-column">
                         <div className="day-label">{day}</div>
                         <div className={`day-circle ${isToday(weekDays[idx]) ? 'today' : ''} ${isDateCompleted(weekDays[idx]) ? 'completed' : ''}`}>

@@ -189,7 +189,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                     onClick={() => removeInstruction(index)}
                                     className="btn-secondary"
                                     style={{ padding: '0.75rem' }}
-                                    title="Remover instrução"
+                                    data-tooltip="Remover instrução"
                                 >
                                     <X size={16} />
                                 </button>
@@ -211,7 +211,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                     type="button"
                                     onClick={() => removeTag(tag)}
                                     className="tag-remove-btn"
-                                    title="Remover tag"
+                                    data-tooltip="Remover tag"
                                 >
                                     <X size={14} />
                                 </button>

@@ -2,9 +2,9 @@ import { Zap } from 'lucide-react';
 import './MotivationalCard.css';
 
 const MotivationalCard = ({
-    message = "Let's crush it!",
-    subtitle = "Today is upper body strength. Ready to beat your PR?",
-    intensity = "High Intensity",
+    message = "Vamos com tudo!",
+    subtitle = "Hoje é dia de força para o tronco. Pronto para superar seus limites?",
+    intensity = "Alta Intensidade",
     userAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuCJT4i3SHiSRnhWT1Zip9JVLP_VPLghVxnwIznSdKURKN-1x3d-jNQu8jvDK6o6tpMqkBeSRI8Yxu-NCBeK689wVbcKphtk40Ss65S0GFoARgCa96yZm2QavXee2kVHjQlYPX8y2fVu5JVay_dnYK9yyi-ZrQvxHfFIDabFykKFINC6TND3deT2G0XHeRqwtTyRoOB0KhztI2F4OIZofGNh_sgXLylj4KP-KRm8PLzUb5-gmOx6TNHKEJAV-Vb03pXZn7PYCHtpovc"
 }) => {
     return (

@@ -118,9 +118,9 @@ const Workouts = () => {
         <div className="workouts-container">
             {/* Header */}
             <div className="workouts-topbar">
-                <h3 className="section-title">Active Plans</h3>
+                <h3 className="section-title">Planos Ativos</h3>
                 <button className="new-plan-btn" onClick={handleCreateWorkout}>
-                    <Plus size={16} /> New Plan
+                    <Plus size={16} /> Novo Plano
                 </button>
             </div>
 
@@ -130,9 +130,9 @@ const Workouts = () => {
                     // Mock data for visual matching
                     const isEven = index % 2 === 0;
                     const iconColor = isEven ? 'green' : 'orange';
-                    const status = isEven ? 'Active' : 'Paused';
+                    const status = isEven ? 'Ativo' : 'Pausado';
                     const progress = isEven ? 65 : 20;
-                    const weeksLeft = isEven ? '4 weeks left' : 'Paused';
+                    const weeksLeft = isEven ? '4 semanas restantes' : 'Pausado';
 
                     return (
                         <div
@@ -156,6 +156,7 @@ const Workouts = () => {
                                             className="action-btn"
                                             onClick={(e) => handleEditWorkout(e, workout)}
                                             style={{ padding: '0.25rem' }}
+                                            data-tooltip="Editar"
                                         >
                                             <Edit2 size={14} />
                                         </button>
@@ -163,6 +164,7 @@ const Workouts = () => {
                                             className="action-btn"
                                             onClick={(e) => handleDeleteWorkout(e, workout)}
                                             style={{ padding: '0.25rem' }}
+                                            data-tooltip="Excluir"
                                         >
                                             <Trash2 size={14} />
                                         </button>
@@ -173,8 +175,8 @@ const Workouts = () => {
                                         <div className={`progress-bar-fill ${iconColor}`} style={{ width: `${progress}%` }}></div>
                                     </div>
                                     <div className="progress-text">
-                                        <span>{progress}% Completed</span>
-                                        {isEven && <span className="week-text">Week 4/12</span>}
+                                        <span>{progress}% Concluído</span>
+                                        {isEven && <span className="week-text">Semana 4/12</span>}
                                     </div>
                                 </div>
                             </div>
