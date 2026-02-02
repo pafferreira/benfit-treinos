@@ -16,7 +16,7 @@ Use esta skill quando precisar gerar novas imagens ilustrativas para exercícios
 
 2.  **Modelo/Personagem**:
     - Manter consistência de biotipo: Atlético, saudável, roupas de treino neutras (evitar logos de marcas grandes).
-    - Referências visuais do projeto: `public/Modelos FIT.webp`, `public/benfit_fem.jpg`, `public/benfit_mas.jpg`. Tente aproximar o estilo desses modelos.
+    - Referências visuais do projeto: `public/avatar-female.png`, `public/avatar-male.png`, `public/Elifit_Coach.png` `public/benfit_fem.jpg`, `public/benfit_mas.jpg`. Tente aproximar o estilo desses modelos e alternar entre eles.
 
 3.  **Enquadramento**:
     - Corpo inteiro visível para exercícios em pé/deitados.
