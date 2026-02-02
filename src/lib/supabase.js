@@ -474,5 +474,118 @@ export const supabaseHelpers = {
 
         if (error) throw error
         return data
+    },
+
+    // User Profile
+    async getCurrentUser() {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        if (!user) return null;
+
+        // Fetch profile data from B_Users
+        const { data: profile, error: profileError } = await supabase
+            .from('b_users')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+        if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Error fetching profile:', profileError);
+        }
+
+        return { ...user, ...profile };
+    },
+
+    async updateUserProfile(userId, profileData) {
+        // Prepare data for Upsert
+        const upsertData = {
+            id: userId,
+            name: profileData.name || 'Usuário',
+            phone: profileData.phone,
+            birth_date: profileData.birth_date,
+            gender: profileData.gender,
+            height_cm: profileData.height_cm,
+            avatar_url: profileData.avatar_url,
+            updated_at: new Date().toISOString()
+        };
+
+        // If doing an insert, we need the email. Supabase Auth usually handles this, 
+        // but B_Users requires email. Fetch it if not provided.
+        if (!upsertData.email) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email) {
+                upsertData.email = user.email;
+            }
+        }
+
+        // Perform UPSERT (Insert or Update)
+        const { data, error } = await supabase
+            .from('b_users')
+            .upsert(upsertData)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Upsert failed:', error);
+            throw error;
+        }
+        return data;
+    },
+
+    // User Goals
+    async getUserGoals(userId) {
+        const { data, error } = await supabase
+            .from('b_user_goals')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data;
+    },
+
+    async createUserGoal(userId, goalData) {
+        const { data, error } = await supabase
+            .from('b_user_goals')
+            .insert({
+                user_id: userId,
+                title: goalData.title,
+                description: goalData.description,
+                deadline: goalData.deadline,
+                status: 'active'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async updateUserGoal(goalId, goalData) {
+        const { data, error } = await supabase
+            .from('b_user_goals')
+            .update({
+                title: goalData.title,
+                description: goalData.description,
+                deadline: goalData.deadline,
+                status: goalData.status
+            })
+            .eq('id', goalId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteUserGoal(goalId) {
+        const { error } = await supabase
+            .from('b_user_goals')
+            .delete()
+            .eq('id', goalId);
+
+        if (error) throw error;
+        return true;
     }
 }
+

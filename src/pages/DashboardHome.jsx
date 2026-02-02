@@ -8,10 +8,12 @@ const DashboardHome = () => {
             <section className="coach-section">
                 <div className="coach-content">
                     <div className="coach-badge">
-                        <Bot size={16} className="mr-1" /> COACH BENFIT
+                        <Bot size={16} className="mr-1" /> " COACH BENFIT
                     </div>
-                    <h2 className="coach-title">Precisa de um plano personalizado?</h2>
-                    <p className="coach-subtitle">Deixe a IA criar uma rotina perfeita para você.</p>
+                    <div className="coach-text">
+                        <h2 className="coach-title">Precisa de um plano personalizado?</h2>
+                        <p>A IA cria uma rotina para você.</p>
+                    </div>
                     <button className="coach-button">
                         Perguntar ao Benfit
                     </button>
@@ -23,10 +25,10 @@ const DashboardHome = () => {
                         src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7n79YS5pbm0fb5mjotFE1XMHbkrqEtlrCRg8x3m5pIdrLcp31KLzgMtaeqLXBIVtU8sII5idrvYjnpsgXIWUvbgHmOBHT4H_Ix0F6hvXTVIAUNdrfkwWpVjj_MpANdBNuEISWGq_HogpRDydTHbMbY4QnsrZShHrgx_MxcvtUqTnmdCxUPLqs5LnVJMBORsMshTE-87nEkdWUel-1Sg2z9MmyREdUW0VzmEfVUF2_DzNbmrem_weZyiMm0ZdDEHhaPk1_4w409RY"
                     />
                 </div>
-            </section>
+            </section >
 
             {/* Active Plans Section */}
-            <section className="plans-section">
+            < section className="plans-section" >
                 <div className="section-header">
                     <h3 className="section-title">Planos Ativos</h3>
                     <button className="new-plan-btn">
@@ -82,10 +84,10 @@ const DashboardHome = () => {
                         </div>
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* Completed History Section */}
-            <section className="history-section">
+            < section className="history-section" >
                 <h3 className="section-title">Histórico de Concluídos</h3>
                 <div className="history-grid">
                     <div className="history-card">
@@ -117,10 +119,10 @@ const DashboardHome = () => {
                         </div>
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* Train with Friends Section */}
-            <section className="friends-section">
+            < section className="friends-section" >
                 <div className="friends-image-container">
                     <img
                         alt="Couple working out"
@@ -135,7 +137,7 @@ const DashboardHome = () => {
                 <button className="friends-arrow">
                     <ChevronRight size={16} />
                 </button>
-            </section>
+            </section >
         </>
     );
 };

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, ClipboardList, Play, BarChart2, User, Moon, Sun } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
@@ -9,6 +10,24 @@ const DashboardLayout = () => {
     const mainContentRef = useRef(null);
     const location = useLocation();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        // Check active session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) {
+                navigate('/login');
+            }
+        });
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (!session) {
+                navigate('/login');
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [navigate]);
 
     // Toggle Dark Mode
     const toggleDarkMode = () => {
@@ -34,7 +53,7 @@ const DashboardLayout = () => {
             case '/diagnostic':
                 return { title: 'Diagnóstico', subtitle: 'Verificação do sistema' };
             default:
-                return { title: 'BENFIT', subtitle: "Vamos lá!" };
+                return { title: 'BENFIT', subtitle: "Painel de Treinos" };
         }
     };
 
