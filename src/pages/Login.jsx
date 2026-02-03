@@ -1,19 +1,30 @@
+// cspell:ignore incorretos confirmado
 
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Check, Flame, ArrowRight, Github } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import './Login.css';
 
 const Login = () => {
     const navigate = useNavigate();
-    const [isLogin, setIsLogin] = useState(true);
+
+    // Internal App Mode: No Sign Up toggle. Login Only.
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
+
+    const translateError = (msg) => {
+        console.log('Translating error:', msg);
+        if (msg.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
+        if (msg.includes('Email not confirmed')) return 'E-mail não confirmado.';
+        if (msg.includes('User not found')) return 'Usuário não encontrado.';
+        if (msg.includes('Failed to fetch')) return 'Erro de conexão. Verifique sua internet.';
+        return msg || 'Ocorreu um erro. Tente novamente.';
+    };
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -22,22 +33,61 @@ const Login = () => {
         setMessage('');
 
         try {
-            if (isLogin) {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-                navigate('/');
-            } else {
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-                setMessage('Verifique seu e-mail para confirmar o cadastro!');
+            // 1. Ensure User Sync (Enterprise Logic)
+            // This calls the Edge Function to check z_usuarios and sync password to Auth
+            // If the user doesn't have the function deployed, it might fail (404/500).
+            // We fallback to standard login if that happens, assuming the user might already exist in Auth.
+
+            let finalPassword = password;
+            // Invoke ensure-user but don't let a slow / missing function block login.
+            // Use a small timeout so we fall back quickly to standard auth.
+            try {
+                const invokeWithTimeout = (name, opts, ms = 1500) => {
+                    return Promise.race([
+                        supabase.functions.invoke(name, opts),
+                        new Promise((_, rej) => setTimeout(() => rej(new Error('invoke-timeout')), ms))
+                    ]);
+                };
+
+                const result = await invokeWithTimeout('ensure-user', { body: { email, password } }, 1500);
+
+                // result may be { data, error } or may be the raw response depending on sdk; normalize
+                const ensureData = result?.data ?? result;
+                const ensureError = result?.error ?? null;
+
+                if (ensureError) {
+                    console.warn('Ensure-user function API warning:', ensureError);
+                    // Non-fatal: continue to normal auth
+                } else if (ensureData) {
+                    if (ensureData.error) {
+                        throw new Error(ensureData.error);
+                    }
+                    if (ensureData.tempPassword) {
+                        finalPassword = ensureData.tempPassword;
+                        console.log('Using synced credentials');
+                    }
+                }
+            } catch (fnErr) {
+                console.warn('Backend validation skipped/failed:', fnErr.message);
+                // If the error message is explicitly about credentials, stop.
+                if (fnErr.message.includes('inválidos') || fnErr.message.includes('inactive')) {
+                    throw new Error(fnErr.message);
+                }
+                // Otherwise (e.g. function not deployed), continue to standard login
             }
+
+            // 2. Standard Supabase Auth Login
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password: finalPassword,
+            });
+
+            if (authError) throw authError;
+
+            navigate('/');
+
         } catch (error) {
+            console.error('Auth error:', error);
             setError(translateError(error.message));
         } finally {
             setLoading(false);
@@ -55,32 +105,16 @@ const Login = () => {
 
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + '/perfil?reset=true',
+                redirectTo: `${window.location.origin}/reset-password`,
             });
             if (error) throw error;
             setMessage('Link de recuperação enviado para seu e-mail!');
         } catch (error) {
-            setError(translateError(error.message));
+            console.error('Reset password error:', error);
+            setError(translateError(error.message || ''));
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleSocialLogin = async (provider) => {
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: provider,
-            });
-            if (error) throw error;
-        } catch (error) {
-            setError(translateError(error.message));
-        }
-    };
-
-    const translateError = (msg) => {
-        if (msg.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
-        if (msg.includes('Email not confirmed')) return 'E-mail não confirmado.';
-        return 'Ocorreu um erro. Tente novamente.';
     };
 
     return (
@@ -93,30 +127,19 @@ const Login = () => {
 
                 {/* Form Section */}
                 <div className="login-content">
-                    {/* Header with Toggle */}
-                    <div className="auth-toggle-container">
-                        <button
-                            className={`auth-toggle-btn ${isLogin ? 'active' : ''}`}
-                            onClick={() => { setIsLogin(true); setError(''); setMessage(''); }}
-                        >
-                            Entrar
-                        </button>
-                        <button
-                            className={`auth-toggle-btn ${!isLogin ? 'active' : ''}`}
-                            onClick={() => { setIsLogin(false); setError(''); setMessage(''); }}
-                        >
-                            Cadastrar
-                        </button>
+                    <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827' }}>Bem-vindo</h2>
+                        <p style={{ color: '#6B7280', fontSize: '0.9rem' }}>Acesse sua conta Benfit</p>
                     </div>
 
                     <form onSubmit={handleAuth} className="auth-form">
                         <div className="form-group">
-                            <label>E-mail</label>
+                            <label>E-mail Corporativo</label>
                             <div className="input-wrapper">
                                 <Mail className="input-icon" size={18} />
                                 <input
                                     type="email"
-                                    placeholder="seu@email.com"
+                                    placeholder="seu@benfit.com.br"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -145,13 +168,11 @@ const Login = () => {
                             </div>
                         </div>
 
-                        {isLogin && (
-                            <div className="forgot-password">
-                                <button type="button" onClick={handleResetPassword} disabled={loading} className="text-btn">
-                                    Esqueci minha senha
-                                </button>
-                            </div>
-                        )}
+                        <div className="forgot-password">
+                            <button type="button" onClick={handleResetPassword} disabled={loading} className="text-btn">
+                                Esqueci minha senha
+                            </button>
+                        </div>
 
                         {error && <div className="error-message">{error}</div>}
                         {message && <div className="success-message">{message}</div>}
@@ -165,38 +186,18 @@ const Login = () => {
                                 <span className="spinner-border"></span>
                             ) : (
                                 <>
-                                    {isLogin ? 'Entrar' : 'Criar Conta'}
+                                    Entrar
                                     <ArrowRight size={18} />
                                 </>
                             )}
                         </button>
                     </form>
 
-                    <div className="divider">
-                        <span>OU CONTINUE COM</span>
-                    </div>
-
-                    <div className="social-login">
-                        <button className="social-btn" onClick={() => handleSocialLogin('google')}>
-                            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" width="20" />
-                            Google
-                        </button>
-                        <button className="social-btn" onClick={() => handleSocialLogin('github')}>
-                            <Github size={20} />
-                            GitHub
-                        </button>
-                    </div>
+                    {/* Social Login removed to match Enterprise Security standards (Inventario DB) */}
                 </div>
             </div>
 
-            <div className="login-logo-header">
-                <div className="logo-icon">
-                    <div className="logo-square">
-                        <div className="logo-dot"></div>
-                    </div>
-                </div>
-                <span className="logo-text">BENFIT</span>
-            </div>
+
         </div>
     );
 };

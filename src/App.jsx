@@ -7,6 +7,7 @@ import Profile from './pages/Profile'
 import AICoach from './pages/AICoach'
 import MeuTreino from './pages/MeuTreino'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import SupabaseDiagnostic from './pages/SupabaseDiagnostic'
 import './App.css'
 
@@ -15,6 +16,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
           <Route path="treinos" element={<Workouts />} />
