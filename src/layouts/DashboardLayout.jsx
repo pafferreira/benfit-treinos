@@ -10,8 +10,12 @@ const DashboardLayout = () => {
     const mainContentRef = useRef(null);
     const location = useLocation();
     const navigate = useNavigate();
+    const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
 
     useEffect(() => {
+        // Allow disabling auth checks for development or emergency bypass
+        if (disableAuth) return;
+
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) {

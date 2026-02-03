@@ -19,6 +19,49 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
 })
 
+// Development toggle: when set to 'true' in .env, provide a mock authenticated user
+const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
+if (disableAuth) {
+    const mockUser = {
+        id: '00000000-0000-0000-0000-000000000001',
+        email: 'pafferreira@gmail.com',
+        app_metadata: {},
+        user_metadata: {},
+    };
+
+    // Override getSession
+    supabase.auth.getSession = async () => ({ data: { session: { user: mockUser } }, error: null });
+
+    // Override getUser
+    supabase.auth.getUser = async () => ({ data: { user: mockUser }, error: null });
+
+    // Override onAuthStateChange to immediately call back with a SIGNED_IN event
+    supabase.auth.onAuthStateChange = (callback) => {
+        try {
+            const session = { user: mockUser };
+            // Call on next tick to mimic async behaviour
+            setTimeout(() => callback('SIGNED_IN', session), 0);
+        } catch (e) {
+            // ignore
+        }
+        return { data: { subscription: { unsubscribe: () => {} } } };
+    };
+
+    // Stub signInWithPassword: accept the mock user's email and any password
+    supabase.auth.signInWithPassword = async ({ email, password }) => {
+        if (email && email.toLowerCase() === mockUser.email) {
+            return { data: { user: mockUser }, error: null };
+        }
+        return { data: null, error: { message: 'Invalid login credentials' } };
+    };
+
+    // Stub reset password and updateUser to be no-ops/success
+    supabase.auth.resetPasswordForEmail = async (email, opts) => ({ data: null, error: null });
+    supabase.auth.updateUser = async (attrs) => ({ data: { user: mockUser }, error: null });
+
+    console.log('⚠️ VITE_DISABLE_AUTH=true — mock user injected (pafferreira@gmail.com)');
+}
+
 // Test connection and log table info
 if (supabaseUrl && supabaseAnonKey) {
     supabase
@@ -28,6 +71,11 @@ if (supabaseUrl && supabaseAnonKey) {
             if (error) {
                 console.error('❌ Supabase connection error:', error.message)
                 console.error('Error details:', error)
+                try {
+                    console.error('Full error JSON:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+                } catch (e) {
+                    // ignore stringify errors
+                }
                 console.warn('💡 Make sure you have executed the SQL scripts in Supabase Dashboard')
                 console.warn('📁 Scripts location: database/supabase_database_script.sql')
             } else {
