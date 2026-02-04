@@ -283,9 +283,19 @@
     border-color: var(--color-primary);
 }
 
+/* Slimmer inputs for Modals as requested */
+.modal-form input,
+.modal-form select,
+.modal-form textarea {
+    padding: 0.4rem 0.75rem !important;
+    font-size: 0.9rem !important;
+    height: auto;
+    min-height: 36px;
+}
+
 .form-row {
     display: grid;
-    grid-cols: 2;
+    grid-template-columns: 1fr 1fr;
     gap: 1rem;
 }
 
@@ -326,7 +336,7 @@
 /* Avatar Selector */
 .avatar-grid {
     display: grid;
-    grid-cols: 4;
+    grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
 }
 

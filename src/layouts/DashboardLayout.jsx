@@ -12,25 +12,48 @@ const DashboardLayout = () => {
     const navigate = useNavigate();
     const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
 
+    const [avatarUrl, setAvatarUrl] = useState('/Elifit_Coach.png'); // Default fallback
+    const [userEmail, setUserEmail] = useState('');
+
     useEffect(() => {
         // Allow disabling auth checks for development or emergency bypass
         if (disableAuth) return;
+
+        const loadUser = async () => {
+            const userData = await supabaseHelpers.getCurrentUser();
+            console.log('📊 Dashboard LoadUser:', userData);
+            if (userData) {
+                setAvatarUrl(userData.avatar_url || '/Elifit_Coach.png');
+                setUserEmail(userData.email || 'Sem e-mail');
+            }
+        };
 
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) {
                 navigate('/login');
+            } else {
+                loadUser();
             }
         });
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (!session) {
                 navigate('/login');
+            } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+                loadUser();
             }
         });
 
-        return () => subscription.unsubscribe();
+        // Listen for custom profile update event
+        const handleProfileUpdate = () => loadUser();
+        window.addEventListener('profile-updated', handleProfileUpdate);
+
+        return () => {
+            subscription.unsubscribe();
+            window.removeEventListener('profile-updated', handleProfileUpdate);
+        };
     }, [navigate]);
 
     // Toggle Dark Mode
@@ -83,12 +106,16 @@ const DashboardLayout = () => {
                         <h1 className="header-title">{title}</h1>
                         <p className="header-subtitle">{subtitle}</p>
                     </div>
-                    <div className="user-avatar-container" onClick={() => navigate('/perfil')} data-tooltip="Meu Perfil">
-                        <img
-                            alt="User Profile Avatar"
-                            className="user-avatar"
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJT4i3SHiSRnhWT1Zip9JVLP_VPLghVxnwIznSdKURKN-1x3d-jNQu8jvDK6o6tpMqkBeSRI8Yxu-NCBeK689wVbcKphtk40Ss65S0GFoARgCa96yZm2QavXee2kVHjQlYPX8y2fVu5JVay_dnYK9yyi-ZrQvxHfFIDabFykKFINC6TND3deT2G0XHeRqwtTyRoOB0KhztI2F4OIZofGNh_sgXLylj4KP-KRm8PLzUb5-gmOx6TNHKEJAV-Vb03pXZn7PYCHtpovc"
-                        />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {userEmail && <span className="header-email" style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: '500' }}>{userEmail}</span>}
+                        <div className="user-avatar-container" onClick={() => navigate('/perfil')} data-tooltip="Meu Perfil">
+                            <img
+                                alt="User Profile Avatar"
+                                className="user-avatar"
+                                src={avatarUrl}
+                                onError={(e) => e.target.src = '/Elifit_Coach.png'}
+                            />
+                        </div>
                     </div>
                 </header>
 

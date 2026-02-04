@@ -33,59 +33,17 @@ const Login = () => {
         setMessage('');
 
         try {
-            // 1. Ensure User Sync (Enterprise Logic)
-            // This calls the Edge Function to check z_usuarios and sync password to Auth
-            // If the user doesn't have the function deployed, it might fail (404/500).
-            // We fallback to standard login if that happens, assuming the user might already exist in Auth.
-
-            const normalizedEmail = email.trim().toLowerCase();
-            if (!normalizedEmail) {
-                setError('Informe seu e-mail.');
-                setLoading(false);
-                return;
-            }
-
-            let finalPassword = password;
-            // First try a local proxy endpoint to avoid CORS issues (same approach as Contratos)
-            try {
-                const resp = await fetch('/api/auth/ensure-user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: normalizedEmail, password })
-                });
-                const payload = await resp.json().catch(() => ({}));
-                if (!resp.ok) {
-                    throw new Error(payload?.error || 'Proxy ensure-user failed');
-                }
-                if (payload?.tempPassword) finalPassword = payload.tempPassword;
-            } catch (proxyErr) {
-                // Fallback to Edge Function invoke (with timeout) if proxy not available
-                try {
-                    const invokeWithTimeout = (name, opts, ms = 1500) => {
-                        return Promise.race([
-                            supabase.functions.invoke(name, opts),
-                            new Promise((_, rej) => setTimeout(() => rej(new Error('invoke-timeout')), ms))
-                        ]);
-                    };
-                    const result = await invokeWithTimeout('ensure-user', { body: { email: normalizedEmail, password } }, 1500);
-                    const ensureData = result?.data ?? result;
-                    if (ensureData?.error) throw new Error(ensureData.error);
-                    if (ensureData?.tempPassword) finalPassword = ensureData.tempPassword;
-                } catch (fnErr) {
-                    console.warn('Ensure-user not available or failed:', fnErr.message);
-                    // Non-fatal; continue to standard auth
-                }
-            }
-
-            // 2. Standard Supabase Auth Login
-            const { error: authError } = await supabase.auth.signInWithPassword({
+            // 1. Authenticate with Supabase Auth (Checks auth.users)
+            const { data: { user, session }, error: authError } = await supabase.auth.signInWithPassword({
                 email,
-                password: finalPassword,
+                password,
             });
 
             if (authError) throw authError;
 
-            navigate('/');
+            if (user) {
+                navigate('/');
+            }
 
         } catch (error) {
             console.error('Auth error:', error);
@@ -135,7 +93,7 @@ const Login = () => {
 
                     <form onSubmit={handleAuth} className="auth-form">
                         <div className="form-group">
-                            <label>E-mail Corporativo</label>
+                            <label>E-mail</label>
                             <div className="input-wrapper">
                                 <Mail className="input-icon" size={18} />
                                 <input

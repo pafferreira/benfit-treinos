@@ -4,6 +4,7 @@ import { supabaseHelpers } from '../lib/supabase';
 import { Calendar, Clock, Plus, Edit2, Trash2, Search, Loader2, Dumbbell } from 'lucide-react';
 import WorkoutModal from '../components/WorkoutModal';
 import WorkoutDetails from '../components/WorkoutDetails';
+import ConfirmationModal from '../components/ConfirmationModal';
 import './Workouts.css';
 
 const Workouts = () => {
@@ -15,6 +16,7 @@ const Workouts = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [difficultyFilter, setDifficultyFilter] = useState('all');
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
     useEffect(() => {
         if (!selectedWorkout || isModalOpen) return;
@@ -58,15 +60,20 @@ const Workouts = () => {
         setIsModalOpen(true);
     };
 
-    const handleDeleteWorkout = async (e, workout) => {
+    const handleDeleteWorkout = (e, workout) => {
         e.stopPropagation();
-        if (!confirm(`Tem certeza que deseja excluir "${workout.title}"?`)) {
-            return;
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Excluir Plano',
+            message: `Tem certeza que deseja excluir o plano "${workout.title}"? Esta ação não pode ser desfeita.`,
+            onConfirm: () => confirmDeleteWorkout(workout)
+        });
+    };
 
+    const confirmDeleteWorkout = async (workout) => {
         try {
             await supabaseHelpers.deleteWorkout(workout.id);
-            alert('Treino excluído com sucesso!');
+            // alert('Treino excluído com sucesso!'); // Optional: removed to be less intrusive or keep if preferred
             reload();
             if (selectedWorkout?.id === workout.id) {
                 setSelectedWorkout(null);
@@ -74,6 +81,8 @@ const Workouts = () => {
         } catch (err) {
             console.error('Error deleting workout:', err);
             alert('Erro ao excluir treino: ' + err.message);
+        } finally {
+            setConfirmModal({ ...confirmModal, isOpen: false });
         }
     };
 
@@ -192,6 +201,15 @@ const Workouts = () => {
                 onSave={handleSaveWorkout}
                 workout={editingWorkout}
                 isLoading={isSaving}
+            />
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
             />
         </div>
     );

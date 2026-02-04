@@ -16,6 +16,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/diagnostic" element={<SupabaseDiagnostic />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />

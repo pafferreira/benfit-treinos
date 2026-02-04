@@ -19,74 +19,116 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
 })
 
-// Development toggle: when set to 'true' in .env, provide a mock authenticated user
-const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
-if (disableAuth) {
-    const mockUser = {
-        id: '00000000-0000-0000-0000-000000000001',
-        email: 'pafferreira@gmail.com',
+// Custom Auth Implementation (No Supabase Auth, b_users only)
+const STORAGE_KEY = 'benfit_user';
+
+// Helper to get stored user
+const getStoredUser = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+        return null;
+    }
+};
+
+// Helper to create a fake session object
+const createMockSession = (user) => {
+    if (!user) return null;
+    // CRITICAL: Use the ANON KEY as the token so the server accepts the header.
+    // 'mock-token' causes "Expected 3 parts in JWT" error.
+    return {
+        access_token: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        token_type: 'bearer',
+        user: {
+            id: user.id,
+            email: user.email,
+            user_metadata: { ...user },
+            app_metadata: {},
+            aud: 'authenticated'
+        }
+    };
+};
+
+// Override Auth Methods
+supabase.auth.getSession = async () => {
+    const user = getStoredUser();
+    return { data: { session: createMockSession(user) }, error: null };
+};
+
+supabase.auth.getUser = async () => {
+    const user = getStoredUser();
+    // Transform b_users record to Auth User shape
+    const authUser = user ? {
+        id: user.id,
+        email: user.email,
+        user_metadata: { ...user },
         app_metadata: {},
-        user_metadata: {},
-    };
+        aud: 'authenticated'
+    } : null;
+    return { data: { user: authUser }, error: null };
+};
 
-    // Override getSession
-    supabase.auth.getSession = async () => ({ data: { session: { user: mockUser } }, error: null });
+supabase.auth.signInWithPassword = async ({ email }) => {
+    try {
+        const cleanEmail = email.trim();
+        console.log('🔍 Attempting B_Users login for:', cleanEmail);
 
-    // Override getUser
-    supabase.auth.getUser = async () => ({ data: { user: mockUser }, error: null });
+        // Query b_users directly (RLS is disabled so this works publicly now)
+        const { data, error } = await supabase
+            .from('b_users')
+            .select('*')
+            .ilike('email', cleanEmail)
+            .maybeSingle();
 
-    // Override onAuthStateChange to immediately call back with a SIGNED_IN event
-    supabase.auth.onAuthStateChange = (callback) => {
-        try {
-            const session = { user: mockUser };
-            // Call on next tick to mimic async behaviour
-            setTimeout(() => callback('SIGNED_IN', session), 0);
-        } catch (e) {
-            // ignore
+        console.log('🔍 Login Query Result:', { data, error });
+
+        if (error) throw error;
+        if (!data) {
+            return { data: { user: null, session: null }, error: { message: 'Usuário não encontrado.' } };
         }
-        return { data: { subscription: { unsubscribe: () => {} } } };
-    };
 
-    // Stub signInWithPassword: accept the mock user's email and any password
-    supabase.auth.signInWithPassword = async ({ email, password }) => {
-        if (email && email.toLowerCase() === mockUser.email) {
-            return { data: { user: mockUser }, error: null };
+        const user = data; // Queries return object directly when using single/maybeSingle
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+
+        // Notify Listeners
+        if (supabase.auth.onAuthStateChangeCallback) {
+            supabase.auth.onAuthStateChangeCallback('SIGNED_IN', createMockSession(user));
         }
-        return { data: null, error: { message: 'Invalid login credentials' } };
-    };
 
-    // Stub reset password and updateUser to be no-ops/success
-    supabase.auth.resetPasswordForEmail = async (email, opts) => ({ data: null, error: null });
-    supabase.auth.updateUser = async (attrs) => ({ data: { user: mockUser }, error: null });
+        return { data: { user, session: createMockSession(user) }, error: null };
+    } catch (err) {
+        return { data: { user: null, session: null }, error: err };
+    }
+};
 
-    console.log('⚠️ VITE_DISABLE_AUTH=true — mock user injected (pafferreira@gmail.com)');
-}
+supabase.auth.signOut = async () => {
+    localStorage.removeItem(STORAGE_KEY);
+    if (supabase.auth.onAuthStateChangeCallback) {
+        supabase.auth.onAuthStateChangeCallback('SIGNED_OUT', null);
+    }
+    return { error: null };
+};
 
-// Test connection and log table info
-if (supabaseUrl && supabaseAnonKey) {
-    supabase
-        .from('b_exercises')
-        .select('*', { count: 'exact', head: true })
-        .then(({ count, error }) => {
-            if (error) {
-                console.error('❌ Supabase connection error:', error.message)
-                console.error('Error details:', error)
-                try {
-                    console.error('Full error JSON:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
-                } catch (e) {
-                    // ignore stringify errors
-                }
-                console.warn('💡 Make sure you have executed the SQL scripts in Supabase Dashboard')
-                console.warn('📁 Scripts location: database/supabase_database_script.sql')
-            } else {
-                console.log('✅ Supabase connected successfully!')
-                console.log(`📊 Found ${count} exercises in B_Exercises table`)
-            }
-        })
-}
+// Hook into onAuthStateChange
+const originalOnAuthStateChange = supabase.auth.onAuthStateChange.bind(supabase.auth);
+supabase.auth.onAuthStateChange = (callback) => {
+    supabase.auth.onAuthStateChangeCallback = callback;
+    // Initial check
+    const user = getStoredUser();
+    if (user) {
+        setTimeout(() => callback('SIGNED_IN', createMockSession(user)), 0);
+    }
+    return { data: { subscription: { unsubscribe: () => { supabase.auth.onAuthStateChangeCallback = null; } } } };
+};
 
 // Helper functions for common queries
 export const supabaseHelpers = {
+    // Custom Login Helper
+    async login(email) {
+        return await supabase.auth.signInWithPassword({ email });
+    },
+
     // Exercises
     async getAllExercises() {
         const { data, error } = await supabase
@@ -531,13 +573,27 @@ export const supabaseHelpers = {
         if (!user) return null;
 
         // Fetch profile data from B_Users
-        const { data: profile, error: profileError } = await supabase
+        // First, try by ID
+        let { data: profile, error: profileError } = await supabase
             .from('b_users')
             .select('*')
             .eq('id', user.id)
             .single();
 
-        if (profileError && profileError.code !== 'PGRST116') {
+        // If not found by ID, try by Email (fallback for inconsistent IDs)
+        if (!profile && user.email) {
+            const { data: profileByEmail, error: emailError } = await supabase
+                .from('b_users')
+                .select('*')
+                .eq('email', user.email)
+                .single();
+
+            if (profileByEmail) {
+                profile = profileByEmail;
+            }
+        }
+
+        if (profileError && profileError.code !== 'PGRST116' && !profile) {
             console.error('Error fetching profile:', profileError);
         }
 
@@ -546,25 +602,41 @@ export const supabaseHelpers = {
 
     async updateUserProfile(userId, profileData) {
         // Prepare data for Upsert
+        let targetId = userId;
         const upsertData = {
-            id: userId,
             name: profileData.name || 'Usuário',
             phone: profileData.phone,
             birth_date: profileData.birth_date,
             gender: profileData.gender,
             height_cm: profileData.height_cm,
+            weight_kg: profileData.weight_kg,
             avatar_url: profileData.avatar_url,
             updated_at: new Date().toISOString()
         };
 
-        // If doing an insert, we need the email. Supabase Auth usually handles this, 
-        // but B_Users requires email. Fetch it if not provided.
+        // Ensure email is present
         if (!upsertData.email) {
             const { data: { user } } = await supabase.auth.getUser();
             if (user && user.email) {
                 upsertData.email = user.email;
             }
         }
+
+        // CRITICAL: Check if a user with this email already exists to determine the correct ID
+        // This prevents "duplicate key value" errors if we try to insert with a new ID when the email exists
+        if (upsertData.email) {
+            const { data: existingUser } = await supabase
+                .from('b_users')
+                .select('id')
+                .eq('email', upsertData.email)
+                .maybeSingle();
+
+            if (existingUser) {
+                targetId = existingUser.id; // Use the EXISTING database ID, not the Auth ID if they differ
+            }
+        }
+
+        upsertData.id = targetId;
 
         // Perform UPSERT (Insert or Update)
         const { data, error } = await supabase
@@ -577,6 +649,21 @@ export const supabaseHelpers = {
             console.error('Upsert failed:', error);
             throw error;
         }
+
+        // SYNC LOCAL STORAGE: Update the stored user if it matches
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            const currentUser = JSON.parse(stored);
+            if (currentUser.id === targetId) {
+                const merged = { ...currentUser, ...data };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+                // Notify session listeners manually
+                if (supabase.auth.onAuthStateChangeCallback) {
+                    supabase.auth.onAuthStateChangeCallback('USER_UPDATED', createMockSession(merged));
+                }
+            }
+        }
+
         return data;
     },
 
