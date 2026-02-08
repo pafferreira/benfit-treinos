@@ -1,0 +1,25 @@
+Todo List for Exercise Images Generation
+======================================
+
+These exercises match the database keys but are missing corresponding images in public/exercicios/.
+
+1.  panturrilha_sentado (Fem)
+2.  cadeira_extensora_unilateral (Mas)
+3.  leg_press_horizontal_unilateral (Mas)
+4.  recuo_smith (Fem)
+5.  flexora_vertical (Fem)
+6.  rdl (Fem - Posterior)
+7.  good_morning (Fem)
+8.  extensao_quadril_banco_romano (Fem)
+9.  cadeira_abdutora_45 (Fem)
+10. abducao_cross (Fem)
+11. remada_baixa_pronada (Mas)
+12. remada_articulada (Mas)
+13. remada_unilateral_halter (Mas - Serrote)
+14. elevacao_lateral_cross (Fem)
+15. desenvolvimento_articulado (Mas)
+16. fly_inverso (Mas)
+17. rosca_alternada (Mas)
+18. rosca_direta_cross (Mas)
+19. abdominal_infra (Fem - Floor)
+20. abdominal_supra_corda (Mas - Cable)

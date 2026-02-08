@@ -1,0 +1,28 @@
+.benfit-footer {
+  background-color: #1a1a1a;
+  color: #888888;
+  padding: 1.5rem;
+  margin-top: auto;
+  border-top: 1px solid #333;
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-links {
+  display: flex;
+  gap: 20px;
+  font-size: 0.8rem;
+}
+
+.footer-links span:hover {
+  color: #ffcc00;
+  cursor: pointer;
+  transition: color 0.2s;
+}
