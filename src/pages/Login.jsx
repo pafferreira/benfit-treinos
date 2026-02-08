@@ -26,6 +26,8 @@ const Login = () => {
         return msg;
     };
 
+    const [isSignUp, setIsSignUp] = useState(false);
+
     const handleAuth = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -33,16 +35,33 @@ const Login = () => {
         setMessage('');
 
         try {
-            // 1. Authenticate with Supabase Auth (Checks auth.users)
-            const { data: { user, session }, error: authError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+            if (isSignUp) {
+                // SIGN UP FLOW
+                const { data, error: signUpError } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            name: email.split('@')[0], // Default name from email part
+                            avatar_url: ''
+                        }
+                    }
+                });
+                if (signUpError) throw signUpError;
+                setMessage('Conta criada com sucesso! Verifique seu e-mail para confirmar (se necessário) ou faça login.');
+                setIsSignUp(false); // Switch back to login
+            } else {
+                // LOGIN FLOW
+                const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
 
-            if (authError) throw authError;
+                if (authError) throw authError;
 
-            if (user) {
-                navigate('/');
+                if (user) {
+                    navigate('/');
+                }
             }
 
         } catch (error) {
@@ -79,7 +98,7 @@ const Login = () => {
     return (
         <div className="login-container">
             <div className="login-card">
-                {/* Hero / Image Section */}
+                {/* Hero Section */}
                 <div className="login-hero">
                     <img src="/benfit-hero.jpg" alt="Modelo Fitness" className="hero-image" />
                 </div>
@@ -87,11 +106,16 @@ const Login = () => {
                 {/* Form Section */}
                 <div className="login-content">
                     <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827' }}>Bem-vindo</h2>
-                        <p style={{ color: '#6B7280', fontSize: '0.9rem' }}>Acesse sua conta Benfit</p>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827' }}>
+                            {isSignUp ? 'Crie sua conta' : 'Bem-vindo'}
+                        </h2>
+                        <p style={{ color: '#6B7280', fontSize: '0.9rem' }}>
+                            {isSignUp ? 'Junte-se ao time Benfit' : 'Acesse sua conta Benfit'}
+                        </p>
                     </div>
 
                     <form onSubmit={handleAuth} className="auth-form">
+                        {/* Inputs remain similar */}
                         <div className="form-group">
                             <label>E-mail</label>
                             <div className="input-wrapper">
@@ -127,11 +151,13 @@ const Login = () => {
                             </div>
                         </div>
 
-                        <div className="forgot-password">
-                            <button type="button" onClick={handleResetPassword} disabled={loading} className="text-btn">
-                                Esqueci minha senha
-                            </button>
-                        </div>
+                        {!isSignUp && (
+                            <div className="forgot-password">
+                                <button type="button" onClick={handleResetPassword} disabled={loading} className="text-btn">
+                                    Esqueci minha senha
+                                </button>
+                            </div>
+                        )}
 
                         {error && <div className="error-message">{error}</div>}
                         {message && <div className="success-message">{message}</div>}
@@ -145,12 +171,31 @@ const Login = () => {
                                 <span className="spinner-border"></span>
                             ) : (
                                 <>
-                                    Entrar
+                                    {isSignUp ? 'Cadastrar' : 'Entrar'}
                                     <ArrowRight size={18} />
                                 </>
                             )}
                         </button>
                     </form>
+
+                    <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.9rem' }}>
+                        <p style={{ color: '#6B7280' }}>
+                            {isSignUp ? 'Já tem uma conta?' : 'Não tem conta?'}
+                            <button
+                                type="button"
+                                className="text-btn"
+                                style={{ marginLeft: '5px', fontWeight: '600' }}
+                                onClick={() => {
+                                    setIsSignUp(!isSignUp);
+                                    setError('');
+                                    setMessage('');
+                                }}
+                            >
+                                {isSignUp ? 'Fazer Login' : 'Criar conta'}
+                            </button>
+                        </p>
+                    </div>
+
 
                     {/* Social Login removed to match Enterprise Security standards (Inventario DB) */}
                 </div>

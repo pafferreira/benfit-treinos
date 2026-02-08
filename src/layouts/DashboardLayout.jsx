@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, ClipboardList, Play, BarChart2, User, Moon, Sun } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseHelpers } from '../lib/supabase'; // Correct import
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
@@ -12,19 +12,30 @@ const DashboardLayout = () => {
     const navigate = useNavigate();
     const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
 
-    const [avatarUrl, setAvatarUrl] = useState('/Elifit_Coach.png'); // Default fallback
-    const [userEmail, setUserEmail] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('/Elifit_Coach.png');
+    const [userEmail, setUserEmail] = useState('...');
+
+    // Toggle Dark Mode
+    const toggleDarkMode = () => {
+        setDarkMode(!darkMode);
+        document.documentElement.classList.toggle('dark');
+    };
 
     useEffect(() => {
         // Allow disabling auth checks for development or emergency bypass
         if (disableAuth) return;
 
         const loadUser = async () => {
-            const userData = await supabaseHelpers.getCurrentUser();
-            console.log('📊 Dashboard LoadUser:', userData);
-            if (userData) {
-                setAvatarUrl(userData.avatar_url || '/Elifit_Coach.png');
-                setUserEmail(userData.email || 'Sem e-mail');
+            try {
+                const userData = await supabaseHelpers.getCurrentUser();
+                console.log('🔄 Dashboard Refreshed User:', userData);
+                if (userData) {
+                    setAvatarUrl(userData.avatar_url || '/Elifit_Coach.png');
+                    // Ensure email is set even if empty string
+                    setUserEmail(userData.email || 'Sem e-mail');
+                }
+            } catch (e) {
+                console.error('Error loading user in dashboard:', e);
             }
         };
 
@@ -46,23 +57,19 @@ const DashboardLayout = () => {
             }
         });
 
-        // Listen for custom profile update event
-        const handleProfileUpdate = () => loadUser();
+        // Listen for custom profile update event (Avatar changes)
+        const handleProfileUpdate = () => {
+            console.log('🔔 Profile Updated Event Received!');
+            loadUser();
+        };
         window.addEventListener('profile-updated', handleProfileUpdate);
 
         return () => {
             subscription.unsubscribe();
             window.removeEventListener('profile-updated', handleProfileUpdate);
         };
-    }, [navigate]);
+    }, [navigate, disableAuth]);
 
-    // Toggle Dark Mode
-    const toggleDarkMode = () => {
-        setDarkMode(!darkMode);
-        document.documentElement.classList.toggle('dark');
-    };
-
-    // Header remains fixed for PAF
 
     // Determine Header Content based on Route
     const getHeaderContent = (pathname) => {
@@ -80,6 +87,8 @@ const DashboardLayout = () => {
             case '/diagnostic':
                 return { title: 'Diagnóstico', subtitle: 'Verificação do sistema' };
             default:
+                // Default home or dashboard
+                if (pathname === '/') return { title: 'BENFIT', subtitle: "Painel de Treinos" };
                 return { title: 'BENFIT', subtitle: "Painel de Treinos" };
         }
     };
@@ -102,12 +111,21 @@ const DashboardLayout = () => {
             <div className="mobile-container">
                 {/* Fixed Header */}
                 <header className="layout-header">
-                    <div>
+                    <div style={{ flex: 1 }}> {/* Title takes available space */}
                         <h1 className="header-title">{title}</h1>
                         <p className="header-subtitle">{subtitle}</p>
                     </div>
+
+                    {/* User Info Container */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        {userEmail && <span className="header-email" style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: '500' }}>{userEmail}</span>}
+
+                        {/* Email Display - Now explicit */}
+                        <div className="header-user-info" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '500', color: darkMode ? '#D1D5DB' : '#4B5563' }}>
+                                {userEmail}
+                            </span>
+                        </div>
+
                         <div className="user-avatar-container" onClick={() => navigate('/perfil')} data-tooltip="Meu Perfil">
                             <img
                                 alt="User Profile Avatar"

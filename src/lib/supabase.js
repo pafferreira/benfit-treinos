@@ -19,108 +19,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
 })
 
-// Custom Auth Implementation (No Supabase Auth, b_users only)
-const STORAGE_KEY = 'benfit_user';
-
-// Helper to get stored user
-const getStoredUser = () => {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : null;
-    } catch (e) {
-        return null;
-    }
-};
-
-// Helper to create a fake session object
-const createMockSession = (user) => {
-    if (!user) return null;
-    // CRITICAL: Use the ANON KEY as the token so the server accepts the header.
-    // 'mock-token' causes "Expected 3 parts in JWT" error.
-    return {
-        access_token: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        token_type: 'bearer',
-        user: {
-            id: user.id,
-            email: user.email,
-            user_metadata: { ...user },
-            app_metadata: {},
-            aud: 'authenticated'
-        }
-    };
-};
-
-// Override Auth Methods
-supabase.auth.getSession = async () => {
-    const user = getStoredUser();
-    return { data: { session: createMockSession(user) }, error: null };
-};
-
-supabase.auth.getUser = async () => {
-    const user = getStoredUser();
-    // Transform b_users record to Auth User shape
-    const authUser = user ? {
-        id: user.id,
-        email: user.email,
-        user_metadata: { ...user },
-        app_metadata: {},
-        aud: 'authenticated'
-    } : null;
-    return { data: { user: authUser }, error: null };
-};
-
-supabase.auth.signInWithPassword = async ({ email }) => {
-    try {
-        const cleanEmail = email.trim();
-        console.log('🔍 Attempting B_Users login for:', cleanEmail);
-
-        // Query b_users directly (RLS is disabled so this works publicly now)
-        const { data, error } = await supabase
-            .from('b_users')
-            .select('*')
-            .ilike('email', cleanEmail)
-            .maybeSingle();
-
-        console.log('🔍 Login Query Result:', { data, error });
-
-        if (error) throw error;
-        if (!data) {
-            return { data: { user: null, session: null }, error: { message: 'Usuário não encontrado.' } };
-        }
-
-        const user = data; // Queries return object directly when using single/maybeSingle
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-
-        // Notify Listeners
-        if (supabase.auth.onAuthStateChangeCallback) {
-            supabase.auth.onAuthStateChangeCallback('SIGNED_IN', createMockSession(user));
-        }
-
-        return { data: { user, session: createMockSession(user) }, error: null };
-    } catch (err) {
-        return { data: { user: null, session: null }, error: err };
-    }
-};
-
-supabase.auth.signOut = async () => {
-    localStorage.removeItem(STORAGE_KEY);
-    if (supabase.auth.onAuthStateChangeCallback) {
-        supabase.auth.onAuthStateChangeCallback('SIGNED_OUT', null);
-    }
-    return { error: null };
-};
-
-// Hook into onAuthStateChange
-const originalOnAuthStateChange = supabase.auth.onAuthStateChange.bind(supabase.auth);
-supabase.auth.onAuthStateChange = (callback) => {
-    supabase.auth.onAuthStateChangeCallback = callback;
-    // Initial check
-    const user = getStoredUser();
-    if (user) {
-        setTimeout(() => callback('SIGNED_IN', createMockSession(user)), 0);
-    }
-    return { data: { subscription: { unsubscribe: () => { supabase.auth.onAuthStateChangeCallback = null; } } } };
-};
+// Custom Auth Implementation REMOVED.
+// We are now using native Supabase Auth.
 
 // Helper functions for common queries
 export const supabaseHelpers = {
@@ -605,35 +505,28 @@ export const supabaseHelpers = {
         let targetId = userId;
         const upsertData = {
             name: profileData.name || 'Usuário',
-            phone: profileData.phone,
-            birth_date: profileData.birth_date,
-            gender: profileData.gender,
-            height_cm: profileData.height_cm,
-            weight_kg: profileData.weight_kg,
-            avatar_url: profileData.avatar_url,
+            // Convert empty strings to NULL for optional fields to avoid DB type errors
+            phone: profileData.phone || null,
+            birth_date: profileData.birth_date || null,
+            gender: profileData.gender || null,
+            height_cm: profileData.height_cm ? parseInt(profileData.height_cm) : null,
+            weight_kg: profileData.weight_kg ? parseFloat(profileData.weight_kg) : null,
+            avatar_url: profileData.avatar_url || null,
             updated_at: new Date().toISOString()
         };
 
-        // Ensure email is present
-        if (!upsertData.email) {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user && user.email) {
-                upsertData.email = user.email;
-            }
-        }
+        // Ensure email is present from Auth if missing in profileData
+        const { data: { user } } = await supabase.auth.getUser();
 
-        // CRITICAL: Check if a user with this email already exists to determine the correct ID
-        // This prevents "duplicate key value" errors if we try to insert with a new ID when the email exists
-        if (upsertData.email) {
-            const { data: existingUser } = await supabase
-                .from('b_users')
-                .select('id')
-                .eq('email', upsertData.email)
-                .maybeSingle();
+        if (!user) throw new Error("Usuário não autenticado.");
 
-            if (existingUser) {
-                targetId = existingUser.id; // Use the EXISTING database ID, not the Auth ID if they differ
-            }
+        // STRICT SECURITY: Always use the Authenticated User's ID.
+        // The database trigger handles syncing b_users ID with Auth ID.
+        // We must NOT lookup by email to "find" an ID, as that causes RLS mismatches.
+        targetId = user.id;
+
+        if (!upsertData.email && user.email) {
+            upsertData.email = user.email;
         }
 
         upsertData.id = targetId;
@@ -650,19 +543,10 @@ export const supabaseHelpers = {
             throw error;
         }
 
-        // SYNC LOCAL STORAGE: Update the stored user if it matches
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            const currentUser = JSON.parse(stored);
-            if (currentUser.id === targetId) {
-                const merged = { ...currentUser, ...data };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-                // Notify session listeners manually
-                if (supabase.auth.onAuthStateChangeCallback) {
-                    supabase.auth.onAuthStateChangeCallback('USER_UPDATED', createMockSession(merged));
-                }
-            }
-        }
+        // SYNC LOCAL STORAGE: Not needed with native Supabase Auth, but we can trigger an event if desired
+        // The UI should react to the database change or re-fetch where necessary.
+
+        return data;
 
         return data;
     },
@@ -680,19 +564,28 @@ export const supabaseHelpers = {
     },
 
     async createUserGoal(userId, goalData) {
+        // Validate required fields
+        if (!userId || !goalData.title) {
+            console.error('Missing required fields for creating goal:', { userId, goalData });
+            throw new Error('Título da meta é obrigatório.');
+        }
+
         const { data, error } = await supabase
             .from('b_user_goals')
             .insert({
                 user_id: userId,
                 title: goalData.title,
-                description: goalData.description,
-                deadline: goalData.deadline,
+                description: goalData.description || '', // Default to empty string if undefined
+                deadline: goalData.deadline || null,    // Default to NULL if undefined or empty
                 status: 'active'
             })
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error in createUserGoal:', error);
+            throw error;
+        }
         return data;
     },
 

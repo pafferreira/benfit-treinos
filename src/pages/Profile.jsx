@@ -91,8 +91,10 @@ const Profile = () => {
                 });
 
                 // Fetch Goals
-                const userGoals = await supabaseHelpers.getUserGoals(currentUser.id);
-                setGoals(userGoals || []);
+                if (currentUser) {
+                    const userGoals = await supabaseHelpers.getUserGoals(currentUser.id);
+                    setGoals(userGoals || []);
+                }
             }
         } catch (error) {
             console.error('Error loading profile:', error);
@@ -146,14 +148,24 @@ const Profile = () => {
     };
 
     const handleAddGoal = async () => {
-        if (!newGoal.title) return;
+        if (!user) {
+            alert('Usuário não autenticado. Faça login para adicionar metas.');
+            return;
+        }
+        if (!newGoal.title) {
+            alert('O título da meta é obrigatório.');
+            return;
+        }
         try {
             const added = await supabaseHelpers.createUserGoal(user.id, newGoal);
-            setGoals([added, ...goals]);
-            setNewGoal({ title: '', description: '', deadline: '' });
-            setIsAddingGoal(false);
+            if (added) {
+                setGoals([added, ...goals]);
+                setNewGoal({ title: '', description: '', deadline: '' });
+                setIsAddingGoal(false);
+            }
         } catch (error) {
             console.error('Error adding goal:', error);
+            alert(`Erro ao salvar meta: ${error.message || 'Verifique sua conexão.'}`);
         }
     };
 
