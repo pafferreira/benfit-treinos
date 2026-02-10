@@ -16,7 +16,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
     });
 
     const [schedule, setSchedule] = useState([]);
-    const [openDays, setOpenDays] = useState([0]); // Default first day open
+    const [openDays, setOpenDays] = useState([]); // Default all closed
 
     useEffect(() => {
         if (workout) {
@@ -211,7 +211,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                                         <button
                                             type="button"
                                             onClick={(e) => removeDay(dayIndex, e)}
-                                            className="btn-icon-danger"
+                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                             data-tooltip="Remover Dia"
                                         >
                                             <Trash2 size={18} />
@@ -236,7 +236,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                                                     </select>
                                                 </div>
 
-                                                <div className="exercise-grid-details" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr auto', gap: '0.75rem', alignItems: 'end', width: '100%' }}>
+                                                <div className="exercise-grid-details">
                                                     <div className="exercise-field">
                                                         <label>Séries</label>
                                                         <input
@@ -274,9 +274,8 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                                                     <button
                                                         type="button"
                                                         onClick={() => removeExerciseFromDay(dayIndex, exIndex)}
-                                                        className="btn-icon-danger"
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors self-end"
                                                         data-tooltip="Remover Exercício"
-                                                        style={{ marginBottom: '2px' }}
                                                     >
                                                         <X size={18} />
                                                     </button>
@@ -284,7 +283,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                                             </div>
                                         ))}
 
-                                        <button type="button" onClick={() => addExerciseToDay(dayIndex)} className="btn-add-exercise">
+                                        <button type="button" onClick={() => addExerciseToDay(dayIndex)} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-medium hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 mt-2">
                                             <Plus size={16} /> Adicionar Exercício
                                         </button>
                                     </div>
@@ -293,7 +292,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                         })}
                     </div>
 
-                    <button type="button" onClick={addDay} className="btn-add-day">
+                    <button type="button" onClick={addDay} className="w-full py-4 mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
                         <Plus size={20} /> Adicionar Dia de Treino
                     </button>
                 </div>
@@ -310,7 +309,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                     </label>
                 </div>
 
-                <div className="form-actions">
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-8">
                     <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
                         Cancelar
                     </button>

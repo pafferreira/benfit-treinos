@@ -14,7 +14,7 @@ const DashboardHome = () => {
                         <h2 className="coach-title">Precisa de um plano personalizado?</h2>
                         <p>A IA cria uma rotina para você.</p>
                     </div>
-                    <button className="coach-button">
+                    <button className="btn-secondary w-auto inline-block bg-white/10 hover:bg-white/20 text-white border border-white/20">
                         Perguntar ao Benfit
                     </button>
                 </div>
@@ -31,8 +31,8 @@ const DashboardHome = () => {
             < section className="plans-section" >
                 <div className="section-header">
                     <h3 className="section-title">Planos Ativos</h3>
-                    <button className="new-plan-btn">
-                        <PlusCircle size={16} className="mr-1" /> Novo Plano
+                    <button className="btn-primary flex items-center gap-2">
+                        <PlusCircle size={16} /> Novo Plano
                     </button>
                 </div>
 

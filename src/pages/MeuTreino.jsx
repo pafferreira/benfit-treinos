@@ -52,6 +52,7 @@ const MeuTreino = () => {
                         id: '1',
                         name: 'Supino com Halteres',
                         muscle_group: 'Peito & Tríceps',
+                        image_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2hlc3QlMjB3b3Jrb3V0fGVufDB8fDB8fHww',
                         video_url: null,
                         instructions: ['Mantenha as costas apoiadas no banco', 'Abaixe os pesos lentamente', 'Empurre para cima de forma explosiva']
                     },
@@ -67,6 +68,7 @@ const MeuTreino = () => {
                         id: '2',
                         name: 'Swing com Kettlebell',
                         muscle_group: 'Corpo Inteiro',
+                        image_url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Z3ltfGVufDB8fDB8fHww',
                         video_url: null,
                         instructions: ['Faça o movimento com os quadris', 'Mantenha o core contraído', 'Empurre através dos calcanhares']
                     },
@@ -82,6 +84,7 @@ const MeuTreino = () => {
                         id: '3',
                         name: 'Aquecimento Cardio',
                         muscle_group: 'Cardio',
+                        image_url: 'https://images.unsplash.com/photo-1538805060518-7beebe9d1798?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y2FyZGlvfGVufDB8fDB8fHww',
                         video_url: null,
                         instructions: ['Comece devagar', 'Aumente a intensidade gradualmente', 'Mantenha a respiração estável']
                     },
@@ -154,9 +157,9 @@ const MeuTreino = () => {
             <div className="routine-section">
                 <div className="routine-header">
                     <h2 className="routine-title">Rotina de Hoje</h2>
-                    <button className="see-details-btn">
+                    <button className="btn-ghost flex items-center gap-1 text-xs">
                         Ver Detalhes
-                        <ChevronRight size={16} />
+                        <ChevronRight size={14} />
                     </button>
                 </div>
 

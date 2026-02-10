@@ -30,6 +30,27 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 });
 const BUCKET_NAME = 'benfit-assets';
 
+const EXERCISE_TAGS = {
+    superior: ['rosca', 'triceps', 'supino', 'desenvolvimento', 'elevacao', 'remada', 'puxador', 'fly', 'flexao', 'ombro', 'peito', 'costas', 'biceps', 'abdominal'],
+    inferior: ['agachamento', 'leg', 'stiff', 'rdl', 'afundo', 'cadeira', 'mesa', 'panturrilha', 'gluteo', 'quadriceps', 'posterior', 'good_morning']
+};
+
+function getExerciseTags(filename) {
+    const lowerName = filename.toLowerCase();
+    const tags = ['exercicio']; // Base tag
+
+    // Muscle Group / Type
+    if (EXERCISE_TAGS.superior.some(k => lowerName.includes(k))) tags.push('superior');
+    if (EXERCISE_TAGS.inferior.some(k => lowerName.includes(k))) tags.push('inferior');
+
+    return tags;
+}
+
+function getExerciseGender(filename) {
+    // Default to neutral as most exercises are demonstrated by models but the exercise itself is neutral.
+    return 'neutral';
+}
+
 async function uploadFile(filePath, storagePath) {
     const fileContent = fs.readFileSync(filePath);
     const { data, error } = await supabase.storage
@@ -70,7 +91,7 @@ async function migrateAvatars() {
 
         if (publicUrl) {
             // Infer metadata
-            const name = file.replace(/^(avatar_)/, '').replace(/(\.png|\.jpg)$/, '').replace(/_/g, ' '); // avatar_ana_feliz.png -> ana feliz
+            const name = file.replace(/^(avatar_)/, '').replace(/(\.png|\.jpg)$/, '').replace(/_/g, ' ');
             const tags = [];
             if (file.includes('female') || file.includes('mariana') || file.includes('ana') || file.includes('clara') || file.includes('julia') || file.includes('sofia') || file.includes('laura')) tags.push('female');
             if (file.includes('male') || file.includes('gabriel') || file.includes('pedro') || file.includes('marcos') || file.includes('thiago') || file.includes('bruno') || file.includes('lucas') || file.includes('joao')) tags.push('male');
@@ -91,7 +112,7 @@ async function migrateAvatars() {
                     tags: tags,
                     gender: gender,
                     is_active: true
-                }, { onConflict: ['storage_path'] }); // unique constraint on storage_path might not exist, but let's assume we want to avoid dupes or just insert
+                }, { onConflict: ['storage_path'] });
 
             if (error) console.error(`Error inserting DB record for ${file}:`, error.message);
             else console.log(`Saved ${file} to DB.`);
@@ -117,29 +138,51 @@ async function migrateExercises() {
         const publicUrl = await uploadFile(filePath, storagePath);
 
         if (publicUrl) {
-            // Update B_Exercises
-            // Assuming filename (without extension) matches exercise_key
+            // 1. Update B_Exercises (Existing logic)
             const exerciseKey = file.replace(/\.(png|jpg|gif)$/, '');
 
-            const { error } = await supabase
+            const { error: updateError } = await supabase
                 .from('b_exercises')
                 .update({
                     image_storage_path: storagePath,
                     image_url: publicUrl
                 })
-                .eq('exercise_key', exerciseKey); // Try direct match first
+                .eq('exercise_key', exerciseKey);
 
-            if (error) {
-                console.error(`Error updating exercise ${exerciseKey}:`, error.message);
+            if (updateError) {
+                console.error(`Error updating B_Exercises for ${exerciseKey}:`, updateError.message);
             } else {
-                console.log(`Updated exercise ${exerciseKey} with URL.`);
+                console.log(`Updated B_Exercises for ${exerciseKey}.`);
+            }
+
+            // 2. Insert into B_Avatars (NEW LOGIC)
+            const name = exerciseKey.replace(/_/g, ' ');
+            const tags = getExerciseTags(file);
+            const gender = getExerciseGender(file);
+
+            const { error: insertError } = await supabase
+                .from('b_avatars')
+                .upsert({
+                    storage_path: storagePath,
+                    public_url: publicUrl,
+                    name: name,
+                    category: 'exercicio',
+                    tags: tags,
+                    gender: gender,
+                    is_active: true
+                }, { onConflict: ['storage_path'] });
+
+            if (insertError) {
+                console.error(`Error inserting B_Avatars for ${file}:`, insertError.message);
+            } else {
+                console.log(`Inserted ${file} into B_Avatars (Category: exercicio).`);
             }
         }
     }
 }
 
 async function run() {
-    await migrateAvatars();
+    // await migrateAvatars(); // Comment out if you only want to process exercises, or leave enabled to ensure sync
     await migrateExercises();
     console.log('Migration complete.');
 }

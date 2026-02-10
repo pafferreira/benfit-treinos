@@ -5,6 +5,7 @@ import { Calendar, Clock, Plus, Edit2, Trash2, Search, Loader2, Dumbbell } from 
 import WorkoutModal from '../components/WorkoutModal';
 import WorkoutDetails from '../components/WorkoutDetails';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import './Workouts.css';
 
 const Workouts = () => {
@@ -107,12 +108,7 @@ const Workouts = () => {
     };
 
     if (workoutsLoading) {
-        return (
-            <div className="loading-container">
-                <Loader2 size={48} className="spinner" />
-                <p>Carregando treinos...</p>
-            </div>
-        );
+        return <SkeletonWorkouts />;
     }
 
     if (workoutsError) {

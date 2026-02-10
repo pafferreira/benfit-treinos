@@ -29,6 +29,8 @@ export const supabaseHelpers = {
         return await supabase.auth.signInWithPassword({ email });
     },
 
+
+
     // Exercises
     async getAllExercises() {
         const { data, error } = await supabase
@@ -614,6 +616,52 @@ export const supabaseHelpers = {
 
         if (error) throw error;
         return true;
+    },
+
+    // Avatars
+    async getAllAvatars() {
+        const { data, error } = await supabase
+            .from('b_avatars')
+            .select('*')
+            .eq('is_active', true)
+            .order('name');
+
+        if (error) {
+            console.error('Error fetching avatars from DB, falling back to local list:', error);
+            // Fallback list
+            return [
+                // User Avatars (category='Avatar')
+                { id: '1', public_url: '/Elifit_Coach.png', name: 'Coach 1', category: 'Avatar' },
+                { id: '2', public_url: '/avatar-female.png', name: 'Female 1', category: 'Avatar' },
+                { id: '3', public_url: '/avatar-male.png', name: 'Male 1', category: 'Avatar' },
+                { id: '4', public_url: '/benfit_fem.png', name: 'Female 2', category: 'Avatar' },
+                { id: '5', public_url: '/benfit_mas.png', name: 'Male 2', category: 'Avatar' },
+                // Exercise Images (category='exercicio')
+                { id: 'ex1', public_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', name: 'Supino', category: 'exercicio' },
+                { id: 'ex2', public_url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400', name: 'Agachamento', category: 'exercicio' },
+                { id: 'ex3', public_url: 'https://images.unsplash.com/photo-1538805060518-7beebe9d1798?w=400', name: 'Cardio', category: 'exercicio' },
+                { id: 'ex4', public_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400', name: 'Halteres', category: 'exercicio' }
+            ];
+        }
+
+        // Check if data is empty, if so, return fallback to allow immediate usage
+        if (!data || data.length === 0) {
+            return [
+                // User Avatars
+                { id: '1', public_url: '/Elifit_Coach.png', name: 'Coach 1', category: 'Avatar' },
+                { id: '2', public_url: '/avatar-female.png', name: 'Female 1', category: 'Avatar' },
+                { id: '3', public_url: '/avatar-male.png', name: 'Male 1', category: 'Avatar' },
+                { id: '4', public_url: '/benfit_fem.png', name: 'Female 2', category: 'Avatar' },
+                { id: '5', public_url: '/benfit_mas.png', name: 'Male 2', category: 'Avatar' },
+                // Exercise Images
+                { id: 'ex1', public_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', name: 'Supino', category: 'exercicio' },
+                { id: 'ex2', public_url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400', name: 'Agachamento', category: 'exercicio' },
+                { id: 'ex3', public_url: 'https://images.unsplash.com/photo-1538805060518-7beebe9d1798?w=400', name: 'Cardio', category: 'exercicio' },
+                { id: 'ex4', public_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400', name: 'Halteres', category: 'exercicio' }
+            ];
+        }
+
+        return data;
     }
 }
 

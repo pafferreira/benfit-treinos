@@ -1,17 +1,47 @@
 import { useState, useEffect } from 'react';
+import { useAvatars } from '../hooks/useSupabase';
 import Modal from './Modal';
-import { X } from 'lucide-react';
+import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Image as ImageIcon, Video, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon } from 'lucide-react';
+
+const Accordion = ({ title, icon: Icon, children, defaultOpen = false }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+
+    return (
+        <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white shadow-sm">
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between p-4 bg-gray-50/50 hover:bg-gray-50 transition-colors"
+            >
+                <div className="flex items-center gap-3">
+                    {Icon && <Icon className="text-blue-500" size={20} />}
+                    <span className="font-semibold text-gray-700">{title}</span>
+                </div>
+                {isOpen ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+            </button>
+
+            {isOpen && (
+                <div className="p-4 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = false }) => {
+    const { avatars, loading: loadingAvatars } = useAvatars();
     const [formData, setFormData] = useState({
         name: '',
         muscle_group: '',
         equipment: '',
+        image_url: '',
         video_url: '',
         instructions: [''],
         tags: []
     });
     const [tagInput, setTagInput] = useState('');
+    const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
     useEffect(() => {
         if (exercise) {
@@ -19,6 +49,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                 name: exercise.name || '',
                 muscle_group: exercise.muscle_group || '',
                 equipment: exercise.equipment || '',
+                image_url: exercise.image_url || '',
                 video_url: exercise.video_url || '',
                 instructions: exercise.instructions || [''],
                 tags: exercise.tags || []
@@ -28,11 +59,13 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                 name: '',
                 muscle_group: '',
                 equipment: '',
+                image_url: '',
                 video_url: '',
                 instructions: [''],
                 tags: []
             });
         }
+        setShowAvatarSelector(false);
     }, [exercise, isOpen]);
 
     const handleChange = (e) => {
@@ -82,14 +115,11 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
-        // Validação básica
         if (!formData.name.trim() || !formData.muscle_group.trim() || !formData.equipment.trim()) {
             alert('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
 
-        // Filtrar instruções vazias
         const cleanedData = {
             ...formData,
             instructions: formData.instructions.filter(inst => inst.trim() !== '')
@@ -98,145 +128,288 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         onSave(cleanedData);
     };
 
-    const MUSCLE_GROUPS = [
+    const DEFAULT_MUSCLE_GROUPS = [
         'Peito', 'Costas', 'Pernas', 'Ombros', 'Bíceps', 'Tríceps',
         'Abdômen', 'Glúteos', 'Panturrilha', 'Cardio', 'Corpo Inteiro'
-    ].slice().sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+    ];
 
-    const EQUIPMENT_TYPES = [
+    const muscleGroups = [...new Set([...DEFAULT_MUSCLE_GROUPS, formData.muscle_group].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+
+    const DEFAULT_EQUIPMENT_TYPES = [
         'Peso do Corpo', 'Halter', 'Barra', 'Máquina', 'Polia Alta', 'Polia Baixa',
         'Elástico', 'Kettlebell', 'Banco', 'Esteira', 'Bicicleta', 'Outro'
-    ].slice().sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+    ];
+
+    const equipmentTypes = [...new Set([...DEFAULT_EQUIPMENT_TYPES, formData.equipment].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={exercise ? 'Editar Exercício' : 'Novo Exercício'} size="large">
-            <form className="modal-form" onSubmit={handleSubmit}>
-                <div className="form-group">
-                    <label>
-                        Nome do Exercício <span className="required">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Ex: Supino Reto"
-                        required
-                    />
-                </div>
+        <Modal isOpen={isOpen} onClose={onClose} title={exercise ? 'Editar Exercício' : 'Novo Exercício'} size="full">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div className="form-group">
-                        <label>
-                            Grupo Muscular <span className="required">*</span>
-                        </label>
-                        <select
-                            name="muscle_group"
-                            value={formData.muscle_group}
-                            onChange={handleChange}
-                            required
-                        >
-                            <option value="">Selecione...</option>
-                            {MUSCLE_GROUPS.map(group => (
-                                <option key={group} value={group}>{group}</option>
-                            ))}
-                        </select>
-                    </div>
+                {/* Top Section: Main Info & Visuals in a Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-                    <div className="form-group">
-                        <label>
-                            Equipamento <span className="required">*</span>
-                        </label>
-                        <select
-                            name="equipment"
-                            value={formData.equipment}
-                            onChange={handleChange}
-                            required
-                        >
-                            <option value="">Selecione...</option>
-                            {EQUIPMENT_TYPES.map(type => (
-                                <option key={type} value={type}>{type}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
+                    {/* Left Column: Form Fields (8 cols) */}
+                    <div className="lg:col-span-8 flex flex-col gap-6">
 
-                <div className="form-group">
-                    <label>URL do Vídeo</label>
-                    <input
-                        type="url"
-                        name="video_url"
-                        value={formData.video_url}
-                        onChange={handleChange}
-                        placeholder="https://youtube.com/..."
-                    />
-                </div>
+                        {/* Collapsible Sections (Persianas) */}
+                        <div className="space-y-4">
 
-                <div className="form-group">
-                    <label>Instruções</label>
-                    {formData.instructions.map((instruction, index) => (
-                        <div key={index} style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input
-                                type="text"
-                                value={instruction}
-                                onChange={(e) => handleInstructionChange(index, e.target.value)}
-                                placeholder={`Passo ${index + 1}`}
-                                style={{ flex: 1 }}
-                            />
-                            {formData.instructions.length > 1 && (
-                                <button
-                                    type="button"
-                                    onClick={() => removeInstruction(index)}
-                                    className="btn-secondary"
-                                    style={{ padding: '0.75rem' }}
-                                    data-tooltip="Remover instrução"
-                                >
-                                    <X size={16} />
-                                </button>
-                            )}
+                            <Accordion title="Informações Básicas" icon={Dumbbell} defaultOpen={true}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                            Nome do Exercício <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            placeholder="Ex: Supino Reto com Halteres"
+                                            className="w-full px-4 py-3 text-lg font-medium border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:font-normal"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                                Grupo Muscular <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    name="muscle_group"
+                                                    value={formData.muscle_group}
+                                                    onChange={handleChange}
+                                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none cursor-pointer text-gray-700 font-medium"
+                                                    required
+                                                >
+                                                    <option value="">Selecione...</option>
+                                                    {muscleGroups.map(group => (
+                                                        <option key={group} value={group}>{group}</option>
+                                                    ))}
+                                                </select>
+                                                <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                                Equipamento <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    name="equipment"
+                                                    value={formData.equipment}
+                                                    onChange={handleChange}
+                                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none cursor-pointer text-gray-700 font-medium"
+                                                    required
+                                                >
+                                                    <option value="">Selecione...</option>
+                                                    {equipmentTypes.map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </select>
+                                                <Weight className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Accordion>
+
+                            <Accordion title="Instruções Passo a Passo" icon={List} defaultOpen={false}>
+                                <div className="space-y-3">
+                                    {formData.instructions.map((instruction, index) => (
+                                        <div key={index} className="flex gap-2 items-start group">
+                                            <div className="mt-3 w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold shrink-0">
+                                                {index + 1}
+                                            </div>
+                                            <div className="flex-1 relative">
+                                                <textarea
+                                                    value={instruction}
+                                                    onChange={(e) => handleInstructionChange(index, e.target.value)}
+                                                    placeholder={`Descreva o passo ${index + 1}...`}
+                                                    rows={2}
+                                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none transition-all text-sm"
+                                                />
+                                                {formData.instructions.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeInstruction(index)}
+                                                        className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                                        title="Remover passo"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={addInstruction}
+                                        className="ml-8 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
+                                    >
+                                        <List size={14} />
+                                        Adicionar novo passo
+                                    </button>
+                                </div>
+                            </Accordion>
+
+                            <Accordion title="Tags e Metadados" icon={Tag}>
+                                <div className="space-y-3">
+                                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[50px]">
+                                        {formData.tags.map((tag, index) => (
+                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-lg text-sm bg-white border border-gray-200 text-gray-700 shadow-sm">
+                                                {tag}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeTag(tag)}
+                                                    className="ml-2 text-gray-400 hover:text-red-500 transition-colors"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </span>
+                                        ))}
+                                        <input
+                                            type="text"
+                                            value={tagInput}
+                                            onChange={(e) => setTagInput(e.target.value)}
+                                            onKeyDown={handleTagKeyDown}
+                                            placeholder="Digite uma tag e Enter..."
+                                            className="bg-transparent border-none outline-none text-sm min-w-[150px] placeholder-gray-400 focus:ring-0"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-gray-500 pl-1">Tags ajudam a categorizar o exercício (ex: iniciante, isolado, alongamento).</p>
+                                </div>
+                            </Accordion>
+
                         </div>
-                    ))}
-                    <button type="button" onClick={addInstruction} className="btn-secondary" style={{ marginTop: '0.5rem' }}>
-                        + Adicionar Instrução
-                    </button>
-                </div>
 
-                <div className="form-group">
-                    <label>Tags</label>
-                    <div className="tags-input-container">
-                        {formData.tags.map((tag, index) => (
-                            <div key={index} className="tag-item">
-                                {tag}
+                    </div>
+
+                    {/* Right Column: Image & Media (4 cols) */}
+                    <div className="lg:col-span-4 flex flex-col gap-4">
+                        <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                <ImageIcon size={18} className="text-blue-500" />
+                                Visualização
+                            </h3>
+
+                            {/* Image Preview Area */}
+                            <div className="relative aspect-video w-full bg-gray-100 rounded-xl overflow-hidden border border-gray-200 group">
+                                {formData.image_url ? (
+                                    <img
+                                        src={formData.image_url}
+                                        alt="Preview"
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                                        <ImageIcon size={48} className="mb-2 opacity-50" />
+                                        <span className="text-xs">Sem imagem selecionada</span>
+                                    </div>
+                                )}
+
+                                {/* Overlay Button */}
                                 <button
                                     type="button"
-                                    onClick={() => removeTag(tag)}
-                                    className="tag-remove-btn"
-                                    data-tooltip="Remover tag"
+                                    onClick={() => setShowAvatarSelector(!showAvatarSelector)}
+                                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                                 >
-                                    <X size={14} />
+                                    <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-4 py-2 rounded-full text-sm font-semibold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                                        Alterar Imagem
+                                    </span>
                                 </button>
                             </div>
-                        ))}
-                        <input
-                            type="text"
-                            className="tag-input"
-                            value={tagInput}
-                            onChange={(e) => setTagInput(e.target.value)}
-                            onKeyDown={handleTagKeyDown}
-                            placeholder="Digite e pressione Enter"
-                        />
+
+                            {/* Avatar Selector (Collapsible) */}
+                            {showAvatarSelector && (
+                                <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-200 animate-in slide-in-from-top-2">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-xs font-semibold text-gray-600">Galeria Benfit</span>
+                                        <button type="button" onClick={() => setShowAvatarSelector(false)} className="text-gray-400 hover:text-gray-600">
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+
+                                    {loadingAvatars ? (
+                                        <div className="text-center py-4 text-xs text-gray-400">Carregando...</div>
+                                    ) : (
+                                        <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
+                                            {avatars.filter(a => a.category === 'exercicio').map((avatar) => (
+                                                <div
+                                                    key={avatar.id}
+                                                    onClick={() => {
+                                                        setFormData(prev => ({ ...prev, image_url: avatar.public_url }));
+                                                        setShowAvatarSelector(false);
+                                                    }}
+                                                    className={`cursor-pointer aspect-square rounded-lg overflow-hidden border-2 transition-all ${formData.image_url === avatar.public_url ? 'border-blue-500 ring-2 ring-blue-200' : 'border-transparent hover:border-gray-300'}`}
+                                                >
+                                                    <img src={avatar.public_url} alt={avatar.name} className="w-full h-full object-cover" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="mt-3 pt-3 border-t border-gray-200">
+                                        <label className="text-xs text-gray-500 mb-1 block">Ou URL externa:</label>
+                                        <input
+                                            type="url"
+                                            name="image_url"
+                                            value={formData.image_url}
+                                            onChange={handleChange}
+                                            placeholder="https://..."
+                                            className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Video URL Input */}
+                            <div className="mt-4">
+                                <label className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                                    <VideoIcon size={14} className="text-red-500" />
+                                    Vídeo Demonstrativo (YouTube)
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="url"
+                                        name="video_url"
+                                        value={formData.video_url}
+                                        onChange={handleChange}
+                                        placeholder="https://youtube.com/..."
+                                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                    />
+                                    <Youtube size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <span className="helper-text">Pressione Enter para adicionar uma tag</span>
                 </div>
 
-                <div className="form-actions">
-                    <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
+                {/* Footer Actions */}
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-auto">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-6 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-xl transition-colors"
+                        disabled={isLoading}
+                    >
                         Cancelar
                     </button>
-                    <button type="submit" className="btn-primary" disabled={isLoading}>
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all disabled:opacity-70 disabled:pointer-events-none"
+                    >
                         {isLoading ? 'Salvando...' : exercise ? 'Salvar Alterações' : 'Criar Exercício'}
                     </button>
                 </div>
+
             </form>
         </Modal>
     );

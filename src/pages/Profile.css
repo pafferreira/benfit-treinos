@@ -218,6 +218,15 @@
     box-shadow: var(--shadow-xl);
 }
 
+@media (max-width: 640px) {
+    .modal-content {
+        padding: 1.5rem;
+        width: 95%;
+        /* Ensure it fits on very small screens with some margin */
+        max-height: 85vh;
+    }
+}
+
 .dark .modal-content {
     background-color: var(--color-card-dark);
     color: white;
@@ -299,33 +308,7 @@
     gap: 1rem;
 }
 
-.btn-primary {
-    background-color: var(--color-primary);
-    color: #000;
-    font-weight: 700;
-    padding: 0.75rem;
-    border-radius: var(--radius-lg);
-    border: none;
-    cursor: pointer;
-    width: 100%;
-    transition: opacity 0.2s;
-}
-
-.btn-secondary {
-    background-color: #E5E7EB;
-    color: #374151;
-    font-weight: 600;
-    padding: 0.75rem;
-    border-radius: var(--radius-lg);
-    border: none;
-    cursor: pointer;
-    width: 100%;
-}
-
-.dark .btn-secondary {
-    background-color: #374151;
-    color: #D1D5DB;
-}
+/* Main buttons handled by global classes in index.css */
 
 .modal-actions {
     display: flex;
@@ -336,8 +319,10 @@
 /* Avatar Selector */
 .avatar-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    /* Responsive columns: At least 70px wide, simpler auto-fill */
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
     gap: 1rem;
+    justify-items: center;
 }
 
 .avatar-option {
@@ -347,6 +332,8 @@
     cursor: pointer;
     border: 2px solid transparent;
     transition: transform 0.2s;
+    object-fit: cover;
+    /* Ensure image covers the circle */
 }
 
 .avatar-option:hover {
@@ -395,30 +382,7 @@
     display: block;
 }
 
-.add-goal-btn {
-    width: 100%;
-    padding: 1rem;
-    border: 2px dashed #E5E7EB;
-    border-radius: var(--radius-lg);
-    background: none;
-    color: var(--color-subtext-light);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.2s;
-}
-
-.dark .add-goal-btn {
-    border-color: #374151;
-    color: var(--color-subtext-dark);
-}
-
-.dark .add-goal-btn:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-}
+/* Goal button styles handled by Tailwind classes */
 
 .suggested-goals {
     display: flex;

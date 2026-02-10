@@ -1,0 +1,170 @@
+/* SkeletonLoader.css */
+
+.skeleton-container {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    width: 100%;
+}
+
+.shimmer {
+    background: #f6f7f8;
+    background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+    background-repeat: no-repeat;
+    background-size: 800px 104px;
+    display: inline-block;
+    position: relative;
+    animation-duration: 1s;
+    animation-fill-mode: forwards;
+    animation-iteration-count: infinite;
+    animation-name: placeholderShimmer;
+    animation-timing-function: linear;
+}
+
+.dark .shimmer {
+    background: #374151;
+    background-image: linear-gradient(to right, #374151 0%, #4B5563 20%, #374151 40%, #374151 100%);
+}
+
+@keyframes placeholderShimmer {
+    0% {
+        background-position: -468px 0;
+    }
+
+    100% {
+        background-position: 468px 0;
+    }
+}
+
+/* Profile Specific */
+.profile-skeleton .sk-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sk-avatar {
+    width: 6rem;
+    height: 6rem;
+    border-radius: 50%;
+}
+
+.sk-title {
+    width: 150px;
+    height: 24px;
+    border-radius: 4px;
+}
+
+.sk-subtitle {
+    width: 100px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+.sk-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+}
+
+.sk-stat-box {
+    width: 60px;
+    height: 50px;
+    border-radius: 8px;
+}
+
+.sk-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sk-section-title {
+    width: 80px;
+    height: 16px;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.sk-list-item {
+    width: 100%;
+    height: 50px;
+    border-radius: 12px;
+}
+
+/* Workouts Specific */
+.workouts-skeleton .sk-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.sk-title-large {
+    width: 120px;
+    height: 32px;
+    border-radius: 4px;
+}
+
+.sk-button {
+    width: 100px;
+    height: 40px;
+    border-radius: 8px;
+}
+
+.sk-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sk-card {
+    height: 100px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    gap: 1rem;
+}
+
+.sk-card-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+.sk-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sk-line {
+    height: 10px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .sk-line {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.w-70 {
+    width: 70%;
+}
+
+.w-40 {
+    width: 40%;
+}
+
+.w-90 {
+    width: 90%;
+}
+
+.mt-2 {
+    margin-top: 0.5em;
+}

@@ -109,3 +109,30 @@ export const useWorkouts = () => {
 
     return { workouts, loading, error, reload: loadWorkouts }
 }
+
+export const useAvatars = () => {
+    const [avatars, setAvatars] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+        loadAvatars()
+    }, [])
+
+    const loadAvatars = async () => {
+        try {
+            setLoading(true)
+            setError(null)
+            const data = await supabaseHelpers.getAllAvatars()
+            setAvatars(data)
+        } catch (err) {
+            console.error('❌ Error loading avatars:', err)
+            setError(err.message)
+            // Fallback to empty or local if critical
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return { avatars, loading, error, reload: loadAvatars }
+}

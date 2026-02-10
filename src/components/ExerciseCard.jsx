@@ -35,9 +35,12 @@ const ExerciseCard = ({
             <div className="exercise-card-main" onClick={handleCardClick}>
                 <div className="exercise-card-image">
                     <img
-                        src={exercise.video_url || 'https://via.placeholder.com/80'}
+                        src={exercise.image_url || exercise.video_url || 'https://via.placeholder.com/80'}
                         alt={exercise.name}
-                        onError={(e) => e.target.src = 'https://via.placeholder.com/80'}
+                        onError={(e) => {
+                            e.target.onerror = null; // prevent infinite loop
+                            e.target.src = 'https://via.placeholder.com/80';
+                        }}
                     />
                 </div>
 

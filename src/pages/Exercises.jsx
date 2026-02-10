@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useExercises } from '../hooks/useSupabase';
 import { supabaseHelpers } from '../lib/supabase';
-import { Search, Plus, Edit2, Trash2, Target, Package, Loader2, LayoutGrid, List } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Target, Package, LayoutGrid, List, Dumbbell, Filter, X } from 'lucide-react';
 import ExerciseModal from '../components/ExerciseModal';
 import ConfirmationModal from '../components/ConfirmationModal';
-import './Exercises.css';
+import { Skeleton } from '../components/Skeleton';
+import Tooltip from '../components/Tooltip';
 
 const Exercises = () => {
     const { exercises, loading, error, reload } = useExercises();
@@ -73,7 +74,6 @@ const Exercises = () => {
     const confirmDeleteExercise = async (exercise) => {
         try {
             await supabaseHelpers.deleteExercise(exercise.id);
-            // alert('Exercício excluído com sucesso!'); // Optional
             reload();
         } catch (err) {
             console.error('Error deleting exercise:', err);
@@ -88,10 +88,8 @@ const Exercises = () => {
         try {
             if (selectedExercise) {
                 await supabaseHelpers.updateExercise(selectedExercise.id, exerciseData);
-                alert('Exercício atualizado com sucesso!');
             } else {
                 await supabaseHelpers.createExercise(exerciseData);
-                alert('Exercício criado com sucesso!');
             }
             setIsModalOpen(false);
             reload();
@@ -113,179 +111,296 @@ const Exercises = () => {
 
     if (loading) {
         return (
-            <div className="loading-container">
-                <Loader2 size={48} className="spinner" />
-                <p>Carregando exercícios...</p>
+            <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col gap-2">
+                            <Skeleton className="h-8 w-12" />
+                            <Skeleton className="h-4 w-24" />
+                        </div>
+                    ))}
+                </div>
+                <div className="flex flex-col md:flex-row gap-4">
+                    <Skeleton className="h-12 w-full rounded-xl" />
+                    <Skeleton className="h-12 w-48 rounded-xl" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                        <div key={i} className="rounded-2xl overflow-hidden shadow-sm bg-white">
+                            <Skeleton className="w-full h-48" />
+                            <div className="p-4 space-y-3">
+                                <Skeleton className="h-6 w-3/4 rounded-md" />
+                                <div className="flex gap-2">
+                                    <Skeleton className="h-5 w-16 rounded-full" />
+                                    <Skeleton className="h-5 w-16 rounded-full" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="error-container">
-                <p>⚠️ Erro ao carregar exercícios: {error}</p>
+            <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center bg-red-50 rounded-3xl border border-red-100 mx-4 mt-8">
+                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
+                    <Dumbbell size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Ops, algo deu errado</h3>
+                <p className="text-gray-600 mb-6 max-w-md">Não conseguimos carregar seus exercícios no momento. Tente novamente.</p>
+                <button onClick={reload} className="btn-primary w-auto inline-flex items-center justify-center">
+                    Tentar novamente
+                </button>
             </div>
         );
     }
 
     return (
-        <div className="exercises-container">
-            {/* Stats */}
-            <div className="stats-bar">
-                <div className="stat-item">
-                    <div className="stat-value">{stats.total}</div>
-                    <div className="stat-label">Exercícios</div>
-                </div>
-                <div className="stat-item">
-                    <div className="stat-value">{stats.muscleGroups}</div>
-                    <div className="stat-label">Músculos</div>
-                </div>
-                <div className="stat-item">
-                    <div className="stat-value">{stats.equipmentTypes}</div>
-                    <div className="stat-label">Equipamentos</div>
-                </div>
-            </div>
+        <div className="flex flex-col w-full min-h-screen bg-gray-50/50 pb-24">
+            {/* Header Hero Section */}
+            <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                        <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50 flex flex-col items-center justify-center text-center">
+                            <span className="text-2xl font-bold text-blue-700">{stats.total}</span>
+                            <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider mt-1">Exercícios</span>
+                        </div>
+                        <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100/50 flex flex-col items-center justify-center text-center">
+                            <span className="text-2xl font-bold text-emerald-700">{stats.muscleGroups}</span>
+                            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mt-1">Grupos Musculares</span>
+                        </div>
+                        <div className="bg-purple-50/50 rounded-2xl p-4 border border-purple-100/50 flex flex-col items-center justify-center text-center">
+                            <span className="text-2xl font-bold text-purple-700">{stats.equipmentTypes}</span>
+                            <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider mt-1">Equipamentos</span>
+                        </div>
+                    </div>
 
-            {/* Search and Filters */}
-            <div className="filter-bar">
-                <div className="search-box">
-                    <Search className="search-icon" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Buscar exercícios..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                <div className="filters-row">
-                    <select
-                        className="filter-select"
-                        value={muscleFilter}
-                        onChange={(e) => setMuscleFilter(e.target.value)}
-                    >
-                        <option value="all">Todos Músculos</option>
-                        {filterOptions.muscles.map(group => (
-                            <option key={group} value={group}>{group}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        className="filter-select"
-                        value={equipmentFilter}
-                        onChange={(e) => setEquipmentFilter(e.target.value)}
-                    >
-                        <option value="all">Todos Equipamentos</option>
-                        {filterOptions.equipment.map(type => (
-                            <option key={type} value={type}>{type}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="view-toggle">
-                    <button
-                        className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                        onClick={() => setViewMode('grid')}
-                        title="Grade"
-                    >
-                        <LayoutGrid size={20} />
-                    </button>
-                    <button
-                        className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-                        onClick={() => setViewMode('list')}
-                        title="Lista"
-                    >
-                        <List size={20} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Exercises Content */}
-            {filteredExercises.length > 0 ? (
-                viewMode === 'grid' ? (
-                    <div className="exercises-grid">
-                        {filteredExercises.map(exercise => (
-                            <div key={exercise.id} className="exercise-card">
-                                <div className="exercise-card-header">
-                                    <div>
-                                        <h3 className="exercise-name">{exercise.name}</h3>
-                                        <div className="exercise-muscle">
-                                            <Target size={14} />
-                                            {exercise.muscle_group}
-                                        </div>
-                                    </div>
-                                    <div className="exercise-actions">
-                                        <button
-                                            className="action-btn"
-                                            onClick={() => handleEditExercise(exercise)}
-                                        >
-                                            <Edit2 size={16} />
-                                        </button>
-                                        <button
-                                            className="action-btn"
-                                            onClick={() => handleDeleteExercise(exercise)}
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
+                    {/* Search & Filters */}
+                    <div className="flex flex-col gap-3">
+                        {/* Row 1: Search + View Toggles */}
+                        <div className="flex items-center gap-3 w-full">
+                            <div className="relative flex-1 group">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                                 </div>
-
-                                <div className="exercise-equipment">
-                                    <Package size={14} />
-                                    {exercise.equipment}
-                                </div>
-
-                                {exercise.tags && exercise.tags.length > 0 && (
-                                    <div className="exercise-tags">
-                                        {exercise.tags.map((tag, idx) => (
-                                            <span key={idx} className="tag">{tag}</span>
-                                        ))}
-                                    </div>
+                                <input
+                                    type="text"
+                                    className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all sm:text-sm shadow-sm"
+                                    placeholder="Buscar exercício..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
                                 )}
                             </div>
-                        ))}
+
+                            <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
+                                <Tooltip content="Visualização em Grade">
+                                    <button
+                                        onClick={() => setViewMode('grid')}
+                                        className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    >
+                                        <LayoutGrid size={20} />
+                                    </button>
+                                </Tooltip>
+                                <Tooltip content="Visualização em Lista">
+                                    <button
+                                        onClick={() => setViewMode('list')}
+                                        className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    >
+                                        <List size={20} />
+                                    </button>
+                                </Tooltip>
+                            </div>
+                        </div>
+
+                        {/* Row 2: Filters Dropdowns */}
+                        <div className="grid grid-cols-2 gap-3 w-full">
+                            <div className="relative">
+                                <Tooltip content="Filtrar por Grupo Muscular" className="w-full">
+                                    <select
+                                        value={muscleFilter}
+                                        onChange={(e) => setMuscleFilter(e.target.value)}
+                                        className="w-full appearance-none pl-10 pr-8 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all cursor-pointer"
+                                    >
+                                        <option value="all">Todos Músculos</option>
+                                        {filterOptions.muscles.map(group => (
+                                            <option key={group} value={group}>{group}</option>
+                                        ))}
+                                    </select>
+                                </Tooltip>
+                                <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                            </div>
+
+                            <div className="relative">
+                                <Tooltip content="Filtrar por Equipamento" className="w-full">
+                                    <select
+                                        value={equipmentFilter}
+                                        onChange={(e) => setEquipmentFilter(e.target.value)}
+                                        className="w-full appearance-none pl-10 pr-8 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all cursor-pointer"
+                                    >
+                                        <option value="all">Todos Eqp.</option>
+                                        {filterOptions.equipment.map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </Tooltip>
+                                <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
                     </div>
-                ) : (
-                    <div className="exercises-list-view">
-                        {filteredExercises.map(exercise => (
-                            <div key={exercise.id} className="exercise-list-item">
-                                <div className="list-item-main">
-                                    <h3 className="exercise-name">{exercise.name}</h3>
-                                    <div className="list-item-meta">
-                                        <span className="meta-tag"><Target size={14} /> {exercise.muscle_group}</span>
-                                        <span className="meta-tag"><Package size={14} /> {exercise.equipment}</span>
+                </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+                {filteredExercises.length > 0 ? (
+                    viewMode === 'grid' ? (
+                        <div className="grid grid-cols-1 gap-6">
+                            {filteredExercises.map(exercise => (
+                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-blue-100 transition-all duration-300 flex flex-col md:flex-row h-full cursor-pointer">
+                                    {/* Image Container - Larger in single column view */}
+                                    <div className="relative w-full md:w-1/3 aspect-[4/3] md:aspect-auto bg-gray-50 overflow-hidden">
+                                        <img
+                                            src={exercise.image_url || exercise.video_url || 'https://via.placeholder.com/400x300'}
+                                            alt={exercise.name}
+                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = 'https://via.placeholder.com/400x300?text=Sem+Imagem';
+                                            }}
+                                        />
+                                        {/* Overlay Actions */}
+                                        <div className="absolute top-2 right-2 flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+
+                                            <Tooltip content="Excluir Exercício">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
+                                                    className="bg-white/90 backdrop-blur-sm hover:bg-white text-red-500 p-2 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </Tooltip>
+                                        </div>
+
+                                        {/* Muscle Badge */}
+                                        <div className="absolute bottom-2 left-2 pointer-events-none">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/90 backdrop-blur-sm text-gray-800 shadow-sm border border-gray-200/50">
+                                                <Target size={12} className="mr-1 text-blue-500" />
+                                                {exercise.muscle_group}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Card Content */}
+                                    <div className="p-6 flex flex-col flex-1 gap-2">
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                                                {exercise.name}
+                                            </h3>
+                                        </div>
+
+                                        <p className="text-sm text-gray-500 line-clamp-2 md:line-clamp-3">
+                                            {(Array.isArray(exercise.instructions) ? exercise.instructions.join(' ') : exercise.instructions || 'Sem instruções.')}
+                                        </p>
+
+                                        <div className="mt-auto pt-4 flex items-center gap-3">
+                                            <span className="inline-flex items-center text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
+                                                <Package size={14} className="mr-2 text-gray-500" />
+                                                {exercise.equipment}
+                                            </span>
+                                            {exercise.tags && exercise.tags.length > 0 && (
+                                                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-wide">
+                                                    {exercise.tags[0]}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="exercise-actions">
-                                    <button
-                                        className="action-btn"
-                                        onClick={() => handleEditExercise(exercise)}
-                                    >
-                                        <Edit2 size={16} />
-                                    </button>
-                                    <button
-                                        className="action-btn"
-                                        onClick={() => handleDeleteExercise(exercise)}
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )
-            ) : (
-                <div className="empty-state">
-                    <Search size={48} />
-                    <h3>Nenhum exercício encontrado</h3>
-                    <p>Tente ajustar os filtros.</p>
-                </div>
-            )}
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-3 w-full">
+                            {filteredExercises.map(exercise => (
+                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className="group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-100 transition-all flex items-center gap-4 w-full cursor-pointer">
+                                    <div className="h-16 w-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden relative">
+                                        <img
+                                            src={exercise.image_url || exercise.video_url || 'https://via.placeholder.com/150'}
+                                            alt={exercise.name}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = 'https://via.placeholder.com/150';
+                                            }}
+                                        />
+                                    </div>
 
-            {/* Floating Add Button */}
-            <button className="add-exercise-btn" onClick={handleCreateExercise}>
-                <Plus size={24} />
-            </button>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-base font-bold text-gray-900 truncate">{exercise.name}</h3>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <span className="inline-flex items-center text-xs text-gray-500">
+                                                <Target size={12} className="mr-1 text-blue-500" />
+                                                {exercise.muscle_group}
+                                            </span>
+                                            <span className="inline-flex items-center text-xs text-gray-500">
+                                                <Package size={12} className="mr-1 text-gray-400" />
+                                                {exercise.equipment}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+
+                                        <Tooltip content="Excluir Exercício">
+                                            <button
+                                                onClick={() => handleDeleteExercise(exercise)}
+                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </Tooltip>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-24 text-center">
+                        <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                            <Filter size={32} className="text-gray-300" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Nenhum exercício encontrado</h3>
+                        <p className="text-gray-500 max-w-sm mx-auto">
+                            Tente buscar por outro termo ou ajuste os filtros de músculo e equipamento.
+                        </p>
+                        <button
+                            onClick={() => { setSearchTerm(''); setMuscleFilter('all'); setEquipmentFilter('all'); }}
+                            className="mt-6 text-blue-600 font-medium hover:text-blue-700 hover:underline"
+                        >
+                            Limpar filtros
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Floating FAB - Premium Gradient */}
+            <Tooltip content="Adicionar Novo Exercício">
+                <button
+                    onClick={handleCreateExercise}
+                    className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-full shadow-lg shadow-blue-600/30 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 z-40 group"
+                >
+                    <Plus size={32} className="transition-transform group-hover:rotate-90" />
+                </button>
+            </Tooltip>
 
             {/* Exercise Modal */}
             <ExerciseModal

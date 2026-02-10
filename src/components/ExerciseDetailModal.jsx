@@ -51,9 +51,12 @@ const ExerciseDetailModal = ({
                 <div className="modal-header">
                     <div className="exercise-image-large">
                         <img
-                            src={exercise.video_url || 'https://via.placeholder.com/400x300'}
+                            src={exercise.image_url || exercise.video_url || 'https://via.placeholder.com/400x300'}
                             alt={exercise.name}
-                            onError={(e) => e.target.src = 'https://via.placeholder.com/400x300'}
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = 'https://via.placeholder.com/400x300';
+                            }}
                         />
                     </div>
 

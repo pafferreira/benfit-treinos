@@ -1,27 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { User, Settings, Bell, Shield, CircleHelp, LogOut, ChevronRight, Award, Activity, Edit2, Plus, Trash2, X, Check, Camera } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
+import { useAvatars } from '../hooks/useSupabase';
 import Modal from '../components/Modal';
+import EditProfileModal from '../components/EditProfileModal';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { SkeletonProfile } from '../components/SkeletonLoader';
 import './Profile.css';
 
-const AVATARS = [
-    // Public Assets
-    '/Elifit_Coach.png',
-    '/Modelos FIT.webp',
-    '/avatar-female.png',
-    '/avatar-male.png',
-    '/benfit-hero.jpg',
-    '/benfit02.png',
-    '/benfit04.png',
-    '/benfit_fem.jpg',
-    '/benfit_mas.jpg',
-    // DiceBear Avatars (Fallbacks)
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
-    'https://api.dicebear.com/7.x/notionists/svg?seed=Lily',
-    'https://api.dicebear.com/7.x/micah/svg?seed=Micah'
-];
+
 
 const SUGGESTED_GOALS = [
     { title: 'Longevidade', description: 'Manter corpo funcional e sem dores por longo prazo.' },
@@ -35,6 +22,9 @@ const Profile = () => {
     const [stats, setStats] = useState({ workouts: 0, hours: 0, weight: 0 });
     const [loading, setLoading] = useState(true);
     const [goals, setGoals] = useState([]);
+
+    // Custom Hooks
+    const { avatars, loading: loadingAvatars } = useAvatars();
 
     // Modals state
     const [showEditProfile, setShowEditProfile] = useState(false);
@@ -103,14 +93,14 @@ const Profile = () => {
         }
     };
 
-    const handleSaveProfile = async () => {
+    const handleSaveProfile = async (updatedData) => {
         if (!user) {
             alert('Usuário não encontrado. Faça login para editar o perfil.');
             return;
         }
         try {
             setSaving(true);
-            const updatedProfile = await supabaseHelpers.updateUserProfile(user.id, formData);
+            const updatedProfile = await supabaseHelpers.updateUserProfile(user.id, updatedData || formData);
             if (updatedProfile) {
                 setUser(prev => ({ ...prev, ...updatedProfile }));
                 window.dispatchEvent(new Event('profile-updated'));
@@ -193,7 +183,7 @@ const Profile = () => {
         window.location.reload();
     };
 
-    if (loading) return <div className="profile-container" style={{ padding: '2rem' }}>Carregando perfil...</div>;
+    if (loading) return <SkeletonProfile />;
 
     const displayWeight = user?.weight_kg
         ? user.weight_kg
@@ -286,116 +276,39 @@ const Profile = () => {
             </button>
 
             {/* MODAL: EDIT PROFILE */}
-            <Modal
+            <EditProfileModal
                 isOpen={showEditProfile}
                 onClose={() => setShowEditProfile(false)}
-                title="Editar Dados Pessoais"
-            >
-                <form
-                    className="modal-form"
-                    onSubmit={(e) => { e.preventDefault(); handleSaveProfile(); }}
-                >
-                    <div className="form-group">
-                        <label>Nome Completo</label>
-                        <input
-                            type="text"
-                            value={formData.name || ''}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label>E-mail (Login)</label>
-                        <input
-                            type="email"
-                            value={user?.email || ''}
-                            disabled
-                            style={{ opacity: 0.7, background: '#f3f4f6' }}
-                        />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div className="form-group">
-                            <label>Nascimento</label>
-                            <input
-                                type="date"
-                                value={formData.birth_date || ''}
-                                onChange={e => setFormData({ ...formData, birth_date: e.target.value })}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Gênero</label>
-                            <select
-                                value={formData.gender || ''}
-                                onChange={e => setFormData({ ...formData, gender: e.target.value })}
-                            >
-                                <option value="">Selecione</option>
-                                <option value="Masculino">Masculino</option>
-                                <option value="Feminino">Feminino</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div className="form-group">
-                            <label>Altura (cm)</label>
-                            <input
-                                type="number"
-                                value={formData.height_cm || ''}
-                                onChange={e => setFormData({ ...formData, height_cm: e.target.value })}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Peso (kg)</label>
-                            <input
-                                type="number"
-                                step="0.1"
-                                value={formData.weight_kg || ''}
-                                onChange={e => setFormData({ ...formData, weight_kg: e.target.value })}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-group">
-                        <label>Telefone</label>
-                        <input
-                            type="tel"
-                            value={formData.phone || ''}
-                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                        />
-                    </div>
-
-                    <div className="form-actions">
-                        <button type="button" className="btn-secondary" onClick={() => setShowEditProfile(false)}>
-                            Cancelar
-                        </button>
-                        <button type="submit" className="btn-primary" disabled={saving}>
-                            {saving ? 'Salvando...' : 'Salvar Alterações'}
-                        </button>
-                    </div>
-                </form>
-            </Modal>
+                onSave={handleSaveProfile}
+                user={user}
+                isLoading={saving}
+            />
 
             {/* MODAL: AVATAR SELECTOR */}
             <Modal
                 isOpen={showAvatarSelector}
                 onClose={() => setShowAvatarSelector(false)}
                 title="Escolha um Avatar"
-                size="medium"
+                size="small"
             >
-                <div className="avatar-grid">
-                    {AVATARS.map((url, idx) => (
-                        <img
-                            key={idx}
-                            src={url}
-                            className={`avatar-option ${formData.avatar_url === url ? 'selected' : ''}`}
-                            onClick={() => {
-                                handleUpdateAvatar(url);
-                            }}
-                            alt={`Avatar option ${idx}`}
-                        />
-                    ))}
-                </div>
+                {loadingAvatars ? (
+                    <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando avatares...</div>
+                ) : (
+                    <div className="avatar-grid">
+                        {avatars.map((avatar) => (
+                            <img
+                                key={avatar.id}
+                                src={avatar.public_url}
+                                className={`avatar-option ${formData.avatar_url === avatar.public_url ? 'selected' : ''}`}
+                                onClick={() => {
+                                    handleUpdateAvatar(avatar.public_url);
+                                }}
+                                alt={avatar.name}
+                                title={avatar.name}
+                            />
+                        ))}
+                    </div>
+                )}
                 <div className="form-actions">
                     <button className="btn-secondary" onClick={() => setShowAvatarSelector(false)}>Fechar</button>
                 </div>
@@ -465,7 +378,7 @@ const Profile = () => {
                         </div>
                     </div>
                 ) : (
-                    <button className="add-goal-btn" onClick={() => setIsAddingGoal(true)}>
+                    <button className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-medium hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2" onClick={() => setIsAddingGoal(true)}>
                         <Plus size={20} />
                         Adicionar Nova Meta
                     </button>

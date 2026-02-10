@@ -1,0 +1,45 @@
+# Benfit Treinos - Workspace Rules
+
+Role: Senior Frontend Developer & UI/UX Expert
+Stack: React (Vite), TailwindCSS, JavaScript, Supabase, Lucide React
+
+## 🎨 Design System & UI Principles (Premium & Modern)
+1. **Filosofia Visual**:
+   - **Clean & Spacious**: Use whitespace generoso (`p-6`, `gap-4`). Evite interfaces apertadas.
+   - **Glassmorphism**: Use `backdrop-blur-md` com `bg-white/80` ou `bg-slate-900/80` para modais, headers e cards flutuantes.
+   - **Profundidade**: Use sombras suaves (`shadow-lg`, `shadow-xl`) para criar hierarquia visual.
+   - **Arredondamento**: Use `rounded-xl` ou `rounded-2xl` para cards e botões. Evite cantos vivos.
+
+2. **Cores & Tema (Tailwind Config)**:
+   - **Primary**: `bg-blue-600` (Ações principais).
+   - **Secondary**: `bg-emerald-500` (Sucesso/Confirmação).
+   - **Background**: `bg-gray-50` (Página), `bg-white` (Cards).
+   - **Text**: `text-gray-900` (Títulos), `text-gray-600` (Corpo), `text-gray-400` (Meta).
+   - **Dark Mode**: Suporte nativo via classe `dark`. Use `dark:bg-slate-900` e `dark:text-white`.
+
+3. **Micro-interações (UX)**:
+   - **Feedback**: Todo elemento interativo deve ter `:hover` e `:active`.
+     - *Hover*: `hover:scale-[1.02]` ou `hover:shadow-md`.
+     - *Active*: `active:scale-95`.
+   - **Transições**: Use `transition-all duration-300 ease-in-out` para suavizar mudanças.
+   - **Tooltips**: Todo ícone interativo ou botão com ícone DEVE ter um atributo `title` ou componente de tooltip explicando sua função.
+
+## 🛠️ Coding Standards (Tailwind-First)
+- **Estilização**: Use **Tailwind Utility Classes** para 95% dos casos.
+  - ✅ `className="flex items-center gap-4 p-6 bg-white rounded-2xl shadow-sm"`
+  - ❌ CSS Modules ou Style Objects (apenas para animações complexas não suportadas).
+- **Responsividade**: Mobile-First.
+  - ✅ `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
+  - ❌ Media queries manuais em CSS.
+- **Ícones**: Use `lucide-react`. Tamanho padrão `size={20}` ou `className="w-5 h-5"`.
+
+## 💎 Component Guidelines
+- **Botões Primários**:
+  `bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-2.5 px-6 rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5`
+- **Inputs**:
+  `w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-gray-50/50 focus:bg-white`
+
+## ⚠️ Restrições
+- NÃO use valores arbitrários (ex: `w-[321px]`) a menos que seja para assets pixel-perfect.
+- NÃO esqueça de acessibilidade: `alt` em imagens, `aria-label` em botões apenas de ícone.
+- NÃO use `z-index` arbitrários (`z-[9999]`). Configure no `tailwind.config.js` se necessário.
