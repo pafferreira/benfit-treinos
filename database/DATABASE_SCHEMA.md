@@ -118,6 +118,38 @@ O registro detalhado do que foi feito. Alimenta o card "Volume Total".
 | `weight_kg` | FLOAT | Carga utilizada em kg. |
 | `reps_completed` | INT | Repetições realizadas. |
 
+---
+
+## Gerenciamento de Imagens
+
+### 8. `B_Avatars` (Biblioteca de Avatares e Imagens)
+Centraliza todas as imagens de avatares e exercícios do aplicativo.
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | UUID | Chave primária. |
+| `storage_path` | VARCHAR(500) | Caminho no storage bucket (ex: 'avatars/ana_feliz.png'). |
+| `public_url` | VARCHAR(500) | URL pública da imagem. |
+| `name` | VARCHAR(100) | Nome descritivo do avatar (ex: "Ana Feliz"). |
+| `category` | VARCHAR(50) | Categoria ('3D', 'Real', 'Avatar', 'exercicio', etc.). |
+| `tags` | TEXT[] | Array de tags para busca/filtro (ex: ['female', 'happy']). |
+| `gender` | VARCHAR(20) | Gênero do avatar ('male', 'female', 'neutral'). |
+| `is_active` | BOOLEAN | Se o avatar está ativo e visível para seleção. |
+| `created_at` | TIMESTAMP | Data de criação. |
+
+**Políticas RLS:**
+- **SELECT**: Acesso público (qualquer um pode visualizar avatares).
+- **INSERT/UPDATE/DELETE**: Apenas usuários autenticados podem gerenciar avatares.
+
+**Funcionalidades:**
+- Interface de gerenciamento disponível em Perfil > Aplicativo > Gerenciar Avatares
+- Permite criar, editar e deletar avatares através de modal CRUD
+- Suporta imagens locais (pasta `/public`) ou URLs externas (HTTPS)
+- Sistema de categorização por tipo (Avatar, exercicio, 3D, Real)
+- Tags personalizadas para facilitar busca e filtros
+
+---
+
 ## Consultas para Dashboard (Exemplos)
 
 Para preencher os cards da tela inicial:

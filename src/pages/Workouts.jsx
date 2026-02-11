@@ -1,17 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useWorkouts, useExercises } from '../hooks/useSupabase';
 import { supabaseHelpers } from '../lib/supabase';
 import { Calendar, Clock, Plus, Edit2, Trash2, Search, Loader2, Dumbbell } from 'lucide-react';
 import WorkoutModal from '../components/WorkoutModal';
-import WorkoutDetails from '../components/WorkoutDetails';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import './Workouts.css';
 
 const Workouts = () => {
+    const navigate = useNavigate();
     const { workouts, loading: workoutsLoading, error: workoutsError, reload } = useWorkouts();
     const { exercises } = useExercises();
-    const [selectedWorkout, setSelectedWorkout] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingWorkout, setEditingWorkout] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -19,16 +19,17 @@ const Workouts = () => {
     const [difficultyFilter, setDifficultyFilter] = useState('all');
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
+
     useEffect(() => {
-        if (!selectedWorkout || isModalOpen) return;
+        if (!isModalOpen) return;
         const onKeyDown = (e) => {
             if (e.key === 'Escape' || e.key === 'Esc') {
-                setSelectedWorkout(null);
+                setIsModalOpen(false);
             }
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [selectedWorkout, isModalOpen]);
+    }, [isModalOpen]);
 
     const filteredWorkouts = useMemo(() => {
         if (!workouts) return [];
@@ -39,15 +40,6 @@ const Workouts = () => {
         });
     }, [workouts, searchTerm, difficultyFilter]);
 
-    if (selectedWorkout) {
-        return (
-            <WorkoutDetails
-                workout={selectedWorkout}
-                onBack={() => setSelectedWorkout(null)}
-                allExercises={exercises}
-            />
-        );
-    }
 
     // CRUD Handlers
     const handleCreateWorkout = () => {
@@ -74,11 +66,7 @@ const Workouts = () => {
     const confirmDeleteWorkout = async (workout) => {
         try {
             await supabaseHelpers.deleteWorkout(workout.id);
-            // alert('Treino excluído com sucesso!'); // Optional: removed to be less intrusive or keep if preferred
             reload();
-            if (selectedWorkout?.id === workout.id) {
-                setSelectedWorkout(null);
-            }
         } catch (err) {
             console.error('Error deleting workout:', err);
             alert('Erro ao excluir treino: ' + err.message);
@@ -143,7 +131,7 @@ const Workouts = () => {
                         <div
                             key={workout.id}
                             className={`plan-card ${!isEven ? 'opacity-60' : ''}`}
-                            onClick={() => setSelectedWorkout(workout)}
+                            onClick={() => navigate(`/treino/${workout.id}`)}
                         >
                             <div className={`plan-icon-container ${iconColor}`}>
                                 {isEven ? <Dumbbell size={32} className="text-secondary" /> : <Clock size={32} className="text-orange" />}

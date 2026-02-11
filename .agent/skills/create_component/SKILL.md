@@ -9,13 +9,13 @@ Use esta skill quando precisar criar um novo componente visual.
 
 ## Padrões do Projeto
 - **Framework**: React + Vite
-- **Estilização**: CSS Modules ou CSS padrão (evite Tailwind se não estiver configurado).
+- **Estilização**: CSS Modules ou CSS padrão
 - **Ícones**: Use `lucide-react` ou `phosphor-react` (verifique o package.json).
 - **Estrutura**:
   - Componente funcional exportado como default.
   - Props tipadas (se estiver usando JSDoc/PropTypes) ou desestruturadas claramente.
 
-## Passos para Criação
+## Passos para Criação 
 
 1. **Verificar Localização**:
    - Componentes reutilizáveis vão em `src/components/`.

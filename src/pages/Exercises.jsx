@@ -162,19 +162,19 @@ const Exercises = () => {
             {/* Header Hero Section */}
             <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    {/* Stats Row */}
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50 flex flex-col items-center justify-center text-center">
-                            <span className="text-2xl font-bold text-blue-700">{stats.total}</span>
-                            <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider mt-1">Exercícios</span>
+                    {/* Stats Compact Row */}
+                    <div className="flex items-center gap-3 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50/50 rounded-lg border border-blue-100/50 whitespace-nowrap">
+                            <span className="text-sm font-bold text-blue-700">{stats.total}</span>
+                            <span className="text-xs font-medium text-blue-500 uppercase">Exercícios</span>
                         </div>
-                        <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100/50 flex flex-col items-center justify-center text-center">
-                            <span className="text-2xl font-bold text-emerald-700">{stats.muscleGroups}</span>
-                            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mt-1">Grupos Musculares</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50/50 rounded-lg border border-emerald-100/50 whitespace-nowrap">
+                            <span className="text-sm font-bold text-emerald-700">{stats.muscleGroups}</span>
+                            <span className="text-xs font-medium text-emerald-500 uppercase">Grupos</span>
                         </div>
-                        <div className="bg-purple-50/50 rounded-2xl p-4 border border-purple-100/50 flex flex-col items-center justify-center text-center">
-                            <span className="text-2xl font-bold text-purple-700">{stats.equipmentTypes}</span>
-                            <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider mt-1">Equipamentos</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50/50 rounded-lg border border-purple-100/50 whitespace-nowrap">
+                            <span className="text-sm font-bold text-purple-700">{stats.equipmentTypes}</span>
+                            <span className="text-xs font-medium text-purple-500 uppercase">Equipamentos</span>
                         </div>
                     </div>
 
@@ -271,7 +271,10 @@ const Exercises = () => {
                                     {/* Image Container - Larger in single column view */}
                                     <div className="relative w-full md:w-1/3 aspect-[4/3] md:aspect-auto bg-gray-50 overflow-hidden">
                                         <img
-                                            src={exercise.image_url || exercise.video_url || 'https://via.placeholder.com/400x300'}
+                                            src={exercise.image_url ?
+                                                (exercise.image_url.startsWith('http') ? exercise.image_url :
+                                                    `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/exercises/${exercise.image_url}`)
+                                                : (exercise.video_url || 'https://via.placeholder.com/400x300')}
                                             alt={exercise.name}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                             onError={(e) => {
@@ -334,7 +337,10 @@ const Exercises = () => {
                                 <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className="group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-100 transition-all flex items-center gap-4 w-full cursor-pointer">
                                     <div className="h-16 w-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden relative">
                                         <img
-                                            src={exercise.image_url || exercise.video_url || 'https://via.placeholder.com/150'}
+                                            src={exercise.image_url ?
+                                                (exercise.image_url.startsWith('http') ? exercise.image_url :
+                                                    `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/exercises/${exercise.image_url}`)
+                                                : (exercise.video_url || 'https://via.placeholder.com/150')}
                                             alt={exercise.name}
                                             className="w-full h-full object-cover"
                                             onError={(e) => {

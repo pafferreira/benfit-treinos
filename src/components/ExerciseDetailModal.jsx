@@ -100,7 +100,7 @@ const ExerciseDetailModal = ({
 
                     {/* Rest Timer Section */}
                     <div className="rest-section">
-                        <h3 className="section-title">Descanso</h3>
+                        <h3 className="section-title">Descanço</h3>
                         <RestTimer suggestedRestSeconds={restSeconds} />
                     </div>
 

@@ -3,8 +3,8 @@ STATUS DE GERAÇÃO DE IMAGENS - EXERCÍCIOS
 Data/Hora: 2026-02-09
 
 TOTAL DE EXERCÍCIOS: 58
-IMAGENS GERADAS: 57
-IMAGENS PENDENTES: 1
+IMAGENS GERADAS: 58
+IMAGENS PENDENTES: 0
 
 abdominal_supra                 [GERADA]
 abducao_cross                   [GERADA]
@@ -63,4 +63,4 @@ rosca_alternada                 [GERADA]
 rosca_direta_cross              [GERADA]
 abdominal_infra                 [GERADA]
 abdominal_supra_corda           [GERADA]
-cardio_esteira                  [NÃO GERADA]
+cardio_esteira                  [GERADA]

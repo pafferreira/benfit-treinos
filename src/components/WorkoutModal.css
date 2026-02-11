@@ -107,6 +107,7 @@
 .exercise-select,
 .sets-input,
 .reps-input,
+.rest-input,
 .notes-input {
     padding: 0.5rem;
     border: 1px solid var(--border, #d1d5db);
@@ -119,6 +120,7 @@
 .exercise-select:focus,
 .sets-input:focus,
 .reps-input:focus,
+.rest-input:focus,
 .notes-input:focus {
     border-color: var(--primary, #3b82f6);
     outline: none;

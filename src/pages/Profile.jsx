@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { User, Settings, Bell, Shield, CircleHelp, LogOut, ChevronRight, Award, Activity, Edit2, Plus, Trash2, X, Check, Camera } from 'lucide-react';
+import { User, Settings, Bell, Shield, CircleHelp, LogOut, ChevronRight, Award, Activity, Edit2, Plus, Trash2, X, Check, Camera, Image } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { useAvatars } from '../hooks/useSupabase';
 import Modal from '../components/Modal';
 import EditProfileModal from '../components/EditProfileModal';
+import AvatarModal from '../components/AvatarModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { SkeletonProfile } from '../components/SkeletonLoader';
 import './Profile.css';
@@ -30,6 +31,9 @@ const Profile = () => {
     const [showEditProfile, setShowEditProfile] = useState(false);
     const [showGoals, setShowGoals] = useState(false);
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+    const [showAvatarManager, setShowAvatarManager] = useState(false);
+    const [showAvatarModal, setShowAvatarModal] = useState(false);
+    const [selectedAvatar, setSelectedAvatar] = useState(null);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
     // Edit form state
@@ -183,6 +187,58 @@ const Profile = () => {
         window.location.reload();
     };
 
+    // Avatar Management Handlers
+    const handleCreateAvatar = () => {
+        setSelectedAvatar(null);
+        setShowAvatarModal(true);
+    };
+
+    const handleEditAvatar = (avatar) => {
+        setSelectedAvatar(avatar);
+        setShowAvatarModal(true);
+    };
+
+    const handleDeleteAvatar = (avatar) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Excluir Avatar',
+            message: `Tem certeza que deseja excluir o avatar "${avatar.name}"? Esta ação não pode ser desfeita.`,
+            onConfirm: () => confirmDeleteAvatar(avatar)
+        });
+    };
+
+    const confirmDeleteAvatar = async (avatar) => {
+        try {
+            await supabaseHelpers.deleteAvatar(avatar.id);
+            // Reload avatars list
+            window.location.reload(); // Simple approach, could use context/state management
+        } catch (err) {
+            console.error('Error deleting avatar:', err);
+            alert('Erro ao excluir avatar: ' + err.message);
+        } finally {
+            setConfirmModal({ ...confirmModal, isOpen: false });
+        }
+    };
+
+    const handleSaveAvatar = async (avatarData) => {
+        try {
+            setSaving(true);
+            if (selectedAvatar) {
+                await supabaseHelpers.updateAvatar(selectedAvatar.id, avatarData);
+            } else {
+                await supabaseHelpers.createAvatar(avatarData);
+            }
+            setShowAvatarModal(false);
+            // Reload avatars list
+            window.location.reload(); // Simple approach
+        } catch (err) {
+            console.error('Error saving avatar:', err);
+            alert('Erro ao salvar avatar: ' + err.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (loading) return <SkeletonProfile />;
 
     const displayWeight = user?.weight_kg
@@ -255,6 +311,13 @@ const Profile = () => {
             <div className="settings-section">
                 <h3 className="settings-title">Aplicativo</h3>
                 <div className="settings-list">
+                    <div className="settings-item" onClick={() => setShowAvatarManager(true)}>
+                        <div className="item-left">
+                            <Image size={20} className="item-icon" />
+                            <span>Gerenciar Avatares</span>
+                        </div>
+                        <ChevronRight size={20} color="var(--color-subtext-light)" />
+                    </div>
                     <div className="settings-item">
                         <div className="item-left">
                             <Bell size={20} className="item-icon" />
@@ -405,14 +468,99 @@ const Profile = () => {
                 )}
             </Modal>
 
-            {/* Confirmation Modal */}
-            <ConfirmationModal
-                isOpen={confirmModal.isOpen}
-                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                onConfirm={confirmModal.onConfirm}
-                title={confirmModal.title}
-                message={confirmModal.message}
-            />
+            {/* MODAL: AVATAR MANAGER */}
+            <Modal
+                isOpen={showAvatarManager}
+                onClose={() => setShowAvatarManager(false)}
+                title="Gerenciar Avatares"
+                size="large"
+            >
+                {loadingAvatars ? (
+                    <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando avatares...</div>
+                ) : (
+                    <div className="flex flex-col h-full" style={{ maxHeight: '70vh' }}>
+                        {/* Scrollable Grid Area */}
+                        <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(70vh - 80px)' }}>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4">
+                                    {avatars.map((avatar) => (
+                                        <div key={avatar.id} className="relative group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all">
+                                            <div className="aspect-square w-full bg-gray-100">
+                                                <img
+                                                    src={avatar.public_url}
+                                                    alt={avatar.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        e.target.onerror = null;
+                                                        e.target.src = 'https://via.placeholder.com/150?text=Error';
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="p-3">
+                                                <h4 className="font-semibold text-sm text-gray-900 truncate">{avatar.name}</h4>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-xs text-gray-500">{avatar.category}</span>
+                                                    {avatar.gender && (
+                                                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{avatar.gender}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => handleEditAvatar(avatar)}
+                                                    className="p-2 bg-white/90 backdrop-blur-sm hover:bg-white text-blue-500 rounded-lg shadow-lg transition-transform hover:scale-105"
+                                                    title="Editar"
+                                                >
+                                                    <Edit2 size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteAvatar(avatar)}
+                                                    className="p-2 bg-white/90 backdrop-blur-sm hover:bg-white text-red-500 rounded-lg shadow-lg transition-transform hover:scale-105"
+                                                    title="Deletar"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                            {!avatar.is_active && (
+                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                    <span className="text-white text-xs font-bold bg-red-500 px-2 py-1 rounded">INATIVO</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                        </div>
+
+                        {/* Fixed Button at Bottom */}
+                            <div className="sticky bottom-0 pt-4 pb-2 bg-white border-t border-gray-200 mt-auto">
+                                <button
+                                    onClick={handleCreateAvatar}
+                                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Plus size={20} />
+                                    Adicionar Novo Avatar
+                                </button>
+                            </div>
+                        </div>
+                )}
+                    </Modal>
+
+            {/* MODAL: AVATAR CRUD */}
+                <AvatarModal
+                    isOpen={showAvatarModal}
+                    onClose={() => setShowAvatarModal(false)}
+                    onSave={handleSaveAvatar}
+                    avatar={selectedAvatar}
+                    isLoading={saving}
+                />
+
+                {/* Confirmation Modal */}
+                <ConfirmationModal
+                    isOpen={confirmModal.isOpen}
+                    onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                    onConfirm={confirmModal.onConfirm}
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                />
         </div>
     );
 };

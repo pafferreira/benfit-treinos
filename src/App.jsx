@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import DashboardLayout from './layouts/DashboardLayout'
 import DashboardHome from './pages/DashboardHome'
 import Workouts from './pages/Workouts'
+import WorkoutPlan from './pages/WorkoutPlan'
 import Exercises from './pages/Exercises'
 import Profile from './pages/Profile'
 import AICoach from './pages/AICoach'
@@ -21,6 +22,7 @@ function App() {
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
           <Route path="treinos" element={<Workouts />} />
+          <Route path="treino/:id" element={<WorkoutPlan />} />
           <Route path="meu-treino" element={<MeuTreino />} />
           <Route path="exercicios" element={<Exercises />} />
           <Route path="perfil" element={<Profile />} />

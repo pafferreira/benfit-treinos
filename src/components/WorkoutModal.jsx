@@ -52,17 +52,16 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
 
     // Schedule Management
     const toggleDay = (index) => {
+        // Se já estiver aberto, fecha. Se não, abre este e fecha os outros.
         setOpenDays(prev =>
-            prev.includes(index)
-                ? prev.filter(i => i !== index)
-                : [...prev, index]
+            prev.includes(index) ? [] : [index]
         );
     };
 
     const addDay = () => {
         const newIndex = schedule.length;
         setSchedule([...schedule, { day_name: `Dia ${newIndex + 1}`, exercises: [] }]);
-        setOpenDays(prev => [...prev, newIndex]); // Auto-open new day
+        setOpenDays([newIndex]); // Auto-open new day and close others
     };
 
     const removeDay = (index, e) => {
@@ -83,6 +82,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
             exercise_id: '',
             sets: 3,
             reps: '10',
+            rest_seconds: 60,
             notes: ''
         });
         setSchedule(newSchedule);
@@ -144,36 +144,40 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                         value={formData.description}
                         onChange={handleChange}
                         placeholder="Descreva o objetivo e detalhes do treino..."
+                        rows={3}
+                        className="w-full"
                     />
                 </div>
 
-                <div className="form-group">
-                    <label>Dificuldade</label>
-                    <select
-                        name="difficulty"
-                        value={formData.difficulty}
-                        onChange={handleChange}
-                    >
-                        <option value="Iniciante">Iniciante</option>
-                        <option value="Intermediário">Intermediário</option>
-                        <option value="Avançado">Avançado</option>
-                    </select>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="grid grid-cols-3 gap-4 mb-4">
                     <div className="form-group">
-                        <label>Duração Estimada (min)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Dificuldade</label>
+                        <select
+                            name="difficulty"
+                            value={formData.difficulty}
+                            onChange={handleChange}
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                        >
+                            <option value="Iniciante">Iniciante</option>
+                            <option value="Intermediário">Intermediário</option>
+                            <option value="Avançado">Avançado</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Duração (min)</label>
                         <input
                             type="number"
                             name="estimated_duration"
                             value={formData.estimated_duration}
                             onChange={handleChange}
                             min="10"
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         />
                     </div>
 
                     <div className="form-group">
-                        <label>Dias por Semana</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Dias/Semana</label>
                         <input
                             type="number"
                             name="days_per_week"
@@ -181,6 +185,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                             onChange={handleChange}
                             min="1"
                             max="7"
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         />
                     </div>
                 </div>
@@ -194,91 +199,112 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                             return (
                                 <div key={dayIndex} className={`day-block ${isOpen ? 'open' : ''}`}>
                                     <div className="day-header" onClick={() => toggleDay(dayIndex)}>
-                                        <div className="day-header-left">
-                                            <ChevronDown size={20} className="day-toggle-icon" />
-                                            <input
-                                                type="text"
-                                                value={day.day_name}
-                                                onChange={(e) => updateDayName(dayIndex, e.target.value)}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="day-name-input"
-                                                placeholder="Nome do Dia (ex: Treino A)"
-                                            />
-                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                ({day.exercises.length} exercícios)
-                                            </span>
+                                        <div className="day-header-content w-full">
+                                            <div className="flex justify-between items-center w-full mb-1">
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    <ChevronDown size={20} className={`day-toggle-icon ${isOpen ? 'rotate-180' : ''}`} />
+                                                    <input
+                                                        type="text"
+                                                        value={day.day_name}
+                                                        onChange={(e) => updateDayName(dayIndex, e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="day-name-input font-bold"
+                                                        placeholder="Nome do Dia"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => removeDay(dayIndex, e)}
+                                                    className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors ml-2"
+                                                    data-tooltip="Remover Dia"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                            <div className="text-xs text-gray-500 ml-8 text-left">
+                                                {day.exercises.length} exercícios
+                                            </div>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => removeDay(dayIndex, e)}
-                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                            data-tooltip="Remover Dia"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
                                     </div>
 
                                     <div className="day-content">
                                         {day.exercises.map((ex, exIndex) => (
-                                            <div key={exIndex} className="exercise-row">
-                                                <div className="exercise-field" style={{ gridColumn: '1 / -1', marginBottom: '0.5rem' }}>
-                                                    <label>Exercício</label>
-                                                    <select
-                                                        value={ex.exercise_id}
-                                                        onChange={(e) => updateExercise(dayIndex, exIndex, 'exercise_id', e.target.value)}
-                                                        className="exercise-select"
-                                                        required
+                                            <div key={exIndex} className="exercise-card bg-gray-50 p-4 rounded-xl border border-gray-100 mb-3">
+                                                {/* Linha 1: Exercício + Delete */}
+                                                <div className="flex gap-3 mb-3 items-end">
+                                                    <div className="exercise-field flex-1">
+                                                        <label className="text-xs font-semibold text-gray-500 mb-1 block">Exercício</label>
+                                                        <select
+                                                            value={ex.exercise_id}
+                                                            onChange={(e) => updateExercise(dayIndex, exIndex, 'exercise_id', e.target.value)}
+                                                            className="exercise-select"
+                                                            required
+                                                        >
+                                                            <option value="">Selecione...</option>
+                                                            {exercises.map(opt => (
+                                                                <option key={opt.id} value={opt.id}>{opt.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeExerciseFromDay(dayIndex, exIndex)}
+                                                        className="mb-[2px] p-2.5 text-red-500 bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 rounded-lg transition-colors"
+                                                        title="Remover Exercício"
                                                     >
-                                                        <option value="">Selecione...</option>
-                                                        {exercises.map(opt => (
-                                                            <option key={opt.id} value={opt.id}>{opt.name}</option>
-                                                        ))}
-                                                    </select>
+                                                        <X size={18} />
+                                                    </button>
                                                 </div>
 
-                                                <div className="exercise-grid-details">
+                                                {/* Linha 2: Métricas (Séries, Reps, Descanso) */}
+                                                <div className="grid grid-cols-3 gap-3 mb-3">
                                                     <div className="exercise-field">
-                                                        <label>Séries</label>
+                                                        <label className="text-xs font-semibold text-gray-500 mb-1 block">Séries</label>
                                                         <input
                                                             type="number"
                                                             value={ex.sets}
                                                             onChange={(e) => updateExercise(dayIndex, exIndex, 'sets', e.target.value)}
                                                             placeholder="3"
-                                                            className="sets-input"
+                                                            className="sets-input text-center"
                                                             min="1"
                                                         />
                                                     </div>
 
                                                     <div className="exercise-field">
-                                                        <label>Reps</label>
+                                                        <label className="text-xs font-semibold text-gray-500 mb-1 block">Reps</label>
                                                         <input
                                                             type="text"
                                                             value={ex.reps}
                                                             onChange={(e) => updateExercise(dayIndex, exIndex, 'reps', e.target.value)}
                                                             placeholder="10-12"
-                                                            className="reps-input"
+                                                            className="reps-input text-center"
                                                         />
                                                     </div>
 
                                                     <div className="exercise-field">
-                                                        <label>Notas</label>
+                                                        <label className="text-xs font-semibold text-gray-500 mb-1 block whitespace-nowrap">Descanço (s)</label>
                                                         <input
-                                                            type="text"
-                                                            value={ex.notes || ''}
-                                                            onChange={(e) => updateExercise(dayIndex, exIndex, 'notes', e.target.value)}
-                                                            placeholder="Ex: Drop-set"
-                                                            className="notes-input"
+                                                            type="number"
+                                                            value={ex.rest_seconds || ''}
+                                                            onChange={(e) => updateExercise(dayIndex, exIndex, 'rest_seconds', e.target.value)}
+                                                            placeholder="60"
+                                                            className="rest-input text-center"
+                                                            min="0"
+                                                            step="5"
                                                         />
                                                     </div>
+                                                </div>
 
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeExerciseFromDay(dayIndex, exIndex)}
-                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors self-end"
-                                                        data-tooltip="Remover Exercício"
-                                                    >
-                                                        <X size={18} />
-                                                    </button>
+                                                {/* Linha 3: Notas */}
+                                                <div className="exercise-field w-full">
+                                                    <label className="text-xs font-semibold text-gray-500 mb-1 block">Notas</label>
+                                                    <input
+                                                        type="text"
+                                                        value={ex.notes || ''}
+                                                        onChange={(e) => updateExercise(dayIndex, exIndex, 'notes', e.target.value)}
+                                                        placeholder="Ex: Drop-set na última"
+                                                        className="notes-input w-full"
+                                                    />
                                                 </div>
                                             </div>
                                         ))}

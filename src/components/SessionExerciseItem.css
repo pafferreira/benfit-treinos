@@ -1,0 +1,336 @@
+/* SessionExerciseItem.css */
+
+/* O padding interno deve ser aplicado ao conteúdo, não à imagem */
+.session-exercise-item {
+    padding: 0;
+    /* Remove padding */
+    overflow: hidden;
+    /* border: 2px solid #F3F4F6; - Removido borda completa */
+    border-bottom: 8px solid #F3F4F6;
+    /* Borda grossa inferior para separar itens */
+    border-radius: 0;
+    /* Sem radius */
+    background: white;
+    /* Fundo branco */
+    transition: all 0.3s ease;
+}
+
+.dark .session-exercise-item {
+    background: var(--color-card-dark);
+    border-bottom-color: #1F2937;
+}
+
+.session-exercise-item:last-child {
+    border-bottom: none;
+    /* Último item sem borda */
+}
+
+.session-exercise-item.completed {
+    background: #F0FDF4;
+    opacity: 0.8;
+    /* Menos opacidade para diferenciar */
+    /* order removido, mantendo ordem original */
+}
+
+.dark .session-exercise-item.completed {
+    background: #064E3B;
+    border-bottom-color: #065F46;
+}
+
+.session-exercise-item.exercise-main {
+    display: flex;
+    flex-direction: column !important;
+    /* Forçar layout vertical */
+    gap: 0;
+    /* Gap removido pois imagem e conteúdo são separados */
+    overflow: hidden;
+    /* Para border-radius da imagem funcionar */
+    padding: 0;
+    /* Padding removido do container flex para imagem ir de borda a borda */
+    align-items: stretch;
+    /* Esticar filhos */
+}
+
+.exercise-avatar {
+    width: 100%;
+    /* Largura total */
+    height: 250px;
+    /* Altura fixa grande */
+    border-radius: 0;
+    /* Sem bordas arredondadas internas */
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #F3F4F6;
+    margin: 0;
+    position: relative;
+    /* Para posicionamento absoluto interno se precisar */
+}
+
+.dark .exercise-avatar {
+    background: #374151;
+}
+
+.exercise-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    /* Centralizar imagem */
+}
+
+/* ... (dark mode avatar mantido) ... */
+
+/* ... (img mantido) ... */
+
+/* ... (placeholder mantido) ... */
+
+.exercise-info {
+    padding: 1rem;
+    /* Repor padding no conteúdo */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    /* Garantir largura */
+    box-sizing: border-box;
+}
+
+.exercise-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.exercise-name {
+    font-size: 1.25rem;
+    /* Fonte ainda maior */
+    font-weight: 700;
+    color: var(--color-text-light);
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* ... (dark mode name mantido) ... */
+
+/* ... (completed, checkbox mantidos) ... */
+
+.exercise-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    /* margin-top removido pois já tem gap no flex container pai */
+}
+
+/* Estilo de Meta Dados Unificado */
+.meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    /* Mais padding */
+    background: #F3F4F6;
+    /* Cor neutra padrão para todos */
+    border-radius: var(--radius-md);
+    /* Menos arredondado, mais tag block */
+    font-size: 0.875rem;
+    /* Fonte maior */
+    font-weight: 600;
+    color: #4B5563;
+    /* Cor mais forte */
+    border: 1px solid #E5E7EB;
+}
+
+.dark .meta-badge {
+    background: #374151;
+    color: #D1D5DB;
+    border-color: #4B5563;
+}
+
+.session-exercise-item.undo-mode {
+    border-color: #FBBF24;
+    background: #FFFBEB;
+}
+
+.dark .session-exercise-item.undo-mode {
+    border-color: #F59E0B;
+    background: #78350F;
+}
+
+/* ... existing styles ... */
+
+.exercise-main {
+    cursor: pointer;
+    position: relative;
+    /* Para posicionar o ícone se precisar */
+}
+
+/* Seta de expansão */
+.expand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9CA3AF;
+    transition: transform 0.3s ease;
+    padding: 0.5rem;
+}
+
+.dark .expand-icon {
+    color: #6B7280;
+}
+
+.expand-icon.rotated {
+    transform: rotate(180deg);
+}
+
+.exercise-details {
+    /* Oculto por padrão via JS, mas podemos animar */
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.exercise-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.checkbox-btn {
+    width: 32px;
+    /* Aumentado */
+    height: 32px;
+    /* Aumentado */
+    min-width: 32px;
+    border-radius: 8px;
+    /* Mais arredondado */
+    border: 2px solid #9CA3AF;
+    /* Borda mais visível por padrão */
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.dark .checkbox-btn {
+    background: #1F2937;
+    border-color: #6B7280;
+}
+
+.checkbox-btn:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    transform: scale(1.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.checkbox-btn.checked {
+    background: #10B981;
+    border-color: #10B981;
+    color: white;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+.checkbox-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background: #F3F4F6;
+}
+
+.timer-btn {
+    background: #EFF6FF;
+    color: var(--color-primary);
+}
+
+.timer-btn:hover {
+    background: #DBEAFE;
+}
+
+.dark .timer-btn {
+    background: #1E3A8A;
+    color: #BFDBFE;
+}
+
+/* Ajustes Mobile */
+@media (max-width: 640px) {
+    .session-exercise-item.exercise-main {
+        flex-direction: column !important;
+        align-items: stretch;
+    }
+
+    .exercise-avatar {
+        width: 100%;
+        height: auto;
+        min-height: 300px;
+        /* Altura mínima solicitada */
+        max-height: 400px;
+        /* Limite para não ficar gigante em telas muito altas */
+    }
+
+    .exercise-avatar img {
+        height: 100%;
+        min-height: 300px;
+        object-fit: cover;
+    }
+
+    .exercise-info {
+        padding: 1rem;
+        width: 100%;
+    }
+
+    .exercise-name {
+        font-size: 1.125rem;
+    }
+
+    .meta-badge {
+        font-size: 0.75rem;
+        /* Um pouco maior que 0.6875rem */
+        padding: 0.3rem 0.6rem;
+    }
+
+    .exercise-meta {
+        margin-top: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .exercise-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .action-btn,
+    .video-link {
+        width: 100%;
+        justify-content: center;
+    }
+}

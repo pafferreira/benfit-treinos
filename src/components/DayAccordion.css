@@ -1,0 +1,283 @@
+/* DayAccordion.css */
+
+.day-accordion {
+    background: white;
+    border: 1px solid #F3F4F6;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.5s ease;
+    scroll-margin-top: 100px;
+}
+
+.dark .day-accordion {
+    background: var(--color-card-dark);
+    border-color: #374151;
+}
+
+.day-accordion.open {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.day-accordion.selected {
+    border: 5px solid var(--color-primary);
+    box-shadow: 0 4px 12px rgba(246, 59, 68, 0.15);
+    background-color: #F8FAFC;
+}
+
+.day-accordion.fully-completed {
+    border-color: #10B981;
+}
+
+.day-header,
+/* Suporte a nomes antigos se houver */
+.accordion-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1rem;
+    background: #ffffff;
+    border: none;
+    cursor: pointer;
+    border-bottom: 1px solid #F3F4F6;
+    transition: all 0.2s ease;
+
+    /* Sticky Day Header */
+    position: sticky;
+    top: 0;
+    z-index: 90;
+}
+
+/* Drag Handle / Tracinho */
+.accordion-header::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 48px;
+    height: 4px;
+    background: #E5E7EB;
+    border-radius: 2px;
+}
+
+.dark .accordion-header {
+    background: var(--color-card-dark);
+    border-bottom-color: #374151;
+}
+
+.accordion-header:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.dark .accordion-header:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.day-status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.check-icon {
+    color: #10B981;
+}
+
+.progress-ring {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: left;
+}
+
+.day-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    margin: 0;
+    text-transform: capitalize;
+}
+
+.dark .day-title {
+    color: var(--color-text-dark);
+}
+
+.day-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.875rem;
+    color: #6B7280;
+}
+
+.dark .meta-item {
+    color: #9CA3AF;
+}
+
+.meta-item.progress-text {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+.chevron {
+    color: #9CA3AF;
+    transition: transform 0.3s ease;
+}
+
+.chevron.rotated {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.completion-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+    border: 2px solid #10B981;
+    border-radius: var(--radius-lg);
+    margin: 1rem 1rem;
+    /* Margem adicionada para não colar nas bordas */
+    color: #065F46;
+    font-weight: 600;
+}
+
+.dark .completion-banner {
+    background: linear-gradient(135deg, #064E3B 0%, #065F46 100%);
+    color: #D1FAE5;
+}
+
+.completion-banner svg {
+    color: #10B981;
+    flex-shrink: 0;
+}
+
+.exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: 65vh;
+    /* Limite de altura para permitir scroll interno */
+    overflow-y: auto;
+    /* Habilita scroll vertical */
+    overscroll-behavior: contain;
+    /* Evita scroll da página pai */
+    padding-bottom: 1rem;
+    /* Espaço extra no final */
+}
+
+/* Garante que os itens não encolham para caber no espaço */
+.exercises-list>* {
+    flex-shrink: 0;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 2rem;
+    color: #9CA3AF;
+    font-style: italic;
+}
+
+.completion-prompt {
+    margin: 1rem;
+    /* Margem adicionada */
+    padding: 1rem;
+    background: #EFF6FF;
+    border: 2px dashed var(--color-primary);
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.dark .completion-prompt {
+    background: #1E3A8A;
+}
+
+.completion-prompt p {
+    margin: 0;
+    color: var(--color-text-light);
+    font-weight: 600;
+}
+
+.dark .completion-prompt p {
+    color: var(--color-text-dark);
+}
+
+.completion-note {
+    margin-top: 0.5rem !important;
+    font-size: 0.875rem;
+    font-weight: 400 !important;
+    color: #6B7280 !important;
+}
+
+.dark .completion-note {
+    color: #9CA3AF !important;
+}
+
+@media (max-width: 640px) {
+    .accordion-header {
+        padding: 1rem;
+    }
+
+    .header-left {
+        gap: 0.75rem;
+    }
+
+    .day-title {
+        font-size: 1rem;
+    }
+
+    .day-meta {
+        gap: 0.5rem;
+    }
+
+    .meta-item {
+        font-size: 0.8125rem;
+    }
+
+    .accordion-content {
+        padding: 0 1rem 1rem 1rem;
+    }
+}

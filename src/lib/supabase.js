@@ -662,6 +662,55 @@ export const supabaseHelpers = {
         }
 
         return data;
+    },
+
+    async createAvatar(avatarData) {
+        const { data, error } = await supabase
+            .from('b_avatars')
+            .insert({
+                storage_path: avatarData.storage_path || '',
+                public_url: avatarData.public_url,
+                name: avatarData.name,
+                category: avatarData.category || '3D',
+                tags: avatarData.tags || [],
+                gender: avatarData.gender || null,
+                is_active: avatarData.is_active !== undefined ? avatarData.is_active : true
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async updateAvatar(id, avatarData) {
+        const { data, error } = await supabase
+            .from('b_avatars')
+            .update({
+                storage_path: avatarData.storage_path,
+                public_url: avatarData.public_url,
+                name: avatarData.name,
+                category: avatarData.category,
+                tags: avatarData.tags,
+                gender: avatarData.gender,
+                is_active: avatarData.is_active
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteAvatar(id) {
+        const { error } = await supabase
+            .from('b_avatars')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
     }
 }
 

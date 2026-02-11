@@ -105,7 +105,7 @@ const ExerciseCard = ({
                             }}
                         >
                             <Timer size={16} />
-                            Iniciar Descanso ({restSeconds}s)
+                            Iniciar Descanço ({restSeconds}s)
                         </button>
                     )}
                 </div>
