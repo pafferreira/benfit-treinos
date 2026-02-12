@@ -118,7 +118,7 @@ const EditProfileModal = ({ isOpen, onClose, onSave, user, isLoading = false }) 
                                         <div className="text-center py-4 text-xs text-gray-400">Carregando...</div>
                                     ) : (
                                         <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-1 customize-scrollbar">
-                                            {avatars.map((avatar) => (
+                                            {avatars.filter(a => a.category === 'Avatar').map((avatar) => (
                                                 <div
                                                     key={avatar.id}
                                                     onClick={() => {

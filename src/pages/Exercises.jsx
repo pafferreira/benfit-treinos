@@ -368,7 +368,7 @@ const Exercises = () => {
 
                                         <Tooltip content="Excluir Exercício">
                                             <button
-                                                onClick={() => handleDeleteExercise(exercise)}
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
                                                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                                             >
                                                 <Trash2 size={18} />

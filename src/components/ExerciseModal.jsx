@@ -300,12 +300,12 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                             </h3>
 
                             {/* Image Preview Area */}
-                            <div className="relative aspect-video w-full bg-gray-100 rounded-xl overflow-hidden border border-gray-200 group">
+                            <div className="relative aspect-video w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden border border-gray-200 group">
                                 {formData.image_url ? (
                                     <img
                                         src={formData.image_url}
                                         alt="Preview"
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                        className="w-full h-full object-contain p-1 transition-transform duration-700 group-hover:scale-105"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
@@ -396,7 +396,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-6 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-xl transition-colors"
+                        className="btn-secondary"
                         disabled={isLoading}
                     >
                         Cancelar
@@ -404,7 +404,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all disabled:opacity-70 disabled:pointer-events-none"
+                        className="btn-primary"
                     >
                         {isLoading ? 'Salvando...' : exercise ? 'Salvar Alterações' : 'Criar Exercício'}
                     </button>

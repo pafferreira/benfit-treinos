@@ -282,7 +282,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                                                     </div>
 
                                                     <div className="exercise-field">
-                                                        <label className="text-xs font-semibold text-gray-500 mb-1 block whitespace-nowrap">Descanço (s)</label>
+                                                        <label className="text-xs font-semibold text-gray-500 mb-1 block whitespace-nowrap">Descanso (s)</label>
                                                         <input
                                                             type="number"
                                                             value={ex.rest_seconds || ''}

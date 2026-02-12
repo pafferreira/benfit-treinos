@@ -118,7 +118,7 @@ const WorkoutDetails = ({ workout, onBack, allExercises = [] }) => {
                                                     <span className="value">{exItem.reps}</span>
                                                 </div>
                                                 <div className="detail-item">
-                                                    <span className="label"><Timer size={14} /> Descanço</span>
+                                                    <span className="label"><Timer size={14} /> Descanso</span>
                                                     <span className="value">{exItem.rest_seconds ? `${exItem.rest_seconds}s` : '-'}</span>
                                                 </div>
                                                 <div className="detail-item">

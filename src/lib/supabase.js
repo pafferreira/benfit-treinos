@@ -92,6 +92,7 @@ export const supabaseHelpers = {
                 name: exerciseData.name,
                 muscle_group: exerciseData.muscle_group,
                 equipment: exerciseData.equipment,
+                image_url: exerciseData.image_url || null,
                 video_url: exerciseData.video_url || '',
                 instructions: exerciseData.instructions || [],
                 tags: exerciseData.tags || []
@@ -100,6 +101,9 @@ export const supabaseHelpers = {
             .maybeSingle()
 
         if (error) throw error
+        if (!data) {
+            throw new Error('Falha ao criar exercício: Sem permissão. Verifique se seu usuário é admin.')
+        }
         return data
     },
 
@@ -110,6 +114,7 @@ export const supabaseHelpers = {
                 name: exerciseData.name,
                 muscle_group: exerciseData.muscle_group,
                 equipment: exerciseData.equipment,
+                image_url: exerciseData.image_url || null,
                 video_url: exerciseData.video_url || '',
                 instructions: exerciseData.instructions || [],
                 tags: exerciseData.tags || []
@@ -119,6 +124,9 @@ export const supabaseHelpers = {
             .maybeSingle()
 
         if (error) throw error
+        if (!data) {
+            throw new Error('Falha ao atualizar exercício: Sem permissão. Verifique se seu usuário é admin.')
+        }
         return data
     },
 
@@ -623,7 +631,6 @@ export const supabaseHelpers = {
         const { data, error } = await supabase
             .from('b_avatars')
             .select('*')
-            .eq('is_active', true)
             .order('name');
 
         if (error) {
@@ -684,22 +691,29 @@ export const supabaseHelpers = {
     },
 
     async updateAvatar(id, avatarData) {
+        // Build update payload with only defined fields to avoid nullifying existing data
+        const updatePayload = {};
+        if (avatarData.name !== undefined) updatePayload.name = avatarData.name;
+        if (avatarData.category !== undefined) updatePayload.category = avatarData.category;
+        if (avatarData.tags !== undefined) updatePayload.tags = avatarData.tags;
+        if (avatarData.gender !== undefined) updatePayload.gender = avatarData.gender;
+        if (avatarData.is_active !== undefined) updatePayload.is_active = avatarData.is_active;
+        if (avatarData.public_url !== undefined) updatePayload.public_url = avatarData.public_url;
+        if (avatarData.storage_path !== undefined) updatePayload.storage_path = avatarData.storage_path;
+
+        console.log('updateAvatar payload:', { id, updatePayload }); // Debug
+
         const { data, error } = await supabase
             .from('b_avatars')
-            .update({
-                storage_path: avatarData.storage_path,
-                public_url: avatarData.public_url,
-                name: avatarData.name,
-                category: avatarData.category,
-                tags: avatarData.tags,
-                gender: avatarData.gender,
-                is_active: avatarData.is_active
-            })
+            .update(updatePayload)
             .eq('id', id)
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('updateAvatar error:', error);
+            throw error;
+        }
         return data;
     },
 

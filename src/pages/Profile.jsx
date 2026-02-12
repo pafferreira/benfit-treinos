@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Settings, Bell, Shield, CircleHelp, LogOut, ChevronRight, Award, Activity, Edit2, Plus, Trash2, X, Check, Camera, Image } from 'lucide-react';
+import { User, Settings, Bell, Shield, CircleHelp, LogOut, ChevronRight, Award, Activity, Plus, Trash2, X, Check, Camera, Image, Search, Filter, ChevronDown } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { useAvatars } from '../hooks/useSupabase';
 import Modal from '../components/Modal';
@@ -10,6 +10,11 @@ import { SkeletonProfile } from '../components/SkeletonLoader';
 import './Profile.css';
 
 
+
+const AVATARS = [
+    '/avatar-female.png',
+    '/avatar-male.png'
+];
 
 const SUGGESTED_GOALS = [
     { title: 'Longevidade', description: 'Manter corpo funcional e sem dores por longo prazo.' },
@@ -25,7 +30,7 @@ const Profile = () => {
     const [goals, setGoals] = useState([]);
 
     // Custom Hooks
-    const { avatars, loading: loadingAvatars } = useAvatars();
+    const { avatars, loading: loadingAvatars, reload: reloadAvatars } = useAvatars();
 
     // Modals state
     const [showEditProfile, setShowEditProfile] = useState(false);
@@ -43,6 +48,12 @@ const Profile = () => {
     // Goals form state
     const [newGoal, setNewGoal] = useState({ title: '', description: '', deadline: '' });
     const [isAddingGoal, setIsAddingGoal] = useState(false);
+
+    // Avatar Filter State
+    const [filterTerm, setFilterTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState('Todas');
+    const [filterGender, setFilterGender] = useState('Todos');
+    const [filterActive, setFilterActive] = useState(true);
 
     useEffect(() => {
         fetchUserData();
@@ -210,8 +221,8 @@ const Profile = () => {
     const confirmDeleteAvatar = async (avatar) => {
         try {
             await supabaseHelpers.deleteAvatar(avatar.id);
-            // Reload avatars list
-            window.location.reload(); // Simple approach, could use context/state management
+            // Reload avatars list using hook
+            reloadAvatars && reloadAvatars();
         } catch (err) {
             console.error('Error deleting avatar:', err);
             alert('Erro ao excluir avatar: ' + err.message);
@@ -229,8 +240,8 @@ const Profile = () => {
                 await supabaseHelpers.createAvatar(avatarData);
             }
             setShowAvatarModal(false);
-            // Reload avatars list
-            window.location.reload(); // Simple approach
+            // Reload avatars list using hook
+            reloadAvatars && reloadAvatars();
         } catch (err) {
             console.error('Error saving avatar:', err);
             alert('Erro ao salvar avatar: ' + err.message);
@@ -244,6 +255,22 @@ const Profile = () => {
     const displayWeight = user?.weight_kg
         ? user.weight_kg
         : (stats.weight ? stats.weight : '-');
+
+    // Filtered avatars - search across ALL fields
+    const filteredAvatars = avatars.filter(avatar => {
+        const term = filterTerm.toLowerCase();
+        const matchesSearch = filterTerm === '' ||
+            (avatar.name && avatar.name.toLowerCase().includes(term)) ||
+            (avatar.category && avatar.category.toLowerCase().includes(term)) ||
+            (avatar.gender && avatar.gender.toLowerCase().includes(term)) ||
+            (avatar.storage_path && avatar.storage_path.toLowerCase().includes(term)) ||
+            (avatar.public_url && avatar.public_url.toLowerCase().includes(term)) ||
+            (avatar.tags && avatar.tags.some(tag => tag.toLowerCase().includes(term)));
+        const matchesCategory = filterCategory === 'Todas' || avatar.category === filterCategory;
+        const matchesGender = filterGender === 'Todos' || avatar.gender === filterGender;
+        const matchesActive = avatar.is_active === filterActive;
+        return matchesSearch && matchesCategory && matchesGender && matchesActive;
+    });
 
     return (
         <div className="profile-container fade-in">
@@ -358,7 +385,7 @@ const Profile = () => {
                     <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando avatares...</div>
                 ) : (
                     <div className="avatar-grid">
-                        {avatars.map((avatar) => (
+                        {avatars.filter(a => a.category === 'Avatar').map((avatar) => (
                             <img
                                 key={avatar.id}
                                 src={avatar.public_url}
@@ -372,8 +399,13 @@ const Profile = () => {
                         ))}
                     </div>
                 )}
-                <div className="form-actions">
-                    <button className="btn-secondary" onClick={() => setShowAvatarSelector(false)}>Fechar</button>
+                <div className="flex justify-end pt-4 border-t border-gray-200 mt-4">
+                    <button
+                        onClick={() => setShowAvatarSelector(false)}
+                        className="px-6 py-2.5 text-gray-700 font-medium bg-gray-100 hover:bg-gray-200 rounded-xl border border-gray-200 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                    >
+                        Fechar
+                    </button>
                 </div>
             </Modal>
 
@@ -481,86 +513,167 @@ const Profile = () => {
                     <div className="flex flex-col h-full" style={{ maxHeight: '70vh' }}>
                         {/* Scrollable Grid Area */}
                         <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(70vh - 80px)' }}>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4">
-                                    {avatars.map((avatar) => (
-                                        <div key={avatar.id} className="relative group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all">
-                                            <div className="aspect-square w-full bg-gray-100">
-                                                <img
-                                                    src={avatar.public_url}
-                                                    alt={avatar.name}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        e.target.onerror = null;
-                                                        e.target.src = 'https://via.placeholder.com/150?text=Error';
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="p-3">
-                                                <h4 className="font-semibold text-sm text-gray-900 truncate">{avatar.name}</h4>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-xs text-gray-500">{avatar.category}</span>
-                                                    {avatar.gender && (
-                                                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{avatar.gender}</span>
+
+                            {/* Avatar Filter Section */}
+                            <div className="mb-4 sticky top-0 bg-white z-20 pb-4 border-b border-gray-100 shadow-sm px-1">
+
+                                {/* Header: Count & Active Toggle */}
+                                <div className="flex justify-between items-center mb-2 px-1">
+                                    <span className="text-xs font-semibold text-gray-500">
+                                        {filteredAvatars.length} registros encontrados
+                                    </span>
+
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-medium text-gray-600">{filterActive ? 'Ativos' : 'Não Ativos'}</span>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={filterActive}
+                                                onChange={(e) => setFilterActive(e.target.checked)}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Search Bar */}
+                                <div className="relative mb-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar..."
+                                        value={filterTerm}
+                                        onChange={(e) => setFilterTerm(e.target.value)}
+                                        className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                                    />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    {filterTerm && (
+                                        <button
+                                            onClick={() => setFilterTerm('')}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Filters Row */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="relative">
+                                        <select
+                                            value={filterCategory}
+                                            onChange={(e) => setFilterCategory(e.target.value)}
+                                            className="w-full pl-2 pr-6 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-gray-700"
+                                        >
+                                            <option value="Todas">Todas Categ.</option>
+                                            {[...new Set(avatars.map(a => a.category).filter(Boolean))].map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                    </div>
+
+                                    <div className="relative">
+                                        <select
+                                            value={filterGender}
+                                            onChange={(e) => setFilterGender(e.target.value)}
+                                            className="w-full pl-2 pr-6 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-gray-700"
+                                        >
+                                            <option value="Todos">Todos Gên.</option>
+                                            {[...new Set(avatars.map(a => a.gender).filter(Boolean))].map(gen => (
+                                                <option key={gen} value={gen}>{gen}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Grid Area with Fixed Height */}
+                            <div className="min-h-[400px]">
+                                {filteredAvatars.length > 0 ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pb-4">
+                                        {filteredAvatars.map((avatar) => (
+                                            <div key={avatar.id} className="relative group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all">
+                                                <div className="aspect-square w-full bg-gray-100 relative cursor-pointer" onClick={() => handleEditAvatar(avatar)}>
+                                                    <img
+                                                        src={avatar.public_url}
+                                                        alt={avatar.name}
+                                                        className={`w-full h-full object-cover transition-all ${!avatar.is_active ? 'opacity-40 grayscale' : 'group-hover:scale-105'}`}
+                                                        onError={(e) => {
+                                                            e.target.onerror = null;
+                                                            e.target.src = 'https://via.placeholder.com/150?text=Sem+Imagem';
+                                                        }}
+                                                    />
+                                                    {/* DELETE BUTTON - Glassmorphism style, hover only */}
+                                                    <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteAvatar(avatar); }}
+                                                            className="p-1.5 bg-red-500/20 backdrop-blur-md hover:bg-red-500/40 text-white rounded-lg shadow-lg border border-white/20 transition-all active:scale-90"
+                                                            title="Deletar"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+
+                                                    {!avatar.is_active && (
+                                                        <div className="absolute top-2 left-2 pointer-events-none z-10">
+                                                            <span className="text-[9px] font-bold bg-gray-800 text-white px-2 py-0.5 rounded-full shadow-sm">INATIVO</span>
+                                                        </div>
                                                     )}
                                                 </div>
-                                            </div>
-                                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => handleEditAvatar(avatar)}
-                                                    className="p-2 bg-white/90 backdrop-blur-sm hover:bg-white text-blue-500 rounded-lg shadow-lg transition-transform hover:scale-105"
-                                                    title="Editar"
-                                                >
-                                                    <Edit2 size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteAvatar(avatar)}
-                                                    className="p-2 bg-white/90 backdrop-blur-sm hover:bg-white text-red-500 rounded-lg shadow-lg transition-transform hover:scale-105"
-                                                    title="Deletar"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                            {!avatar.is_active && (
-                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                    <span className="text-white text-xs font-bold bg-red-500 px-2 py-1 rounded">INATIVO</span>
+                                                <div className="p-2.5 cursor-pointer" onClick={() => handleEditAvatar(avatar)}>
+                                                    <h4 className="font-semibold text-xs text-gray-900 truncate" title={avatar.name}>{avatar.name}</h4>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-100">{avatar.category}</span>
+                                                        {avatar.gender && (
+                                                            <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{avatar.gender}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 py-12">
+                                        <Search size={48} className="mb-4 opacity-20" />
+                                        <p className="text-sm">Nenhum avatar encontrado.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Fixed Button at Bottom */}
-                            <div className="sticky bottom-0 pt-4 pb-2 bg-white border-t border-gray-200 mt-auto">
-                                <button
-                                    onClick={handleCreateAvatar}
-                                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Plus size={20} />
-                                    Adicionar Novo Avatar
-                                </button>
-                            </div>
+                        <div className="sticky bottom-0 pt-4 pb-2 bg-white border-t border-gray-200 mt-auto">
+                            <button
+                                onClick={handleCreateAvatar}
+                                className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Plus size={20} />
+                                Adicionar Novo Avatar
+                            </button>
                         </div>
+                    </div>
                 )}
-                    </Modal>
+            </Modal>
 
             {/* MODAL: AVATAR CRUD */}
-                <AvatarModal
-                    isOpen={showAvatarModal}
-                    onClose={() => setShowAvatarModal(false)}
-                    onSave={handleSaveAvatar}
-                    avatar={selectedAvatar}
-                    isLoading={saving}
-                />
+            <AvatarModal
+                isOpen={showAvatarModal}
+                onClose={() => setShowAvatarModal(false)}
+                onSave={handleSaveAvatar}
+                avatar={selectedAvatar}
+                isLoading={saving}
+            />
 
-                {/* Confirmation Modal */}
-                <ConfirmationModal
-                    isOpen={confirmModal.isOpen}
-                    onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                    onConfirm={confirmModal.onConfirm}
-                    title={confirmModal.title}
-                    message={confirmModal.message}
-                />
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+            />
         </div>
     );
 };

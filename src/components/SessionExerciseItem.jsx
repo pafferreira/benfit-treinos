@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, Target, Repeat, Timer, Undo2, ChevronDown, Play, Clock, Layers } from 'lucide-react';
+import { Check, Target, Repeat, Timer, Undo2, ChevronDown, Play, Clock, Layers, StickyNote, ClipboardList } from 'lucide-react';
 import './SessionExerciseItem.css';
 
 const SessionExerciseItem = ({
@@ -156,7 +156,7 @@ const SessionExerciseItem = ({
             <div className="exercise-details open">
                 {safeNotes && (
                     <div className="detail-section">
-                        <strong>📝 Notas:</strong>
+                        <strong><StickyNote size={14} className="inline mr-1" /> Notas:</strong>
                         <p>{safeNotes}</p>
                     </div>
                 )}
@@ -184,7 +184,7 @@ const SessionExerciseItem = ({
 
                     return (
                         <div className="detail-section">
-                            <strong>📋 Instruções:</strong>
+                            <strong><ClipboardList size={14} className="inline mr-1" /> Instruções:</strong>
                             <ul>
                                 {list.map((instruction, idx) => (
                                     <li key={idx}>{instruction}</li>

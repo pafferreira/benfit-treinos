@@ -1,0 +1,594 @@
+-- DDL gerado para tabelas com prefixo "b_" (schema: public)
+-- Includes: CREATE TABLE, PKs, FKs, INDEXes, DEFAULTs, CHECK constraints, RLS enable + example policies
+-- REVIEW: ajuste owners, tablespace, and constraint names if needed
+-- Generated: template from introspection — test before applying
+
+-- Ensure needed extensions
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "citext";
+
+-- =====================================================
+-- Table: public.b_users
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_users (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  name varchar NOT NULL,
+  email varchar NOT NULL UNIQUE,
+  password_hash varchar,
+  avatar_url varchar,
+  plan_type varchar DEFAULT 'FREE' CHECK (plan_type::text = ANY (ARRAY['FREE'::varchar::text, 'PRO'::varchar::text, 'ELITE'::varchar::text])),
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+  role varchar DEFAULT 'user', -- Roles: user, admin, coach
+  phone varchar,
+  birth_date date,
+  gender varchar CHECK (gender::text = ANY (ARRAY['Masculino'::varchar, 'Feminino'::varchar, 'Outro'::varchar, 'Prefiro não dizer'::varchar]::text[])),
+  height_cm integer,
+  weight_kg numeric
+);
+
+-- FK: link to auth.users if exists (Supabase-managed)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='auth' AND c.relname='users') THEN
+    ALTER TABLE public.b_users
+      ADD CONSTRAINT b_users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN
+  -- constraint already exists; do nothing
+  NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_users_email ON public.b_users (email);
+CREATE INDEX IF NOT EXISTS idx_b_users_created_at ON public.b_users (created_at);
+
+-- RLS: enable + basic owner policy (assumes auth.uid() corresponds to auth.users.id)
+ALTER TABLE public.b_users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "b_users_select_own" ON public.b_users
+  FOR SELECT TO authenticated
+  USING ((SELECT auth.uid()) = id);
+
+CREATE POLICY IF NOT EXISTS "b_users_insert_own" ON public.b_users
+  FOR INSERT TO authenticated
+  WITH CHECK ((SELECT auth.uid()) = id);
+
+CREATE POLICY IF NOT EXISTS "b_users_update_own" ON public.b_users
+  FOR UPDATE TO authenticated
+  USING ((SELECT auth.uid()) = id)
+  WITH CHECK ((SELECT auth.uid()) = id);
+
+CREATE POLICY IF NOT EXISTS "b_users_delete_own" ON public.b_users
+  FOR DELETE TO authenticated
+  USING ((SELECT auth.uid()) = id);
+
+-- =====================================================
+-- Table: public.b_exercises
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_exercises (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  exercise_key varchar UNIQUE,
+  name varchar NOT NULL,
+  muscle_group varchar,
+  equipment varchar,
+  video_url varchar,
+  instructions text[], -- array of text
+  tags text[], -- array of text
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+  image_storage_path varchar,
+  image_url varchar
+);
+
+CREATE INDEX IF NOT EXISTS idx_b_exercises_exercise_key ON public.b_exercises(exercise_key);
+CREATE INDEX IF NOT EXISTS idx_b_exercises_name_trgm ON public.b_exercises USING gin (name gin_trgm_ops); -- requires pg_trgm
+
+-- RLS
+ALTER TABLE public.b_exercises ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_exercises_select_public" ON public.b_exercises
+  FOR SELECT TO authenticated
+  USING (TRUE); -- exercises are readable by authenticated users; adjust if needed
+
+-- =====================================================
+-- Table: public.b_workouts
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_workouts (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  workout_key varchar UNIQUE,
+  title varchar NOT NULL,
+  description text,
+  difficulty varchar CHECK (difficulty::text = ANY (ARRAY['Iniciante'::varchar::text, 'Intermediário'::varchar::text, 'Avançado'::varchar::text, 'Iniciante / Intermediário'::varchar::text])),
+  estimated_duration integer,
+  days_per_week integer,
+  cover_image varchar,
+  is_public boolean DEFAULT true,
+  creator_id uuid,
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FK: reference to b_users.creator_id if table exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_users') THEN
+    ALTER TABLE public.b_workouts
+      ADD CONSTRAINT b_workouts_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES public.b_users(id) ON DELETE SET NULL;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_workouts_creator_id ON public.b_workouts(creator_id);
+CREATE INDEX IF NOT EXISTS idx_b_workouts_is_public ON public.b_workouts(is_public);
+
+-- RLS
+ALTER TABLE public.b_workouts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_workouts_select_public_or_owner" ON public.b_workouts
+  FOR SELECT TO authenticated
+  USING (is_public OR creator_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_workouts_insert_owner" ON public.b_workouts
+  FOR INSERT TO authenticated
+  WITH CHECK (creator_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_workouts_update_owner" ON public.b_workouts
+  FOR UPDATE TO authenticated
+  USING (creator_id = (SELECT auth.uid()))
+  WITH CHECK (creator_id = (SELECT auth.uid()));
+
+-- =====================================================
+-- Table: public.b_workout_days
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_workout_days (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  workout_id uuid NOT NULL,
+  day_number integer,
+  day_name varchar,
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FK -> b_workouts
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_workouts') THEN
+    ALTER TABLE public.b_workout_days
+      ADD CONSTRAINT b_workout_days_workout_id_fkey FOREIGN KEY (workout_id) REFERENCES public.b_workouts(id) ON DELETE CASCADE;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_workout_days_workout_id ON public.b_workout_days(workout_id);
+
+-- RLS
+ALTER TABLE public.b_workout_days ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_workout_days_select_by_workout_access" ON public.b_workout_days
+  FOR SELECT TO authenticated
+  USING (
+    workout_id IN (SELECT id FROM public.b_workouts WHERE (is_public OR creator_id = (SELECT auth.uid())))
+  );
+
+-- =====================================================
+-- Table: public.b_workout_exercises
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_workout_exercises (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  workout_day_id uuid NOT NULL,
+  exercise_id uuid NOT NULL,
+  order_index integer,
+  sets integer,
+  reps varchar,
+  rest_seconds integer,
+  notes text,
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FKs
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_workout_days') THEN
+    ALTER TABLE public.b_workout_exercises
+      ADD CONSTRAINT b_workout_exercises_workout_day_id_fkey FOREIGN KEY (workout_day_id) REFERENCES public.b_workout_days(id) ON DELETE CASCADE;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_exercises') THEN
+    ALTER TABLE public.b_workout_exercises
+      ADD CONSTRAINT b_workout_exercises_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES public.b_exercises(id) ON DELETE RESTRICT;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_workout_exercises_workout_day_id ON public.b_workout_exercises(workout_day_id);
+CREATE INDEX IF NOT EXISTS idx_b_workout_exercises_exercise_id ON public.b_workout_exercises(exercise_id);
+
+-- RLS
+ALTER TABLE public.b_workout_exercises ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_workout_exercises_select_by_workout_access" ON public.b_workout_exercises
+  FOR SELECT TO authenticated
+  USING (
+    workout_day_id IN (SELECT id FROM public.b_workout_days WHERE workout_id IN (
+      SELECT id FROM public.b_workouts WHERE (is_public OR creator_id = (SELECT auth.uid()))
+    ))
+  );
+
+-- =====================================================
+-- Table: public.b_user_assignments
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_user_assignments (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  workout_id uuid NOT NULL,
+  assigned_day varchar,
+  active boolean DEFAULT true,
+  assigned_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FKs
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_users') THEN
+    ALTER TABLE public.b_user_assignments
+      ADD CONSTRAINT b_user_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.b_users(id) ON DELETE CASCADE;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_workouts') THEN
+    ALTER TABLE public.b_user_assignments
+      ADD CONSTRAINT b_user_assignments_workout_id_fkey FOREIGN KEY (workout_id) REFERENCES public.b_workouts(id) ON DELETE CASCADE;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_user_assignments_user_id ON public.b_user_assignments(user_id);
+CREATE INDEX IF NOT EXISTS idx_b_user_assignments_workout_id ON public.b_user_assignments(workout_id);
+
+-- RLS: users can only see their own assignments
+ALTER TABLE public.b_user_assignments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_user_assignments_select_own" ON public.b_user_assignments
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_user_assignments_insert_own" ON public.b_user_assignments
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_user_assignments_update_own" ON public.b_user_assignments
+  FOR UPDATE TO authenticated
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- =====================================================
+-- Table: public.b_daily_workout_logs
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_daily_workout_logs (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  workout_id uuid NOT NULL,
+  workout_day_id uuid,
+  started_at timestamptz,
+  ended_at timestamptz,
+  calories_burned integer,
+  feeling integer CHECK (feeling >= 1 AND feeling <= 10),
+  notes text,
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FKs
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_users') THEN
+    ALTER TABLE public.b_daily_workout_logs
+      ADD CONSTRAINT b_workout_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.b_users(id) ON DELETE CASCADE;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_workouts') THEN
+    ALTER TABLE public.b_daily_workout_logs
+      ADD CONSTRAINT b_workout_sessions_workout_id_fkey FOREIGN KEY (workout_id) REFERENCES public.b_workouts(id) ON DELETE CASCADE;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_workout_days') THEN
+    ALTER TABLE public.b_daily_workout_logs
+      ADD CONSTRAINT b_workout_sessions_workout_day_id_fkey FOREIGN KEY (workout_day_id) REFERENCES public.b_workout_days(id) ON DELETE SET NULL;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_daily_workout_logs_user_id ON public.b_daily_workout_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_b_daily_workout_logs_workout_id ON public.b_daily_workout_logs(workout_id);
+CREATE INDEX IF NOT EXISTS idx_b_daily_workout_logs_workout_day_id ON public.b_daily_workout_logs(workout_day_id);
+
+-- RLS: users see only their own logs
+ALTER TABLE public.b_daily_workout_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_daily_workout_logs_select_own" ON public.b_daily_workout_logs
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_daily_workout_logs_insert_own" ON public.b_daily_workout_logs
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- =====================================================
+-- Table: public.b_ai_chat_history
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_ai_chat_history (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  role varchar CHECK (role::text = ANY (ARRAY['user'::varchar::text, 'assistant'::varchar::text, 'system'::varchar::text])),
+  content text,
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FK
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_users') THEN
+    ALTER TABLE public.b_ai_chat_history
+      ADD CONSTRAINT b_ai_chat_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.b_users(id) ON DELETE CASCADE;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_ai_chat_history_user_id ON public.b_ai_chat_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_b_ai_chat_history_created_at ON public.b_ai_chat_history(created_at);
+
+-- RLS: user-only access
+ALTER TABLE public.b_ai_chat_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_ai_chat_history_select_own" ON public.b_ai_chat_history
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_ai_chat_history_insert_own" ON public.b_ai_chat_history
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- =====================================================
+-- Table: public.b_user_progress
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_user_progress (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  date date NOT NULL,
+  weight_kg numeric,
+  body_fat_percentage numeric,
+  muscle_mass_kg numeric,
+  notes text,
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FK
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_users') THEN
+    ALTER TABLE public.b_user_progress
+      ADD CONSTRAINT b_user_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.b_users(id) ON DELETE CASCADE;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_user_progress_user_id ON public.b_user_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_b_user_progress_date ON public.b_user_progress(date);
+
+-- RLS: user-only
+ALTER TABLE public.b_user_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_user_progress_select_own" ON public.b_user_progress
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_user_progress_insert_own" ON public.b_user_progress
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- =====================================================
+-- Table: public.b_user_goals
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_user_goals (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  title varchar NOT NULL,
+  description text,
+  deadline date,
+  status varchar DEFAULT 'active' CHECK (status::text = ANY (ARRAY['active'::varchar, 'completed'::varchar, 'cancelled'::varchar]::text[])),
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FK
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_users') THEN
+    ALTER TABLE public.b_user_goals
+      ADD CONSTRAINT b_user_goals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.b_users(id) ON DELETE CASCADE;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_user_goals_user_id ON public.b_user_goals(user_id);
+
+-- RLS
+ALTER TABLE public.b_user_goals ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_user_goals_select_own" ON public.b_user_goals
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_user_goals_insert_own" ON public.b_user_goals
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- =====================================================
+-- Table: public.b_workout_sessions
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_workout_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid,
+  workout_id uuid,
+  workout_day_id uuid,
+  started_at timestamptz DEFAULT timezone('utc', now()),
+  ended_at timestamptz,
+  calories_burned numeric,
+  feeling text
+);
+
+-- FKs
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_workouts') THEN
+    ALTER TABLE public.b_workout_sessions
+      ADD CONSTRAINT b_workout_sessions_workout_id_fkey FOREIGN KEY (workout_id) REFERENCES public.b_workouts(id) ON DELETE SET NULL;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_users') THEN
+    ALTER TABLE public.b_workout_sessions
+      ADD CONSTRAINT b_workout_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    -- NOTE: original source referenced auth.users for user_id in some introspection results; if you want reference to public.b_users, change accordingly
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_workout_days') THEN
+    ALTER TABLE public.b_workout_sessions
+      ADD CONSTRAINT b_workout_sessions_workout_day_id_fkey FOREIGN KEY (workout_day_id) REFERENCES public.b_workout_days(id) ON DELETE SET NULL;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_workout_sessions_user_id ON public.b_workout_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_b_workout_sessions_workout_id ON public.b_workout_sessions(workout_id);
+
+-- RLS: limit to owner
+ALTER TABLE public.b_workout_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_workout_sessions_select_own" ON public.b_workout_sessions
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_workout_sessions_insert_own" ON public.b_workout_sessions
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- =====================================================
+-- Table: public.b_session_logs
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_session_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id uuid,
+  user_id uuid,                -- novo campo: owner do registro (usuário)
+  exercise_id uuid,
+  set_number integer,
+  weight_kg numeric,
+  reps_completed integer,
+  created_at timestamptz DEFAULT timezone('utc', now())
+);
+
+-- Foreign key: session_id -> b_workout_sessions
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relname = 'b_workout_sessions'
+  ) THEN
+    ALTER TABLE public.b_session_logs
+      ADD CONSTRAINT b_session_logs_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.b_workout_sessions(id) ON DELETE CASCADE;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN
+  NULL;
+END;
+$$;
+
+-- Foreign key: user_id -> public.b_users if exists, otherwise to auth.users (commented)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relname = 'b_users'
+  ) THEN
+    ALTER TABLE public.b_session_logs
+      ADD CONSTRAINT b_session_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.b_users(id) ON DELETE CASCADE;
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_b_session_logs_session_id ON public.b_session_logs(session_id);
+CREATE INDEX IF NOT EXISTS idx_b_session_logs_user_id ON public.b_session_logs(user_id);
+
+-- RLS: enable + policies using user_id for efficiency
+ALTER TABLE public.b_session_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "b_session_logs_select_own" ON public.b_session_logs
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_session_logs_insert_own" ON public.b_session_logs
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()) AND session_id IN (
+    SELECT id FROM public.b_workout_sessions WHERE user_id = (SELECT auth.uid())
+  ));
+
+CREATE POLICY IF NOT EXISTS "b_session_logs_update_own" ON public.b_session_logs
+  FOR UPDATE TO authenticated
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+CREATE POLICY IF NOT EXISTS "b_session_logs_delete_own" ON public.b_session_logs
+  FOR DELETE TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+-- =====================================================
+-- Table: public.b_avatars
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.b_avatars (
+  id uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  storage_path varchar UNIQUE,
+  public_url varchar,
+  name varchar,
+  category varchar DEFAULT '3D',
+  tags text[],
+  gender varchar,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_b_avatars_category ON public.b_avatars(category);
+CREATE INDEX IF NOT EXISTS idx_b_avatars_is_active ON public.b_avatars(is_active);
+
+-- RLS
+ALTER TABLE public.b_avatars ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "b_avatars_select_active" ON public.b_avatars
+  FOR SELECT TO authenticated
+  USING (is_active = true);
+
+-- =====================================================
+-- Additional indexes / helper functions
+-- =====================================================
+
+-- Trigger to auto-update updated_at columns
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+-- Attach trigger where appropriate (profiles/workouts/user_goals)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_users') THEN
+    EXECUTE 'DROP TRIGGER IF EXISTS set_updated_at_b_users ON public.b_users';
+    EXECUTE 'CREATE TRIGGER set_updated_at_b_users BEFORE UPDATE ON public.b_users FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_workouts') THEN
+    EXECUTE 'DROP TRIGGER IF EXISTS set_updated_at_b_workouts ON public.b_workouts';
+    EXECUTE 'CREATE TRIGGER set_updated_at_b_workouts BEFORE UPDATE ON public.b_workouts FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname='public' AND c.relname='b_user_goals') THEN
+    EXECUTE 'DROP TRIGGER IF EXISTS set_updated_at_b_user_goals ON public.b_user_goals';
+    EXECUTE 'CREATE TRIGGER set_updated_at_b_user_goals BEFORE UPDATE ON public.b_user_goals FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()';
+  END IF;
+END;
+$$;
+
+-- =====================================================
+-- End of generated DDL for prefix "b_"
+-- =====================================================
