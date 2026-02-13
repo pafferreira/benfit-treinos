@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useExercises } from '../hooks/useSupabase';
+import { useExercises, useUserRole } from '../hooks/useSupabase';
+import { useAction } from '../context/ActionContext';
 import { supabaseHelpers } from '../lib/supabase';
 import { Search, Plus, Edit2, Trash2, Target, Package, LayoutGrid, List, Dumbbell, Filter, X } from 'lucide-react';
 import ExerciseModal from '../components/ExerciseModal';
@@ -9,6 +10,8 @@ import Tooltip from '../components/Tooltip';
 
 const Exercises = () => {
     const { exercises, loading, error, reload } = useExercises();
+    const { isAdmin, isPersonal, isUser } = useUserRole();
+    const { setAction } = useAction();
     const [searchTerm, setSearchTerm] = useState('');
     const [muscleFilter, setMuscleFilter] = useState('all');
     const [equipmentFilter, setEquipmentFilter] = useState('all');
@@ -267,7 +270,7 @@ const Exercises = () => {
                     viewMode === 'grid' ? (
                         <div className="grid grid-cols-1 gap-6">
                             {filteredExercises.map(exercise => (
-                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-blue-100 transition-all duration-300 flex flex-col md:flex-row h-full cursor-pointer">
+                                <div key={exercise.id} onClick={() => (isAdmin || isPersonal) && handleEditExercise(exercise)} className={`group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 flex flex-col md:flex-row h-full ${(isAdmin || isPersonal) ? 'cursor-pointer hover:shadow-xl hover:border-blue-100' : ''}`}>
                                     {/* Image Container - Larger in single column view */}
                                     <div className="relative w-full md:w-1/3 aspect-[4/3] md:aspect-auto bg-gray-50 overflow-hidden">
                                         <img
@@ -283,17 +286,18 @@ const Exercises = () => {
                                             }}
                                         />
                                         {/* Overlay Actions */}
-                                        <div className="absolute top-2 right-2 flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-
-                                            <Tooltip content="Excluir Exercício">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
-                                                    className="bg-white/90 backdrop-blur-sm hover:bg-white text-red-500 p-2 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </Tooltip>
-                                        </div>
+                                        {(isAdmin || isPersonal) && (
+                                            <div className="absolute top-2 right-2 flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                                                <Tooltip content="Excluir Exercício">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
+                                                        className="bg-white/90 backdrop-blur-sm hover:bg-white text-red-500 p-2 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </Tooltip>
+                                            </div>
+                                        )}
 
                                         {/* Muscle Badge */}
                                         <div className="absolute bottom-2 left-2 pointer-events-none">
@@ -334,7 +338,7 @@ const Exercises = () => {
                     ) : (
                         <div className="flex flex-col gap-3 w-full">
                             {filteredExercises.map(exercise => (
-                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className="group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-100 transition-all flex items-center gap-4 w-full cursor-pointer">
+                                <div key={exercise.id} onClick={() => (isAdmin || isPersonal) && handleEditExercise(exercise)} className={`group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 transition-all flex items-center gap-4 w-full ${(isAdmin || isPersonal) ? 'cursor-pointer hover:shadow-md hover:border-blue-100' : ''}`}>
                                     <div className="h-16 w-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden relative">
                                         <img
                                             src={exercise.image_url ?
@@ -364,17 +368,18 @@ const Exercises = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2">
-
-                                        <Tooltip content="Excluir Exercício">
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
-                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </Tooltip>
-                                    </div>
+                                    {(isAdmin || isPersonal) && (
+                                        <div className="flex gap-2">
+                                            <Tooltip content="Excluir Exercício">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
+                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </Tooltip>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -398,15 +403,7 @@ const Exercises = () => {
                 )}
             </div>
 
-            {/* Floating FAB - Premium Gradient */}
-            <Tooltip content="Adicionar Novo Exercício">
-                <button
-                    onClick={handleCreateExercise}
-                    className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-full shadow-lg shadow-blue-600/30 flex items-center justify-center transition-transform hover:scale-110 active:scale-95 z-40 group"
-                >
-                    <Plus size={32} className="transition-transform group-hover:rotate-90" />
-                </button>
-            </Tooltip>
+            {/* Floating FAB removed - now in Footer */}
 
             {/* Exercise Modal */}
             <ExerciseModal

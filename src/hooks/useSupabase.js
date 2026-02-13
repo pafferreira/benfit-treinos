@@ -136,3 +136,39 @@ export const useAvatars = () => {
 
     return { avatars, loading, error, reload: loadAvatars }
 }
+
+export const useUserRole = () => {
+    const [role, setRole] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const checkRole = async () => {
+            try {
+                setLoading(true);
+                const user = await supabaseHelpers.getCurrentUser();
+                setRole(user?.role || 'user'); // Default to 'user' if no role found
+            } catch (err) {
+                console.error('Error checking role:', err);
+                setRole('user');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        checkRole();
+
+        // Listen for profile updates to refresh role
+        const handleProfileUpdate = () => checkRole();
+        window.addEventListener('profile-updated', handleProfileUpdate);
+
+        return () => {
+            window.removeEventListener('profile-updated', handleProfileUpdate);
+        };
+    }, []);
+
+    const isAdmin = role === 'admin';
+    const isPersonal = role === 'personal';
+    const isUser = role === 'user';
+
+    return { role, isAdmin, isPersonal, isUser, loading };
+};

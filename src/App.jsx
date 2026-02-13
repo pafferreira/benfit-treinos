@@ -10,6 +10,7 @@ import MeuTreino from './pages/MeuTreino'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import SupabaseDiagnostic from './pages/SupabaseDiagnostic'
+import AdminUsers from './pages/AdminUsers'
 import './App.css'
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
           <Route path="perfil" element={<Profile />} />
           <Route path="coach" element={<AICoach />} />
           <Route path="diagnostic" element={<SupabaseDiagnostic />} />
+          <Route path="admin/users" element={<AdminUsers />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

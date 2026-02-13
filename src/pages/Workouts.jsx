@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useWorkouts, useExercises } from '../hooks/useSupabase';
+import { useWorkouts, useExercises, useUserRole } from '../hooks/useSupabase';
 import { supabaseHelpers } from '../lib/supabase';
 import { supabase } from '../lib/supabase';
 import { Calendar, Clock, Plus, Search, Loader2, Dumbbell } from 'lucide-react';
@@ -14,6 +14,7 @@ import './Workouts.css';
 const Workouts = () => {
     const navigate = useNavigate();
     const { workouts, loading: workoutsLoading, error: workoutsError, reload } = useWorkouts();
+    const { isAdmin, isPersonal } = useUserRole();
     const { exercises } = useExercises();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPlanSelectorOpen, setIsPlanSelectorOpen] = useState(false);
@@ -170,9 +171,11 @@ const Workouts = () => {
             {/* Header */}
             <div className="workouts-topbar">
                 <h3 className="section-title">Planos Ativos</h3>
-                <button className="new-plan-btn" onClick={handleCreateWorkout}>
-                    <Plus size={16} /> Novo Plano
-                </button>
+                {(isAdmin || isPersonal) && (
+                    <button className="new-plan-btn" onClick={handleCreateWorkout}>
+                        <Plus size={16} /> Novo Plano
+                    </button>
+                )}
             </div>
 
             {/* Workouts List */}
@@ -198,18 +201,20 @@ const Workouts = () => {
                                     <span className={`status-badge ${status.toLowerCase()}`}>{status}</span>
                                 </div>
                             </div>
-                            <div className="plan-actions-vertical">
-                                <ActionButton
-                                    variant="edit"
-                                    onClick={(e) => handleEditWorkout(e, workout)}
-                                    tooltip="Editar"
-                                />
-                                <ActionButton
-                                    variant="delete"
-                                    onClick={(e) => handleDeleteWorkout(e, workout)}
-                                    tooltip="Excluir"
-                                />
-                            </div>
+                            {(isAdmin || isPersonal) && (
+                                <div className="plan-actions-vertical">
+                                    <ActionButton
+                                        variant="edit"
+                                        onClick={(e) => handleEditWorkout(e, workout)}
+                                        tooltip="Editar"
+                                    />
+                                    <ActionButton
+                                        variant="delete"
+                                        onClick={(e) => handleDeleteWorkout(e, workout)}
+                                        tooltip="Excluir"
+                                    />
+                                </div>
+                            )}
                         </div>
                     );
                 })}

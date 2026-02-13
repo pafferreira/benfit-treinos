@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, ClipboardList, Play, BarChart2, User } from 'lucide-react';
-import { supabase, supabaseHelpers } from '../lib/supabase'; // Correct import
+import { supabase, supabaseHelpers } from '../lib/supabase';
+import { ActionProvider, useAction } from '../context/ActionContext';
 import './DashboardLayout.css';
 
-const DashboardLayout = () => {
+const DashboardLayoutContent = () => {
     const lastScrollY = useRef(0);
     const mainContentRef = useRef(null);
     const location = useLocation();
@@ -14,7 +15,7 @@ const DashboardLayout = () => {
     const [avatarUrl, setAvatarUrl] = useState('/Elifit_Coach.png');
     const [userEmail, setUserEmail] = useState('...');
 
-    // Ensure light mode on mount (remove any stale dark class)
+    // Ensure light mode on mount
     useEffect(() => {
         document.documentElement.classList.remove('dark');
     }, []);
@@ -98,6 +99,8 @@ const DashboardLayout = () => {
         navigate(path);
     };
 
+    const { action } = useAction(); // Consume context
+
     const isActive = (path) => {
         if (path === '/' && location.pathname === '/') return true;
         if (path !== '/' && location.pathname.startsWith(path)) return true;
@@ -161,9 +164,22 @@ const DashboardLayout = () => {
                         <ClipboardList size={24} />
                         <span>Planos</span>
                     </button>
-                    <button className="fab-btn" onClick={() => handleNav('/coach')} data-tooltip="Coach IA">
-                        <Play size={28} fill="currentColor" />
+
+                    <button
+                        className="fab-btn"
+                        onClick={() => {
+                            if (action && action.onClick) {
+                                action.onClick();
+                            } else {
+                                handleNav('/coach');
+                            }
+                        }}
+                        data-tooltip={action?.label || "Coach IA"}
+                        style={{ display: action?.visible === false ? 'none' : 'flex' }}
+                    >
+                        {action?.icon ? action.icon : <Play size={28} fill="currentColor" />}
                     </button>
+
                     <button
                         className={`nav-btn ${isActive('/exercicios') ? 'active' : ''}`}
                         onClick={() => handleNav('/exercicios')}
@@ -182,9 +198,15 @@ const DashboardLayout = () => {
                     </button>
                 </nav>
             </div>
-
-
         </div>
+    );
+};
+
+const DashboardLayout = () => {
+    return (
+        <ActionProvider>
+            <DashboardLayoutContent />
+        </ActionProvider>
     );
 };
 
