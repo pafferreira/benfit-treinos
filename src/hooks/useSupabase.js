@@ -138,7 +138,10 @@ export const useAvatars = () => {
 }
 
 export const useUserRole = () => {
-    const [role, setRole] = useState(null);
+    const [realRole, setRealRole] = useState(null);
+    const [impersonatedRole, setImpersonatedRole] = useState(() => {
+        return localStorage.getItem('impersonated_role');
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -146,10 +149,17 @@ export const useUserRole = () => {
             try {
                 setLoading(true);
                 const user = await supabaseHelpers.getCurrentUser();
-                setRole(user?.role || 'user'); // Default to 'user' if no role found
+                const fetchedRole = user?.role || 'user';
+                setRealRole(fetchedRole);
+
+                // If not admin, force clear impersonation for security
+                if (fetchedRole !== 'admin') {
+                    localStorage.removeItem('impersonated_role');
+                    setImpersonatedRole(null);
+                }
             } catch (err) {
                 console.error('Error checking role:', err);
-                setRole('user');
+                setRealRole('user');
             } finally {
                 setLoading(false);
             }
@@ -157,18 +167,56 @@ export const useUserRole = () => {
 
         checkRole();
 
-        // Listen for profile updates to refresh role
         const handleProfileUpdate = () => checkRole();
         window.addEventListener('profile-updated', handleProfileUpdate);
 
+        // Listen for impersonation changes from other tabs/windows or local updates
+        const handleStorageChange = () => {
+            setImpersonatedRole(localStorage.getItem('impersonated_role'));
+        };
+        window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('impersonation-updated', handleStorageChange);
+
         return () => {
             window.removeEventListener('profile-updated', handleProfileUpdate);
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('impersonation-updated', handleStorageChange);
         };
     }, []);
 
-    const isAdmin = role === 'admin';
-    const isPersonal = role === 'personal';
-    const isUser = role === 'user';
+    // Helper functions
+    const impersonate = (role) => {
+        if (realRole !== 'admin') return;
+        localStorage.setItem('impersonated_role', role);
+        setImpersonatedRole(role);
+        window.dispatchEvent(new Event('impersonation-updated'));
+    };
 
-    return { role, isAdmin, isPersonal, isUser, loading };
+    const restoreRole = () => {
+        localStorage.removeItem('impersonated_role');
+        setImpersonatedRole(null);
+        window.dispatchEvent(new Event('impersonation-updated'));
+    };
+
+    // Derived values
+    // If impersonating, role reflects that. Otherwise real role.
+    const activeRole = impersonatedRole || realRole;
+
+    const isAdmin = activeRole === 'admin';
+    const isPersonal = activeRole === 'personal';
+    const isUser = activeRole === 'user';
+    const isRealAdmin = realRole === 'admin';
+
+    return {
+        role: activeRole,
+        realRole,
+        isAdmin,
+        isPersonal,
+        isUser,
+        isRealAdmin, // Critical for admin panel access during impersonation
+        loading,
+        impersonate,
+        restoreRole,
+        isImpersonating: !!impersonatedRole
+    };
 };

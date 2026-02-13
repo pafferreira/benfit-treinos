@@ -12,6 +12,20 @@ const Exercises = () => {
     const { exercises, loading, error, reload } = useExercises();
     const { isAdmin, isPersonal, isUser } = useUserRole();
     const { setAction } = useAction();
+
+    useEffect(() => {
+        if (isAdmin || isPersonal) {
+            setAction({
+                icon: <Plus />,
+                label: 'Novo Exercício',
+                onClick: () => handleCreateExercise(),
+                visible: true
+            });
+        } else {
+            setAction(null); // Reset to default (Coach IA)
+        }
+        return () => setAction(null);
+    }, [isAdmin, isPersonal, setAction]);
     const [searchTerm, setSearchTerm] = useState('');
     const [muscleFilter, setMuscleFilter] = useState('all');
     const [equipmentFilter, setEquipmentFilter] = useState('all');
@@ -270,7 +284,7 @@ const Exercises = () => {
                     viewMode === 'grid' ? (
                         <div className="grid grid-cols-1 gap-6">
                             {filteredExercises.map(exercise => (
-                                <div key={exercise.id} onClick={() => (isAdmin || isPersonal) && handleEditExercise(exercise)} className={`group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 flex flex-col md:flex-row h-full ${(isAdmin || isPersonal) ? 'cursor-pointer hover:shadow-xl hover:border-blue-100' : ''}`}>
+                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 flex flex-col md:flex-row h-full cursor-pointer hover:shadow-xl hover:border-blue-100`}>
                                     {/* Image Container - Larger in single column view */}
                                     <div className="relative w-full md:w-1/3 aspect-[4/3] md:aspect-auto bg-gray-50 overflow-hidden">
                                         <img
@@ -338,7 +352,7 @@ const Exercises = () => {
                     ) : (
                         <div className="flex flex-col gap-3 w-full">
                             {filteredExercises.map(exercise => (
-                                <div key={exercise.id} onClick={() => (isAdmin || isPersonal) && handleEditExercise(exercise)} className={`group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 transition-all flex items-center gap-4 w-full ${(isAdmin || isPersonal) ? 'cursor-pointer hover:shadow-md hover:border-blue-100' : ''}`}>
+                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 transition-all flex items-center gap-4 w-full cursor-pointer hover:shadow-md hover:border-blue-100`}>
                                     <div className="h-16 w-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden relative">
                                         <img
                                             src={exercise.image_url ?
@@ -412,6 +426,7 @@ const Exercises = () => {
                 onSave={handleSaveExercise}
                 exercise={selectedExercise}
                 isLoading={isSaving}
+                readOnly={!!(isUser && !isAdmin && !isPersonal)}
             />
 
             {/* Confirmation Modal */}

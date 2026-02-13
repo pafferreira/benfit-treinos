@@ -82,6 +82,15 @@
     border: 2px solid var(--color-primary);
     overflow: hidden;
     cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.user-avatar-container.impersonating {
+    border: 4px solid #EF4444;
+    /* Red border */
+    transform: scale(1.1);
+    /* Make it slightly larger */
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
 .dashboard-layout.dark .user-avatar-container {

@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, ClipboardList, Play, BarChart2, User } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { ActionProvider, useAction } from '../context/ActionContext';
+import { useUserRole } from '../hooks/useSupabase';
 import './DashboardLayout.css';
 
 const DashboardLayoutContent = () => {
@@ -11,6 +12,7 @@ const DashboardLayoutContent = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
+    const { isImpersonating, role } = useUserRole();
 
     const [avatarUrl, setAvatarUrl] = useState('/Elifit_Coach.png');
     const [userEmail, setUserEmail] = useState('...');
@@ -125,9 +127,18 @@ const DashboardLayoutContent = () => {
                             <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#4B5563' }}>
                                 {userEmail}
                             </span>
+                            {isImpersonating && (
+                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 rounded border border-red-100 mt-0.5">
+                                    Agindo como {role}
+                                </span>
+                            )}
                         </div>
 
-                        <div className="user-avatar-container" onClick={() => navigate('/perfil')} data-tooltip="Meu Perfil">
+                        <div
+                            className={`user-avatar-container ${isImpersonating ? 'impersonating' : ''}`}
+                            onClick={() => navigate('/perfil')}
+                            data-tooltip="Meu Perfil"
+                        >
                             <img
                                 alt="User Profile Avatar"
                                 className="user-avatar"

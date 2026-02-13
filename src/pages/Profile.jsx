@@ -33,7 +33,7 @@ const Profile = () => {
 
     // Custom Hooks
     const { avatars, loading: loadingAvatars, reload: reloadAvatars } = useAvatars();
-    const { isAdmin } = useUserRole();
+    const { isAdmin, isRealAdmin } = useUserRole();
     const navigate = useNavigate();
 
     // Modals state
@@ -343,23 +343,23 @@ const Profile = () => {
             <div className="settings-section">
                 <h3 className="settings-title">Aplicativo</h3>
                 <div className="settings-list">
+                    {(isAdmin || isRealAdmin) && (
+                        <div className="settings-item" onClick={() => navigate('/admin/users')}>
+                            <div className="item-left">
+                                <User size={20} className="item-icon" />
+                                <span>Gerenciar Usuários</span>
+                            </div>
+                            <ChevronRight size={20} color="var(--color-subtext-light)" />
+                        </div>
+                    )}
                     {isAdmin && (
-                        <>
-                            <div className="settings-item" onClick={() => navigate('/admin/users')}>
-                                <div className="item-left">
-                                    <User size={20} className="item-icon" />
-                                    <span>Gerenciar Usuários</span>
-                                </div>
-                                <ChevronRight size={20} color="var(--color-subtext-light)" />
+                        <div className="settings-item" onClick={() => setShowAvatarManager(true)}>
+                            <div className="item-left">
+                                <Image size={20} className="item-icon" />
+                                <span>Gerenciar Avatares</span>
                             </div>
-                            <div className="settings-item" onClick={() => setShowAvatarManager(true)}>
-                                <div className="item-left">
-                                    <Image size={20} className="item-icon" />
-                                    <span>Gerenciar Avatares</span>
-                                </div>
-                                <ChevronRight size={20} color="var(--color-subtext-light)" />
-                            </div>
-                        </>
+                            <ChevronRight size={20} color="var(--color-subtext-light)" />
+                        </div>
                     )}
                     <div className="settings-item">
                         <div className="item-left">
