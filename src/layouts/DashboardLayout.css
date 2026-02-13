@@ -4,6 +4,7 @@
     background-color: var(--color-background-light);
     color: var(--color-text-light);
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     justify-content: center;
     transition: background-color 0.2s, color 0.2s;
@@ -17,11 +18,8 @@
 .mobile-container {
     width: 100%;
     max-width: 28rem;
-    /* max-w-md */
     height: 100vh;
-    /* Fallback */
     height: 100dvh;
-    /* Dynamic viewport height for mobile */
     position: relative;
     display: flex;
     flex-direction: column;
@@ -192,50 +190,4 @@
     transform: scale(1.05);
 }
 
-/* Dark Mode Toggle */
-.dark-mode-toggle {
-    position: fixed;
-    bottom: 1rem;
-    right: 1rem;
-    z-index: 50;
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-    opacity: 1;
-}
-
-.dark-mode-toggle.nav-hidden {
-    transform: translateY(200%);
-    /* Move further down */
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* On desktop, move toggle out of the way if it overlaps */
-@media (min-width: 768px) {
-    .dark-mode-toggle {
-        right: calc(50% - 16rem);
-        /* Align relative to the mobile container */
-        transform: translateX(100%);
-    }
-
-    .dark-mode-toggle.nav-hidden {
-        transform: translateX(100%) translateY(200%);
-    }
-}
-
-.toggle-btn {
-    background-color: #1F2937;
-    color: white;
-    padding: 0.75rem;
-    border-radius: 9999px;
-    box-shadow: var(--shadow-lg);
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.dashboard-layout.dark .toggle-btn {
-    background-color: white;
-    color: #1F2937;
-}
+/* Dark Mode Toggle - moved to Profile page */

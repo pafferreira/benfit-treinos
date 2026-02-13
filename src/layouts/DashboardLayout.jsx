@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, ClipboardList, Play, BarChart2, User, Moon, Sun } from 'lucide-react';
+import { Home, ClipboardList, Play, BarChart2, User } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase'; // Correct import
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
-    const [darkMode, setDarkMode] = useState(false);
     const lastScrollY = useRef(0);
     const mainContentRef = useRef(null);
     const location = useLocation();
@@ -15,11 +14,10 @@ const DashboardLayout = () => {
     const [avatarUrl, setAvatarUrl] = useState('/Elifit_Coach.png');
     const [userEmail, setUserEmail] = useState('...');
 
-    // Toggle Dark Mode
-    const toggleDarkMode = () => {
-        setDarkMode(!darkMode);
-        document.documentElement.classList.toggle('dark');
-    };
+    // Ensure light mode on mount (remove any stale dark class)
+    useEffect(() => {
+        document.documentElement.classList.remove('dark');
+    }, []);
 
     useEffect(() => {
         // Allow disabling auth checks for development or emergency bypass
@@ -107,7 +105,7 @@ const DashboardLayout = () => {
     };
 
     return (
-        <div className={`dashboard-layout ${darkMode ? 'dark' : ''}`}>
+        <div className="dashboard-layout">
             <div className="mobile-container">
                 {/* Fixed Header */}
                 <header className="layout-header">
@@ -121,7 +119,7 @@ const DashboardLayout = () => {
 
                         {/* Email Display - Now explicit */}
                         <div className="header-user-info" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '500', color: darkMode ? '#D1D5DB' : '#4B5563' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#4B5563' }}>
                                 {userEmail}
                             </span>
                         </div>
@@ -185,12 +183,7 @@ const DashboardLayout = () => {
                 </nav>
             </div>
 
-            {/* Dark Mode Toggle (Floating) */}
-            <div className="dark-mode-toggle">
-                <button className="toggle-btn" onClick={toggleDarkMode} data-tooltip={darkMode ? "Modo Claro" : "Modo Escuro"}>
-                    {darkMode ? <Sun size={24} /> : <Moon size={24} />}
-                </button>
-            </div>
+
         </div>
     );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Settings, Bell, Shield, CircleHelp, LogOut, ChevronRight, Award, Activity, Plus, Trash2, X, Check, Camera, Image, Search, Filter, ChevronDown } from 'lucide-react';
+import { User, Settings, Bell, Moon, Sun, CircleHelp, LogOut, ChevronRight, Award, Activity, Plus, Trash2, X, Check, Camera, Image, Search, Filter, ChevronDown } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { useAvatars } from '../hooks/useSupabase';
 import Modal from '../components/Modal';
@@ -353,11 +353,16 @@ const Profile = () => {
                             <span>Notificações</span>
                         </div>
                     </div>
-                    <div className="settings-item">
+                    <div className="settings-item" onClick={() => {
+                        const isDark = document.documentElement.classList.toggle('dark');
+                        // Force layout re-render if needed
+                        document.querySelector('.dashboard-layout')?.classList.toggle('dark', isDark);
+                    }}>
                         <div className="item-left">
-                            <Shield size={20} className="item-icon" />
-                            <span>Privacidade</span>
+                            <Moon size={20} className="item-icon" />
+                            <span>Tema Escuro</span>
                         </div>
+                        <ChevronRight size={20} color="var(--color-subtext-light)" />
                     </div>
                 </div>
             </div>

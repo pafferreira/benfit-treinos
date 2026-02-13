@@ -148,13 +148,7 @@ const DashboardHome = () => {
                         <Dumbbell size={18} />
                         Planos Ativos
                     </h3>
-                    <button
-                        className="dash-see-all"
-                        onClick={() => navigate('/planos')}
-                    >
-                        Ver Todos
-                        <ChevronRight size={14} />
-                    </button>
+
                 </div>
 
                 {plans.length === 0 ? (

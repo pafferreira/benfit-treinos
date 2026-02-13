@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useWorkouts, useExercises } from '../hooks/useSupabase';
 import { supabaseHelpers } from '../lib/supabase';
 import { supabase } from '../lib/supabase';
-import { Calendar, Clock, Plus, Edit2, Trash2, Search, Loader2, Dumbbell } from 'lucide-react';
+import { Calendar, Clock, Plus, Search, Loader2, Dumbbell } from 'lucide-react';
 import WorkoutModal from '../components/WorkoutModal';
+import ActionButton from '../components/ActionButton';
 import PlanSelectorModal from '../components/PlanSelectorModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
@@ -184,38 +185,30 @@ const Workouts = () => {
                     return (
                         <div
                             key={workout.id}
-                            className={`plan-card ${!isActive ? 'opacity-60' : ''}`}
+                            className={`plan-card ${!isActive ? 'plan-card-inactive' : ''}`}
                             onClick={() => navigate(`/treino/${workout.id}`)}
                         >
                             <div className={`plan-icon-container ${iconColor}`}>
-                                {isActive ? <Dumbbell size={32} className="text-secondary" /> : <Clock size={32} className="text-orange" />}
+                                {isActive ? <Dumbbell size={24} strokeWidth={2.5} /> : <Clock size={24} strokeWidth={2.5} />}
                             </div>
-                            <div className="plan-details">
-                                <div className="plan-header">
-                                    <div>
-                                        <h4 className="plan-title">{workout.title}</h4>
-                                        <p className="plan-meta">{workout.difficulty} • {workout.days_per_week}x/sem</p>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                        <span className={`status-badge ${status.toLowerCase()}`}>{status}</span>
-                                        <button
-                                            className="action-btn"
-                                            onClick={(e) => handleEditWorkout(e, workout)}
-                                            style={{ padding: '0.25rem' }}
-                                            data-tooltip="Editar"
-                                        >
-                                            <Edit2 size={14} />
-                                        </button>
-                                        <button
-                                            className="action-btn"
-                                            onClick={(e) => handleDeleteWorkout(e, workout)}
-                                            style={{ padding: '0.25rem' }}
-                                            data-tooltip="Excluir"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
+                            <div className="plan-content">
+                                <h4 className="plan-title">{workout.title}</h4>
+                                <div className="plan-bottom-row">
+                                    <span className="plan-meta">{workout.difficulty} • {workout.days_per_week}x/sem</span>
+                                    <span className={`status-badge ${status.toLowerCase()}`}>{status}</span>
                                 </div>
+                            </div>
+                            <div className="plan-actions-vertical">
+                                <ActionButton
+                                    variant="edit"
+                                    onClick={(e) => handleEditWorkout(e, workout)}
+                                    tooltip="Editar"
+                                />
+                                <ActionButton
+                                    variant="delete"
+                                    onClick={(e) => handleDeleteWorkout(e, workout)}
+                                    tooltip="Excluir"
+                                />
                             </div>
                         </div>
                     );

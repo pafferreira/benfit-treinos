@@ -43,13 +43,13 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
             onClick={handleBackdropClick}
         >
             <div
-                className={`relative w-[90%] md:w-full ${sizeClasses[size] || 'max-w-lg'} mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700`}
+                className={`relative w-[90%] md:w-full ${sizeClasses[size] || 'max-w-lg'} mx-auto bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100`}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
-                    <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{title}</h2>
+                <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
+                    <h2 className="text-lg font-bold text-gray-800">{title}</h2>
                     <button
-                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                         onClick={onClose}
                         title="Fechar"
                         aria-label="Fechar"

@@ -1,0 +1,67 @@
+/* ActionButton.css */
+
+.action-btn-shared {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.75rem;
+    background-color: white !important;
+    border: 1px solid #F3F4F6;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    padding: 0;
+}
+
+.action-btn-icon {
+    flex-shrink: 0;
+    display: block;
+}
+
+/* Edit Variant - Blue */
+.action-btn-edit {
+    color: #3B82F6 !important;
+}
+
+.action-btn-edit:hover {
+    background-color: #EFF6FF !important;
+    color: #2563EB !important;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.15);
+}
+
+.action-btn-edit:active {
+    transform: scale(0.95);
+}
+
+/* Delete Variant - Red */
+.action-btn-delete {
+    color: #EF4444 !important;
+}
+
+.action-btn-delete:hover {
+    background-color: #FEF2F2 !important;
+    color: #DC2626 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.15);
+}
+
+.action-btn-delete:active {
+    transform: scale(0.95);
+}
+
+/* Dark Mode Support */
+.dark .action-btn-shared {
+    background-color: #374151 !important;
+    border-color: #4B5563;
+}
+
+.dark .action-btn-edit {
+    color: #60A5FA !important;
+}
+
+.dark .action-btn-delete {
+    color: #F87171 !important;
+}
