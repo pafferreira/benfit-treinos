@@ -6,6 +6,7 @@ import Modal from '../components/Modal';
 import EditProfileModal from '../components/EditProfileModal';
 import AvatarModal from '../components/AvatarModal';
 import ConfirmationModal from '../components/ConfirmationModal';
+import ActivityHistory from '../components/ActivityHistory';
 import { SkeletonProfile } from '../components/SkeletonLoader';
 import './Profile.css';
 
@@ -40,6 +41,7 @@ const Profile = () => {
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [selectedAvatar, setSelectedAvatar] = useState(null);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+    const [showActivityHistory, setShowActivityHistory] = useState(false);
 
     // Edit form state
     const [formData, setFormData] = useState({});
@@ -324,7 +326,7 @@ const Profile = () => {
                         </div>
                         <ChevronRight size={20} color="var(--color-subtext-light)" />
                     </div>
-                    <div className="settings-item">
+                    <div className="settings-item" onClick={() => setShowActivityHistory(true)}>
                         <div className="item-left">
                             <Activity size={20} className="item-icon" />
                             <span>Histórico de Atividades</span>
@@ -664,6 +666,13 @@ const Profile = () => {
                 onSave={handleSaveAvatar}
                 avatar={selectedAvatar}
                 isLoading={saving}
+            />
+
+            {/* MODAL: ACTIVITY HISTORY */}
+            <ActivityHistory
+                isOpen={showActivityHistory}
+                onClose={() => setShowActivityHistory(false)}
+                userId={user?.id}
             />
 
             {/* Confirmation Modal */}

@@ -2,8 +2,10 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkouts, useExercises } from '../hooks/useSupabase';
 import { supabaseHelpers } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { Calendar, Clock, Plus, Edit2, Trash2, Search, Loader2, Dumbbell } from 'lucide-react';
 import WorkoutModal from '../components/WorkoutModal';
+import PlanSelectorModal from '../components/PlanSelectorModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import './Workouts.css';
@@ -13,12 +15,29 @@ const Workouts = () => {
     const { workouts, loading: workoutsLoading, error: workoutsError, reload } = useWorkouts();
     const { exercises } = useExercises();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isPlanSelectorOpen, setIsPlanSelectorOpen] = useState(false);
     const [editingWorkout, setEditingWorkout] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [difficultyFilter, setDifficultyFilter] = useState('all');
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+    const [userActivePlanIds, setUserActivePlanIds] = useState([]);
 
+    // Carregar planos ativos do usuário
+    useEffect(() => {
+        loadUserActivePlans();
+    }, []);
+
+    const loadUserActivePlans = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const activePlans = await supabaseHelpers.getUserActivePlans(user.id);
+            setUserActivePlanIds(activePlans.map(p => p.workout_id));
+        } catch (err) {
+            console.error('Erro ao carregar planos ativos:', err);
+        }
+    };
 
     useEffect(() => {
         if (!isModalOpen) return;
@@ -40,9 +59,37 @@ const Workouts = () => {
         });
     }, [workouts, searchTerm, difficultyFilter]);
 
-
-    // CRUD Handlers
+    // Abrir o seletor de planos (ao invés do WorkoutModal)
     const handleCreateWorkout = () => {
+        setIsPlanSelectorOpen(true);
+    };
+
+    // Selecionar um plano existente
+    const handleSelectPlan = async (plan) => {
+        try {
+            setIsSaving(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Usuário não autenticado.');
+                return;
+            }
+
+            await supabaseHelpers.assignPlanToUser(user.id, plan.id);
+            setIsPlanSelectorOpen(false);
+            await loadUserActivePlans();
+            reload();
+            alert(`Plano "${plan.title}" atribuído com sucesso! 🎉`);
+        } catch (err) {
+            console.error('Erro ao atribuir plano:', err);
+            alert(err.message || 'Erro ao atribuir plano.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Criar novo plano (abre WorkoutModal a partir do PlanSelector)
+    const handleCreateNewPlan = () => {
+        setIsPlanSelectorOpen(false);
         setEditingWorkout(null);
         setIsModalOpen(true);
     };
@@ -82,8 +129,18 @@ const Workouts = () => {
                 await supabaseHelpers.updateWorkout(editingWorkout.id, workoutData);
                 alert('Treino atualizado com sucesso!');
             } else {
-                await supabaseHelpers.createWorkout(workoutData);
-                alert('Treino criado com sucesso!');
+                const newWorkout = await supabaseHelpers.createWorkout(workoutData);
+                // Atribuir o novo plano ao usuário automaticamente
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user && newWorkout) {
+                    try {
+                        await supabaseHelpers.assignPlanToUser(user.id, newWorkout.id);
+                    } catch (assignErr) {
+                        console.error('Erro ao atribuir plano automaticamente:', assignErr);
+                    }
+                }
+                await loadUserActivePlans();
+                alert('Treino criado e atribuído com sucesso! 🎉');
             }
             setIsModalOpen(false);
             reload();
@@ -120,31 +177,27 @@ const Workouts = () => {
             {/* Workouts List */}
             <div className="plans-grid">
                 {filteredWorkouts.map((workout, index) => {
-                    // Mock data for visual matching
-                    const isEven = index % 2 === 0;
-                    const iconColor = isEven ? 'green' : 'orange';
-                    const status = isEven ? 'Ativo' : 'Pausado';
-                    const progress = isEven ? 65 : 20;
-                    const weeksLeft = isEven ? '4 semanas restantes' : 'Pausado';
+                    const isActive = userActivePlanIds.includes(workout.id);
+                    const iconColor = isActive ? 'green' : 'orange';
+                    const status = isActive ? 'Ativo' : 'Disponível';
 
                     return (
                         <div
                             key={workout.id}
-                            className={`plan-card ${!isEven ? 'opacity-60' : ''}`}
+                            className={`plan-card ${!isActive ? 'opacity-60' : ''}`}
                             onClick={() => navigate(`/treino/${workout.id}`)}
                         >
                             <div className={`plan-icon-container ${iconColor}`}>
-                                {isEven ? <Dumbbell size={32} className="text-secondary" /> : <Clock size={32} className="text-orange" />}
+                                {isActive ? <Dumbbell size={32} className="text-secondary" /> : <Clock size={32} className="text-orange" />}
                             </div>
                             <div className="plan-details">
                                 <div className="plan-header">
                                     <div>
                                         <h4 className="plan-title">{workout.title}</h4>
-                                        <p className="plan-meta">{workout.difficulty} • {weeksLeft}</p>
+                                        <p className="plan-meta">{workout.difficulty} • {workout.days_per_week}x/sem</p>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                         <span className={`status-badge ${status.toLowerCase()}`}>{status}</span>
-                                        {/* Hidden actions for now, or maybe show on hover? Keeping them accessible via long press or similar in future */}
                                         <button
                                             className="action-btn"
                                             onClick={(e) => handleEditWorkout(e, workout)}
@@ -163,20 +216,20 @@ const Workouts = () => {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="progress-container">
-                                    <div className="progress-bar-bg">
-                                        <div className={`progress-bar-fill ${iconColor}`} style={{ width: `${progress}%` }}></div>
-                                    </div>
-                                    <div className="progress-text">
-                                        <span>{progress}% Concluído</span>
-                                        {isEven && <span className="week-text">Semana 4/12</span>}
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     );
                 })}
             </div>
+
+            {/* Plan Selector Modal */}
+            <PlanSelectorModal
+                isOpen={isPlanSelectorOpen}
+                onClose={() => setIsPlanSelectorOpen(false)}
+                onSelectPlan={handleSelectPlan}
+                onCreateNew={handleCreateNewPlan}
+                userActivePlanIds={userActivePlanIds}
+            />
 
             {/* Workout Modal */}
             <WorkoutModal

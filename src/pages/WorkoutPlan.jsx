@@ -5,7 +5,7 @@ import WeeklyCalendar from '../components/WeeklyCalendar';
 import DayAccordion from '../components/DayAccordion';
 import RestTimer from '../components/RestTimer';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseHelpers } from '../lib/supabase';
 import './WorkoutPlan.css';
 
 const WorkoutPlan = () => {
@@ -21,6 +21,7 @@ const WorkoutPlan = () => {
     const [completedExercises, setCompletedExercises] = useState({});
     const [showRestTimer, setShowRestTimer] = useState(false);
     const [restDuration, setRestDuration] = useState(60);
+    const [currentSessionId, setCurrentSessionId] = useState(null);
 
     // Debug log para verificar montagem
     console.log("DEBUG: WorkoutPlan mounting, ID:", id);
@@ -155,56 +156,28 @@ const WorkoutPlan = () => {
                 const day = days[dayIndex];
                 if (!day) return;
 
-                const dateStr = new Date().toISOString().split('T')[0];
-                let dailyLogId;
-
-                const { data: existingLog } = await supabase
-                    .from('b_daily_workout_logs')
-                    .select('id')
-                    .eq('user_id', user.id)
-                    .eq('workout_day_id', day.id)
-                    .eq('date', dateStr)
-                    .maybeSingle();
-
-                if (existingLog) {
-                    dailyLogId = existingLog.id;
-                } else {
-                    const { data: newLog, error: createError } = await supabase
-                        .from('b_daily_workout_logs')
-                        .insert({
-                            user_id: user.id,
-                            workout_day_id: day.id,
-                            workout_id: workout.id,
-                            date: dateStr,
-                            started_at: new Date().toISOString()
-                        })
-                        .select()
-                        .single();
-
-                    if (createError) throw createError;
-                    dailyLogId = newLog.id;
-                }
-
-                if (!dailyLogId) throw new Error("Falha ao obter ID do log diário");
-
                 if (isComplete) {
-                    const { error } = await supabase
-                        .from('b_session_logs')
-                        .upsert({
-                            daily_log_id: dailyLogId,
-                            exercise_id: exerciseId,
-                            completed_at: new Date().toISOString()
-                        }, { onConflict: 'daily_log_id, exercise_id' });
-                    if (error) throw error;
+                    // Verificar se já existe uma sessão ativa para este workout_day
+                    let sessionId = currentSessionId;
+
+                    if (!sessionId) {
+                        // Primeiro exercício: criar sessão + atualizar daily_workout_log
+                        const session = await supabaseHelpers.startWorkoutSession(
+                            user.id,
+                            workout.id,
+                            day.id
+                        );
+                        sessionId = session.id;
+                        setCurrentSessionId(sessionId);
+                    }
+
+                    // Registrar exercício concluído
+                    await supabaseHelpers.logExerciseComplete(sessionId, user.id, exerciseId);
                 } else {
-                    const { error } = await supabase
-                        .from('b_session_logs')
-                        .delete()
-                        .match({
-                            daily_log_id: dailyLogId,
-                            exercise_id: exerciseId
-                        });
-                    if (error) throw error;
+                    // Remover registro do exercício
+                    if (currentSessionId) {
+                        await supabaseHelpers.removeExerciseLog(currentSessionId, user.id, exerciseId);
+                    }
                 }
             } catch (err) {
                 console.error('Erro ao salvar progresso:', err);

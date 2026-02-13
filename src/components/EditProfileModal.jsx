@@ -36,6 +36,7 @@ const EditProfileModal = ({ isOpen, onClose, onSave, user, isLoading = false }) 
         phone: '',
         birth_date: '',
         gender: '',
+        role: 'user',
         height_cm: '',
         weight_kg: '',
         avatar_url: ''
@@ -49,6 +50,7 @@ const EditProfileModal = ({ isOpen, onClose, onSave, user, isLoading = false }) 
                 phone: user.phone || '',
                 birth_date: user.birth_date || '',
                 gender: user.gender || '',
+                role: user.role || 'user',
                 height_cm: user.height_cm || '',
                 weight_kg: user.weight_kg || '',
                 avatar_url: user.avatar_url || ''
@@ -195,6 +197,30 @@ const EditProfileModal = ({ isOpen, onClose, onSave, user, isLoading = false }) 
                                             placeholder="(00) 00000-0000"
                                             className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                                         />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                            Papel
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                name="role"
+                                                value={formData.role || 'user'}
+                                                onChange={handleChange}
+                                                disabled={user?.role !== 'admin'}
+                                                className="w-full pl-3 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none cursor-pointer text-gray-700 font-medium"
+                                            >
+                                                <option value="user">Usuário</option>
+                                                <option value="personal">Personal</option>
+                                                <option value="admin">Admin</option>
+                                            </select>
+                                        </div>
+                                        {user?.role !== 'admin' && (
+                                            <p className="text-xs text-gray-400 mt-2">Somente administradores podem alterar o papel.</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

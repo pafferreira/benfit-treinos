@@ -85,6 +85,26 @@ export const supabaseHelpers = {
             .replace(/\s+/g, '_') // Replace spaces with underscore
             .substring(0, 50); // Limit length
 
+        // Check authenticated user's role: allow admins and personals to create exercises
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Usuário não autenticado.');
+
+        const { data: currentProfile, error: profileErr } = await supabase
+            .from('b_users')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (profileErr) {
+            console.error('Error fetching current profile role:', profileErr);
+            throw profileErr;
+        }
+
+        const allowedRoles = ['admin', 'personal'];
+        if (!currentProfile || !allowedRoles.includes(currentProfile.role)) {
+            throw new Error('Sem permissão para criar exercício. Requer papel admin ou personal.');
+        }
+
         const { data, error } = await supabase
             .from('b_exercises')
             .insert({
@@ -102,7 +122,7 @@ export const supabaseHelpers = {
 
         if (error) throw error
         if (!data) {
-            throw new Error('Falha ao criar exercício: Sem permissão. Verifique se seu usuário é admin.')
+            throw new Error('Falha ao criar exercício: Sem permissão.')
         }
         return data
     },
@@ -541,24 +561,42 @@ export const supabaseHelpers = {
 
         upsertData.id = targetId;
 
-        // Perform UPSERT (Insert or Update)
-        const { data, error } = await supabase
-            .from('b_users')
-            .upsert(upsertData)
-            .select()
-            .single();
+        // If role change is requested, only allow when authenticated user is admin
+        try {
+            if (profileData.role) {
+                // Fetch current authenticated user's role from b_users
+                const { data: currentProfile, error: profileErr } = await supabase
+                    .from('b_users')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
 
-        if (error) {
-            console.error('Upsert failed:', error);
-            throw error;
+                if (!profileErr && currentProfile && currentProfile.role === 'admin') {
+                    upsertData.role = profileData.role;
+                } else {
+                    // Do not allow non-admins to set role via this method
+                    console.warn('Role change ignored: authenticated user is not admin.');
+                }
+            }
+
+            // Perform UPSERT (Insert or Update)
+            const { data, error } = await supabase
+                .from('b_users')
+                .upsert(upsertData)
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Upsert failed:', error);
+                throw error;
+            }
+
+            return data;
+        } catch (err) {
+            console.error('Error in updateUserProfile:', err);
+            throw err;
         }
 
-        // SYNC LOCAL STORAGE: Not needed with native Supabase Auth, but we can trigger an event if desired
-        // The UI should react to the database change or re-fetch where necessary.
-
-        return data;
-
-        return data;
     },
 
     // User Goals
@@ -725,6 +763,208 @@ export const supabaseHelpers = {
 
         if (error) throw error;
         return true;
+    },
+
+    // ==========================================
+    // Planos do Usuário (Daily Workout Logs)
+    // ==========================================
+
+    // Atribuir um plano ao usuário (sem data de início)
+    async assignPlanToUser(userId, workoutId) {
+        // Verificar se o plano já está atribuído ao usuário
+        const { data: existing } = await supabase
+            .from('b_daily_workout_logs')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('workout_id', workoutId)
+            .in('status', ['atribuido', 'em_andamento'])
+            .maybeSingle();
+
+        if (existing) {
+            throw new Error('Este plano já está atribuído a você.');
+        }
+
+        const { data, error } = await supabase
+            .from('b_daily_workout_logs')
+            .insert({
+                user_id: userId,
+                workout_id: workoutId,
+                started_at: null,
+                status: 'atribuido'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // Buscar planos ativos do usuário (com dados do workout)
+    async getUserActivePlans(userId) {
+        const { data, error } = await supabase
+            .from('b_daily_workout_logs')
+            .select(`
+                *,
+                b_workouts (
+                    id, title, description, difficulty, estimated_duration, days_per_week, cover_image, is_public
+                )
+            `)
+            .eq('user_id', userId)
+            .neq('status', 'concluido')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    // Iniciar sessão de treino (primeiro exercício concluído)
+    async startWorkoutSession(userId, workoutId, workoutDayId) {
+        const now = new Date().toISOString();
+
+        // 1. Criar sessão em b_workout_sessions
+        const { data: session, error: sessionError } = await supabase
+            .from('b_workout_sessions')
+            .insert({
+                user_id: userId,
+                workout_id: workoutId,
+                workout_day_id: workoutDayId,
+                started_at: now
+            })
+            .select()
+            .single();
+
+        if (sessionError) throw sessionError;
+
+        // 2. Atualizar b_daily_workout_logs com started_at e status
+        const { error: logError } = await supabase
+            .from('b_daily_workout_logs')
+            .update({
+                started_at: now,
+                workout_day_id: workoutDayId,
+                status: 'em_andamento'
+            })
+            .eq('user_id', userId)
+            .eq('workout_id', workoutId)
+            .eq('status', 'atribuido');
+
+        if (logError) {
+            console.error('Erro ao atualizar daily_workout_log:', logError);
+        }
+
+        return session;
+    },
+
+    // Registrar exercício concluído em b_session_logs
+    async logExerciseComplete(sessionId, userId, exerciseId) {
+        const { data, error } = await supabase
+            .from('b_session_logs')
+            .insert({
+                session_id: sessionId,
+                user_id: userId,
+                exercise_id: exerciseId,
+                set_number: 1,
+                reps_completed: 1,
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // Remover registro de exercício concluído
+    async removeExerciseLog(sessionId, userId, exerciseId) {
+        const { error } = await supabase
+            .from('b_session_logs')
+            .delete()
+            .eq('session_id', sessionId)
+            .eq('user_id', userId)
+            .eq('exercise_id', exerciseId);
+
+        if (error) throw error;
+        return true;
+    },
+
+    // ==========================================
+    // Histórico de Atividades
+    // ==========================================
+
+    // Buscar histórico completo de sessões de treino do usuário
+    async getUserActivityHistory(userId) {
+        // Buscar sessões de b_workout_sessions com dados do workout e dia
+        const { data: sessions, error: sessionsError } = await supabase
+            .from('b_workout_sessions')
+            .select(`
+                id, user_id, workout_id, workout_day_id,
+                started_at, ended_at, calories_burned, feeling,
+                b_workouts (id, title, difficulty, estimated_duration, cover_image),
+                b_workout_days (id, day_name, day_number)
+            `)
+            .eq('user_id', userId)
+            .order('started_at', { ascending: false });
+
+        if (sessionsError) throw sessionsError;
+
+        // Buscar planos atribuídos de b_daily_workout_logs (status atribuido/em_andamento/concluido)
+        const { data: plans, error: plansError } = await supabase
+            .from('b_daily_workout_logs')
+            .select(`
+                id, user_id, workout_id, workout_day_id,
+                started_at, ended_at, calories_burned, feeling, notes, status, created_at,
+                b_workouts (id, title, difficulty, estimated_duration, cover_image)
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (plansError) throw plansError;
+
+        return { sessions: sessions || [], plans: plans || [] };
+    },
+
+    // Buscar exercícios concluídos em uma sessão específica
+    async getSessionExercises(sessionId) {
+        const { data, error } = await supabase
+            .from('b_session_logs')
+            .select(`
+                id, session_id, exercise_id, set_number, weight_kg, reps_completed, created_at,
+                b_exercises (id, name, muscle_group, equipment, image_url)
+            `)
+            .eq('session_id', sessionId)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    // ==========================================
+    // Dashboard Stats
+    // ==========================================
+
+    async getDashboardStats(userId) {
+        const now = new Date();
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        // Sessões da semana
+        const { data: weeklySessions, error: sessionsErr } = await supabase
+            .from('b_workout_sessions')
+            .select('id, started_at, ended_at, calories_burned')
+            .eq('user_id', userId)
+            .gte('started_at', weekAgo.toISOString())
+            .order('started_at', { ascending: false });
+
+        if (sessionsErr) throw sessionsErr;
+
+        const completedThisWeek = (weeklySessions || []).filter(s => s.ended_at).length;
+        const caloriesThisWeek = (weeklySessions || []).reduce((sum, s) => sum + (s.calories_burned || 0), 0);
+        const lastSession = (weeklySessions || [])[0] || null;
+
+        return {
+            sessionsThisWeek: (weeklySessions || []).length,
+            completedThisWeek,
+            caloriesThisWeek,
+            lastSession
+        };
     }
 }
 

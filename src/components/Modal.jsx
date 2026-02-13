@@ -35,9 +35,11 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
         full: 'max-w-full'
     };
 
+    // Ensure modal overlays the global header which uses a high z-index (e.g. header CSS uses z-index:1000).
+    // We set a high z-index here to avoid the modal being overlapped by the header.
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
             onClick={handleBackdropClick}
         >
             <div
@@ -50,8 +52,9 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
                         className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                         onClick={onClose}
                         title="Fechar"
+                        aria-label="Fechar"
                     >
-                        <X size={20} />
+                        <X size={20} aria-hidden="true" />
                     </button>
                 </div>
                 <div className="p-6 overflow-y-auto overscroll-contain">
