@@ -1,23 +1,24 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('⚠️ Supabase credentials not found in .env file')
-    console.warn('Expected variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY')
+    console.error('⚠️ Supabase credentials not found! Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as environment variables.')
 }
 
 // Create Supabase client with explicit configuration
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    db: {
-        schema: 'public'
-    },
-    auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-    }
-})
+export const supabase = supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey, {
+        db: {
+            schema: 'public'
+        },
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+        }
+    })
+    : null
 
 // Custom Auth Implementation REMOVED.
 // We are now using native Supabase Auth.
