@@ -12,10 +12,12 @@ import ResetPassword from './pages/ResetPassword'
 import SupabaseDiagnostic from './pages/SupabaseDiagnostic'
 import AdminUsers from './pages/AdminUsers'
 import './App.css'
+import ToastContainer from './components/ToastContainer'
 
 function App() {
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/diagnostic" element={<SupabaseDiagnostic />} />

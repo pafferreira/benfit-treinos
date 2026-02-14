@@ -21,6 +21,23 @@ export const supabase = createClient(
     }
 )
 
+const normalizeWorkoutExercisePayload = (exercise, index, workoutDayId) => {
+    const parsedSets = parseInt(exercise.sets, 10)
+    const parsedRest = exercise.rest_seconds === '' || exercise.rest_seconds === null || exercise.rest_seconds === undefined
+        ? null
+        : parseInt(exercise.rest_seconds, 10)
+
+    return {
+        workout_day_id: workoutDayId,
+        exercise_id: exercise.exercise_id,
+        order_index: index + 1,
+        sets: Number.isNaN(parsedSets) ? 3 : parsedSets,
+        reps: exercise.reps || '10',
+        rest_seconds: Number.isNaN(parsedRest) ? null : parsedRest,
+        notes: exercise.notes || ''
+    }
+}
+
 // Custom Auth Implementation REMOVED.
 // We are now using native Supabase Auth.
 
@@ -260,14 +277,9 @@ export const supabaseHelpers = {
 
                 // Create Exercises for this Day
                 if (day.exercises && day.exercises.length > 0) {
-                    const exercisesToInsert = day.exercises.map((ex, index) => ({
-                        workout_day_id: dayData.id,
-                        exercise_id: ex.exercise_id,
-                        order_index: index + 1,
-                        sets: parseInt(ex.sets) || 3,
-                        reps: ex.reps || '10',
-                        notes: ex.notes || ''
-                    }));
+                    const exercisesToInsert = day.exercises.map((ex, index) =>
+                        normalizeWorkoutExercisePayload(ex, index, dayData.id)
+                    );
 
                     const { error: exercisesError } = await supabase
                         .from('b_workout_exercises')
@@ -286,85 +298,104 @@ export const supabaseHelpers = {
     async updateWorkout(id, workoutData) {
         // Get current user to ensure ownership
         const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Usuário não autenticado');
 
         // 1. Update Workout Details
+        // Build an update payload and avoid touching creator_id to prevent accidental ownership changes
+        const updatePayload = {
+            title: workoutData.title,
+            description: workoutData.description,
+            difficulty: workoutData.difficulty,
+            estimated_duration: workoutData.estimated_duration ? parseInt(workoutData.estimated_duration, 10) : null,
+            days_per_week: workoutData.days_per_week ? parseInt(workoutData.days_per_week, 10) : null,
+            is_public: workoutData.is_public,
+            updated_at: new Date().toISOString()
+        };
+
         const { data: workoutResult, error: workoutError } = await supabase
             .from('b_workouts')
-            .update({
-                title: workoutData.title,
-                description: workoutData.description,
-                difficulty: workoutData.difficulty,
-                estimated_duration: workoutData.estimated_duration,
-                days_per_week: workoutData.days_per_week,
-                is_public: workoutData.is_public,
-                creator_id: user ? user.id : undefined // Claim ownership if possible
-            })
+            .update(updatePayload)
             .eq('id', id)
             .select()
+            .maybeSingle();
 
-        const workout = workoutResult ? workoutResult[0] : null;
+        const workout = workoutResult || null;
 
-        if (workoutError) throw workoutError
-        if (!workout) throw new Error('Falha ao atualizar treino: Nenhum dado retornado. Verifique as permissões (RLS).');
+        if (workoutError) {
+            console.error('updateWorkout - error updating b_workouts:', workoutError);
+            throw workoutError;
+        }
+        if (!workout) {
+            throw new Error('Sem permissão para atualizar este treino. Verifique se o plano pertence ao usuário logado e se as políticas RLS de treino estão aplicadas.');
+        }
 
         // 2. Update Schedule (Delete existing and re-create)
         // This is the simplest strategy to handle reordering, additions, and removals
         if (workoutData.schedule) {
-            // Delete existing days (Cascade will delete exercises)
-            const { error: deleteError } = await supabase
-                .from('b_workout_days')
-                .delete()
-                .eq('workout_id', id);
+            try {
+                // Delete existing days (Cascade should delete exercises if DB configured)
+                const { error: deleteError } = await supabase
+                    .from('b_workout_days')
+                    .delete()
+                    .eq('workout_id', id);
 
-            if (deleteError) throw deleteError;
+                if (deleteError) {
+                    console.error('updateWorkout - error deleting existing days:', deleteError);
+                    throw deleteError;
+                }
 
-            // Re-create Days and Exercises
-            if (workoutData.schedule.length > 0) {
-                for (let i = 0; i < workoutData.schedule.length; i++) {
-                    const day = workoutData.schedule[i];
+                // Re-create Days and Exercises
+                if (workoutData.schedule.length > 0) {
+                    for (let i = 0; i < workoutData.schedule.length; i++) {
+                        const day = workoutData.schedule[i];
 
-                    // Create Day
-                    const { data: dayDataResult, error: dayError } = await supabase
-                        .from('b_workout_days')
-                        .insert({
-                            workout_id: id,
-                            day_number: i + 1,
-                            day_name: day.day_name
-                        })
-                        .select();
+                        // Create Day
+                        const { data: dayDataResult, error: dayError } = await supabase
+                            .from('b_workout_days')
+                            .insert({
+                                workout_id: id,
+                                day_number: i + 1,
+                                day_name: day.day_name
+                            })
+                            .select()
+                            .maybeSingle();
 
-                    const dayData = dayDataResult ? dayDataResult[0] : null;
+                        const dayData = dayDataResult || null;
 
-                    if (dayError) {
-                        console.error('Error creating workout day:', dayError);
-                        continue;
-                    }
+                        if (dayError) {
+                            console.error('updateWorkout - Error creating workout day:', dayError);
+                            throw dayError;
+                        }
 
-                    if (!dayData) {
-                        console.error('Error creating workout day: No data returned (RLS?)');
-                        continue;
-                    }
+                        if (!dayData) {
+                            console.error('updateWorkout - Error creating workout day: No data returned (RLS?)');
+                            throw new Error('Falha ao criar dia do treino: Sem permissão (RLS) ou erro no banco.');
+                        }
 
-                    // Create Exercises
-                    if (day.exercises && day.exercises.length > 0) {
-                        const exercisesToInsert = day.exercises.map((ex, index) => ({
-                            workout_day_id: dayData.id,
-                            exercise_id: ex.exercise_id,
-                            order_index: index + 1,
-                            sets: parseInt(ex.sets) || 3,
-                            reps: ex.reps || '10',
-                            notes: ex.notes || ''
-                        }));
+                        // Create Exercises
+                        if (day.exercises && day.exercises.length > 0) {
+                            const exercisesToInsert = day.exercises.map((ex, index) =>
+                                normalizeWorkoutExercisePayload(ex, index, dayData.id)
+                            );
 
-                        const { error: exercisesError } = await supabase
-                            .from('b_workout_exercises')
-                            .insert(exercisesToInsert);
+                            const { error: exercisesError } = await supabase
+                                .from('b_workout_exercises')
+                                .insert(exercisesToInsert);
 
-                        if (exercisesError) {
-                            console.error('Error creating workout exercises:', exercisesError);
+                            if (exercisesError) {
+                                console.error('updateWorkout - Error creating workout exercises:', exercisesError);
+                                throw exercisesError;
+                            }
                         }
                     }
                 }
+            } catch (scheduleErr) {
+                console.error('updateWorkout - schedule update failed:', scheduleErr);
+                if (scheduleErr?.code === '42501' || String(scheduleErr?.message || '').toLowerCase().includes('row-level security')) {
+                    throw new Error('Falha ao atualizar estrutura do treino (dias/exercícios) por permissão RLS. Aplique as políticas de b_workout_days e b_workout_exercises para permitir edição.');
+                }
+                // Re-throw so caller knows the update didn't fully succeed
+                throw scheduleErr;
             }
         }
 
@@ -601,6 +632,46 @@ export const supabaseHelpers = {
 
     },
 
+    // Update another user's role - only allowed if the authenticated user is admin
+    async updateUserRoleAsAdmin(targetUserId, newRole) {
+        // Prefer calling server-side RPC which enforces admin checks and can bypass RLS when defined as SECURITY DEFINER
+        try {
+            const { data, error } = await supabase.rpc('admin_update_user_role', { target_user_id: targetUserId, new_role: newRole });
+            if (error) throw error;
+            return data;
+        } catch (rpcErr) {
+            // RPC might not be deployed in some environments; fall back to client-side update with admin verification
+            console.warn('RPC admin_update_user_role failed, falling back to client-side update:', rpcErr.message || rpcErr);
+
+            const { data: { user }, error: userErr } = await supabase.auth.getUser();
+            if (userErr) throw userErr;
+            if (!user) throw new Error('Usuário não autenticado.');
+
+            // Verify authenticated user's role in b_users
+            const { data: currentProfile, error: profileErr } = await supabase
+                .from('b_users')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+
+            if (profileErr) throw profileErr;
+            if (!currentProfile || currentProfile.role !== 'admin') {
+                throw new Error('Permissão negada: apenas administradores podem alterar papéis de outros usuários.');
+            }
+
+            // Perform the update (may be blocked by RLS depending on policies)
+            const { data, error } = await supabase
+                .from('b_users')
+                .update({ role: newRole, updated_at: new Date().toISOString() })
+                .eq('id', targetUserId)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return data;
+        }
+    },
+
     // User Goals
     async getUserGoals(userId) {
         const { data, error } = await supabase
@@ -799,6 +870,31 @@ export const supabaseHelpers = {
 
         if (error) throw error;
         return data;
+    },
+
+    // Remover plano do usuário — somente se ainda estiver no status 'atribuido'
+    async unassignPlanFromUser(userId, workoutId) {
+        // Buscar entry que possa ser removida
+        const { data: existing, error: fetchErr } = await supabase
+            .from('b_daily_workout_logs')
+            .select('id, status')
+            .eq('user_id', userId)
+            .eq('workout_id', workoutId)
+            .in('status', ['atribuido'])
+            .maybeSingle();
+
+        if (fetchErr) throw fetchErr;
+        if (!existing) {
+            throw new Error('Plano não encontrado ou não pode ser removido (já iniciado ou inexistente).');
+        }
+
+        const { error: delErr } = await supabase
+            .from('b_daily_workout_logs')
+            .delete()
+            .eq('id', existing.id);
+
+        if (delErr) throw delErr;
+        return true;
     },
 
     // Buscar planos ativos do usuário (com dados do workout)

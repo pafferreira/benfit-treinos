@@ -17,6 +17,8 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
 
     const [schedule, setSchedule] = useState([]);
     const [openDays, setOpenDays] = useState([]); // Default all closed
+    const [scheduleDirty, setScheduleDirty] = useState(false);
+    const [submitError, setSubmitError] = useState('');
 
     useEffect(() => {
         if (workout) {
@@ -40,10 +42,13 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
             });
             setSchedule([{ day_name: 'Dia 1', exercises: [] }]);
         }
+        setScheduleDirty(false);
+        setSubmitError('');
     }, [workout, isOpen]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
+        setSubmitError('');
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
@@ -62,18 +67,21 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
         const newIndex = schedule.length;
         setSchedule([...schedule, { day_name: `Dia ${newIndex + 1}`, exercises: [] }]);
         setOpenDays([newIndex]); // Auto-open new day and close others
+        setScheduleDirty(true);
     };
 
     const removeDay = (index, e) => {
         e.stopPropagation();
         const newSchedule = schedule.filter((_, i) => i !== index);
         setSchedule(newSchedule);
+        setScheduleDirty(true);
     };
 
     const updateDayName = (index, name) => {
         const newSchedule = [...schedule];
         newSchedule[index].day_name = name;
         setSchedule(newSchedule);
+        setScheduleDirty(true);
     };
 
     const addExerciseToDay = (dayIndex) => {
@@ -86,38 +94,93 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
             notes: ''
         });
         setSchedule(newSchedule);
+        setScheduleDirty(true);
     };
 
     const removeExerciseFromDay = (dayIndex, exerciseIndex) => {
         const newSchedule = [...schedule];
         newSchedule[dayIndex].exercises = newSchedule[dayIndex].exercises.filter((_, i) => i !== exerciseIndex);
         setSchedule(newSchedule);
+        setScheduleDirty(true);
     };
 
     const updateExercise = (dayIndex, exerciseIndex, field, value) => {
         const newSchedule = [...schedule];
         newSchedule[dayIndex].exercises[exerciseIndex][field] = value;
         setSchedule(newSchedule);
+        setScheduleDirty(true);
     };
 
-    const handleSubmit = (e) => {
+    const normalizeExercise = (exercise) => {
+        const normalizedRest = exercise.rest_seconds === '' || exercise.rest_seconds === null || exercise.rest_seconds === undefined
+            ? null
+            : parseInt(exercise.rest_seconds, 10);
+
+        return {
+            exercise_id: exercise.exercise_id,
+            sets: parseInt(exercise.sets, 10) || 3,
+            reps: exercise.reps || '10',
+            rest_seconds: Number.isNaN(normalizedRest) ? null : normalizedRest,
+            notes: exercise.notes || ''
+        };
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitError('');
+
+        // Basic validation
         if (!formData.title.trim()) {
-            alert('Por favor, preencha o título do treino.');
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Por favor, preencha o título do treino.', type: 'error' } }));
             return;
         }
 
-        // Validate schedule
+        // Validate schedule exercises
         for (const day of schedule) {
             for (const ex of day.exercises) {
                 if (!ex.exercise_id) {
-                    alert(`Por favor, selecione um exercício para todos os itens no ${day.day_name}.`);
+                    window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Por favor, selecione um exercício para todos os itens no ${day.day_name}.`, type: 'error' } }));
                     return;
                 }
             }
         }
 
-        onSave({ ...formData, schedule });
+        // Coerce numeric fields to proper types to avoid DB mismatches
+        const normalized = {
+            ...formData,
+            estimated_duration: parseInt(formData.estimated_duration, 10) || 0,
+            days_per_week: parseInt(formData.days_per_week, 10) || 1,
+            is_public: !!formData.is_public
+        };
+
+        // Ensure schedule length is at least days_per_week (pad with empty days) to keep consistency
+        const normalizedSchedule = schedule.map((day) => ({
+            day_name: day.day_name || '',
+            exercises: (day.exercises || []).map(normalizeExercise)
+        }));
+        while (normalizedSchedule.length < normalized.days_per_week) {
+            const newIndex = normalizedSchedule.length + 1;
+            normalizedSchedule.push({ day_name: `Dia ${newIndex}`, exercises: [] });
+        }
+        if (normalizedSchedule.length > normalized.days_per_week) {
+            // Trim extra days if the user reduced days_per_week
+            normalizedSchedule.length = normalized.days_per_week;
+        }
+
+        try {
+            const originalDaysPerWeek = workout
+                ? (parseInt(workout.days_per_week, 10) || normalized.days_per_week)
+                : normalized.days_per_week;
+            const shouldSyncSchedule = !workout || scheduleDirty || normalized.days_per_week !== originalDaysPerWeek;
+            const payload = shouldSyncSchedule
+                ? { ...normalized, schedule: normalizedSchedule }
+                : normalized;
+
+            await onSave(payload);
+            onClose();
+        } catch (err) {
+            setSubmitError(err?.message || 'Erro ao salvar treino.');
+        }
     };
 
     return (
@@ -334,6 +397,12 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                         Tornar este treino público
                     </label>
                 </div>
+
+                {submitError && (
+                    <div className="modal-error-banner" role="alert">
+                        {submitError}
+                    </div>
+                )}
 
                 <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-8">
                     <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>

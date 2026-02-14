@@ -14,7 +14,7 @@ import './Workouts.css';
 const Workouts = () => {
     const navigate = useNavigate();
     const { workouts, loading: workoutsLoading, error: workoutsError, reload } = useWorkouts();
-    const { isAdmin, isPersonal } = useUserRole();
+    const { isAdmin, isPersonal, isUser } = useUserRole();
     const { exercises } = useExercises();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPlanSelectorOpen, setIsPlanSelectorOpen] = useState(false);
@@ -24,6 +24,7 @@ const Workouts = () => {
     const [difficultyFilter, setDifficultyFilter] = useState('all');
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
     const [userActivePlanIds, setUserActivePlanIds] = useState([]);
+    const [processingWorkoutId, setProcessingWorkoutId] = useState(null);
 
     // Carregar planos ativos do usuário
     useEffect(() => {
@@ -72,7 +73,7 @@ const Workouts = () => {
             setIsSaving(true);
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                alert('Usuário não autenticado.');
+                window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Usuário não autenticado.', type: 'error' } }));
                 return;
             }
 
@@ -80,12 +81,63 @@ const Workouts = () => {
             setIsPlanSelectorOpen(false);
             await loadUserActivePlans();
             reload();
-            alert(`Plano "${plan.title}" atribuído com sucesso! 🎉`);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Plano "${plan.title}" atribuído com sucesso! 🎉`, type: 'success' } }));
         } catch (err) {
             console.error('Erro ao atribuir plano:', err);
-            alert(err.message || 'Erro ao atribuir plano.');
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: err.message || 'Erro ao atribuir plano.', type: 'error' } }));
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    // Toggle assign/unassign when user clicks checkbox
+    const handleToggleAssign = async (e, workout) => {
+        e.stopPropagation();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Usuário não autenticado.', type: 'error' } }));
+            return;
+        }
+
+        const isActive = userActivePlanIds.includes(workout.id);
+
+        // If already active, ask for confirmation before unassign
+        if (isActive) {
+            setConfirmModal({
+                isOpen: true,
+                title: 'Remover Plano',
+                message: `Deseja remover o plano "${workout.title}"? Isso não afetará treinos já iniciados.`,
+                onConfirm: async () => {
+                    try {
+                        setProcessingWorkoutId(workout.id);
+                        await supabaseHelpers.unassignPlanFromUser(user.id, workout.id);
+                        window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Plano "${workout.title}" removido.`, type: 'success' } }));
+                        await loadUserActivePlans();
+                        reload();
+                    } catch (err) {
+                        console.error('Erro ao remover plano:', err);
+                        window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: err.message || 'Não foi possível remover o plano.', type: 'error' } }));
+                    } finally {
+                        setProcessingWorkoutId(null);
+                        setConfirmModal({ ...confirmModal, isOpen: false });
+                    }
+                }
+            });
+            return;
+        }
+
+        // Assign flow
+        try {
+            setProcessingWorkoutId(workout.id);
+            await supabaseHelpers.assignPlanToUser(user.id, workout.id);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Plano "${workout.title}" atribuído com sucesso!`, type: 'success' } }));
+            await loadUserActivePlans();
+            reload();
+        } catch (err) {
+            console.error('Erro ao atribuir plano:', err);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: err.message || 'Erro ao atribuir plano.', type: 'error' } }));
+        } finally {
+            setProcessingWorkoutId(null);
         }
     };
 
@@ -118,7 +170,7 @@ const Workouts = () => {
             reload();
         } catch (err) {
             console.error('Error deleting workout:', err);
-            alert('Erro ao excluir treino: ' + err.message);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Erro ao excluir treino: ' + (err.message || ''), type: 'error' } }));
         } finally {
             setConfirmModal({ ...confirmModal, isOpen: false });
         }
@@ -129,7 +181,7 @@ const Workouts = () => {
         try {
             if (editingWorkout) {
                 await supabaseHelpers.updateWorkout(editingWorkout.id, workoutData);
-                alert('Treino atualizado com sucesso!');
+                window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Treino atualizado com sucesso!', type: 'success' } }));
             } else {
                 const newWorkout = await supabaseHelpers.createWorkout(workoutData);
                 // Atribuir o novo plano ao usuário automaticamente
@@ -142,13 +194,14 @@ const Workouts = () => {
                     }
                 }
                 await loadUserActivePlans();
-                alert('Treino criado e atribuído com sucesso! 🎉');
+                window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Treino criado e atribuído com sucesso! 🎉', type: 'success' } }));
             }
             setIsModalOpen(false);
-            reload();
+            await reload();
         } catch (err) {
             console.error('Error saving workout:', err);
-            alert('Erro ao salvar treino: ' + err.message);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Erro ao salvar treino: ' + (err.message || ''), type: 'error' } }));
+            throw err;
         } finally {
             setIsSaving(false);
         }
@@ -213,6 +266,22 @@ const Workouts = () => {
                                         onClick={(e) => handleDeleteWorkout(e, workout)}
                                         tooltip="Excluir"
                                     />
+                                </div>
+                            )}
+
+                            {/* Checkbox for regular users to (de)atribuir planos */}
+                            {isUser && (
+                                <div className="plan-actions-checkbox" onClick={(e) => e.stopPropagation()}>
+                                    <label className="plan-checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={isActive}
+                                            disabled={processingWorkoutId && processingWorkoutId !== workout.id}
+                                            onChange={(e) => handleToggleAssign(e, workout)}
+                                        />
+                                        <span>{isActive ? 'Escolhido' : 'Escolher'}</span>
+                                        {processingWorkoutId === workout.id && <span className="small-spinner" aria-hidden="true" />}
+                                    </label>
                                 </div>
                             )}
                         </div>

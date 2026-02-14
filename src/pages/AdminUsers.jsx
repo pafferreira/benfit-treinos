@@ -41,17 +41,16 @@ const AdminUsers = () => {
     const handleRoleChange = async (userId, newRole) => {
         try {
             setUpdatingUserId(userId);
-            const { error } = await supabase
-                .from('b_users')
-                .update({ role: newRole })
-                .eq('id', userId);
 
-            if (error) throw error;
+            // Use helper that ensures the authenticated user is admin before attempting the update
+            const updated = await supabaseHelpers.updateUserRoleAsAdmin(userId, newRole);
 
-            setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+            // Update local state with the new role
+            setUsers((prev) => prev.map(u => u.id === userId ? { ...u, role: updated.role } : u));
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Papel atualizado.', type: 'success' } }));
         } catch (err) {
             console.error('Error updating role:', err);
-            alert('Erro ao atualizar papel do usuário: ' + err.message);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Erro ao atualizar papel do usuário: ' + (err.message || ''), type: 'error' } }));
         } finally {
             setUpdatingUserId(null);
         }
@@ -92,35 +91,38 @@ const AdminUsers = () => {
             </div>
 
             {/* Impersonation Control - Estilo PAF (Blue) */}
-            <div className="mb-6 bg-[#F3F4F6] border border-gray-200 rounded-xl p-4 flex flex-col gap-3 shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg text-[#034EA2]">
-                        <User size={20} className="shrink-0" />
+            <div className="mb-6 bg-[#F3F4F6] border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
+                <div className="grid grid-cols-[84px_minmax(0,1fr)] sm:grid-cols-[96px_minmax(0,1fr)] items-stretch gap-4">
+                    <div className="flex items-center justify-center rounded-xl bg-blue-100 text-[#034EA2]">
+                        <User size={32} className="shrink-0" />
                     </div>
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-800">Visualizar Como</h3>
-                        <p className="text-xs text-gray-600">Explore o app com diferentes permissões.</p>
-                    </div>
-                </div>
 
-                <div className="relative w-full sm:max-w-xs">
-                    <select
-                        value={isImpersonating ? role : 'admin'}
-                        onChange={(e) => {
-                            const selected = e.target.value;
-                            if (selected === 'admin') {
-                                restoreRole();
-                            } else {
-                                impersonate(selected);
-                            }
-                        }}
-                        className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-3 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#008ACF] focus:border-[#008ACF] shadow-sm font-medium"
-                    >
-                        <option value="admin">Admin (Original)</option>
-                        <option value="personal">Personal Trainer</option>
-                        <option value="user">Aluno / Usuário</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
+                    <div className="min-w-0 flex flex-col justify-center gap-2">
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-800">Visualizar como ...</h3>
+                            <p className="text-xs text-gray-600">Explore o app com diferentes permissões.</p>
+                        </div>
+
+                        <div className="relative w-full max-w-xs">
+                            <select
+                                value={isImpersonating ? role : 'admin'}
+                                onChange={(e) => {
+                                    const selected = e.target.value;
+                                    if (selected === 'admin') {
+                                        restoreRole();
+                                    } else {
+                                        impersonate(selected);
+                                    }
+                                }}
+                                className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-2.5 pl-3 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#008ACF] focus:border-[#008ACF] shadow-sm font-medium"
+                            >
+                                <option value="admin">Admin (Original)</option>
+                                <option value="personal">Personal Trainer</option>
+                                <option value="user">Aluno / Usuário</option>
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -182,6 +184,7 @@ const AdminUsers = () => {
                                         <td className="px-6 py-4 text-right">
                                             <div className="relative inline-block">
                                                 <select
+                                                    style={{ minWidth: '200px' }}
                                                     disabled={updatingUserId === user.id}
                                                     value={user.role || 'user'}
                                                     onChange={(e) => handleRoleChange(user.id, e.target.value)}

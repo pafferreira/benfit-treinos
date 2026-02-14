@@ -91,10 +91,13 @@ const DashboardHome = () => {
                     <div className="welcome-greeting">
                         <h2 className="welcome-title">{getGreeting()}, {firstName}!</h2>
                         <p className="welcome-subtitle">
-                            {plans.length > 0
-                                ? `Você tem ${plans.length} plano${plans.length > 1 ? 's' : ''} ativo${plans.length > 1 ? 's' : ''}`
-                                : 'Comece atribuindo um plano de treino'
-                            }
+                            {plans.length > 0 ? (
+                                `Você tem ${plans.length} plano${plans.length > 1 ? 's' : ''} ativo${plans.length > 1 ? 's' : ''}`
+                            ) : (
+                                <>
+                                    Comece atribuindo um plano de treino — <a onClick={() => navigate('/treinos')} className="link-choose-plan">Escolher um plano</a>
+                                </>
+                            )}
                         </p>
                     </div>
                     <button
@@ -160,7 +163,7 @@ const DashboardHome = () => {
                         <p>Vá para Planos e atribua um treino para começar!</p>
                         <button
                             className="btn-primary dash-empty-btn"
-                            onClick={() => navigate('/planos')}
+                            onClick={() => navigate('/treinos')}
                         >
                             <Dumbbell size={16} />
                             Explorar Planos

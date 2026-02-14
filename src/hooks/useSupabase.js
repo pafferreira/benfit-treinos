@@ -68,21 +68,30 @@ export const useWorkouts = () => {
                     difficulty: workout.difficulty,
                     estimated_duration: workout.estimated_duration,
                     days_per_week: workout.days_per_week,
+                    is_public: workout.is_public,
+                    creator_id: workout.creator_id,
                     cover_image: workout.cover_image,
-                    schedule: workout.b_workout_days?.map(day => {
+                    schedule: (workout.b_workout_days || [])
+                        .sort((a, b) => (a.day_number || 0) - (b.day_number || 0))
+                        .map(day => {
                         console.log('    - Day:', day.day_name, '- Exercises:', day.b_workout_exercises?.length)
                         return {
                             id: day.id,
+                            day_number: day.day_number,
                             day_name: day.day_name,
-                            exercises: day.b_workout_exercises?.map(we => ({
+                            exercises: (day.b_workout_exercises || [])
+                                .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+                                .map(we => ({
                                 // prefer the explicit FK (we.exercise_id) which is a UUID; fallback to nested b_exercises.id if present
                                 exercise_id: we.exercise_id || we.b_exercises?.id,
+                                order_index: we.order_index,
                                 sets: we.sets,
                                 reps: we.reps,
+                                rest_seconds: we.rest_seconds,
                                 notes: we.notes
-                            })) || []
+                            }))
                         }
-                    }) || []
+                    })
                 }
 
                 console.log('✅ Transformed workout:', transformed)
