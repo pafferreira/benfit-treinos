@@ -148,14 +148,29 @@ const Workouts = () => {
         setIsModalOpen(true);
     };
 
+    const canManageWorkout = (workout) => {
+        if (!workout) return false;
+        if (isAdmin) return true;
+        if (isPersonal) return workout.is_public === true;
+        return false;
+    };
+
     const handleEditWorkout = (e, workout) => {
         e.stopPropagation();
+        if (!canManageWorkout(workout)) {
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Personal só pode editar planos públicos.', type: 'error' } }));
+            return;
+        }
         setEditingWorkout(workout);
         setIsModalOpen(true);
     };
 
     const handleDeleteWorkout = (e, workout) => {
         e.stopPropagation();
+        if (!canManageWorkout(workout)) {
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Personal só pode excluir planos públicos.', type: 'error' } }));
+            return;
+        }
         setConfirmModal({
             isOpen: true,
             title: 'Excluir Plano',
@@ -179,11 +194,15 @@ const Workouts = () => {
     const handleSaveWorkout = async (workoutData) => {
         setIsSaving(true);
         try {
+            const normalizedWorkoutData = isPersonal && !isAdmin
+                ? { ...workoutData, is_public: true }
+                : workoutData;
+
             if (editingWorkout) {
-                await supabaseHelpers.updateWorkout(editingWorkout.id, workoutData);
+                await supabaseHelpers.updateWorkout(editingWorkout.id, normalizedWorkoutData);
                 window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Treino atualizado com sucesso!', type: 'success' } }));
             } else {
-                const newWorkout = await supabaseHelpers.createWorkout(workoutData);
+                const newWorkout = await supabaseHelpers.createWorkout(normalizedWorkoutData);
                 // Atribuir o novo plano ao usuário automaticamente
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user && newWorkout) {
@@ -237,6 +256,7 @@ const Workouts = () => {
                     const isActive = userActivePlanIds.includes(workout.id);
                     const iconColor = isActive ? 'green' : 'orange';
                     const status = isActive ? 'Ativo' : 'Disponível';
+                    const canManage = canManageWorkout(workout);
 
                     return (
                         <div
@@ -254,7 +274,7 @@ const Workouts = () => {
                                     <span className={`status-badge ${status.toLowerCase()}`}>{status}</span>
                                 </div>
                             </div>
-                            {(isAdmin || isPersonal) && (
+                            {canManage && (
                                 <div className="plan-actions-vertical">
                                     <ActionButton
                                         variant="edit"
@@ -305,6 +325,7 @@ const Workouts = () => {
                 onSave={handleSaveWorkout}
                 workout={editingWorkout}
                 isLoading={isSaving}
+                forcePublic={isPersonal && !isAdmin}
             />
 
             {/* Confirmation Modal */}

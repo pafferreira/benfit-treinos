@@ -181,7 +181,19 @@ export const supabaseHelpers = {
 
     // Workouts
     async getAllWorkouts() {
-        const { data, error } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+
+        let canViewAll = false;
+        if (user) {
+            const { data: profile } = await supabase
+                .from('b_users')
+                .select('role')
+                .eq('id', user.id)
+                .maybeSingle();
+            canViewAll = profile?.role === 'admin';
+        }
+
+        let query = supabase
             .from('b_workouts')
             .select(`
         *,
@@ -190,11 +202,16 @@ export const supabaseHelpers = {
           b_workout_exercises (
             *,
             b_exercises (*)
-          )
+            )
         )
       `)
-            .eq('is_public', true)
             .order('created_at', { ascending: false })
+
+        if (!canViewAll) {
+            query = query.eq('is_public', true)
+        }
+
+        const { data, error } = await query
 
         if (error) throw error
         return data
@@ -1065,4 +1082,3 @@ export const supabaseHelpers = {
         };
     }
 }
-

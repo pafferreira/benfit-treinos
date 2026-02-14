@@ -3,6 +3,7 @@ import DashboardLayout from './layouts/DashboardLayout'
 import DashboardHome from './pages/DashboardHome'
 import Workouts from './pages/Workouts'
 import WorkoutPlan from './pages/WorkoutPlan'
+import WorkoutDayDetails from './pages/WorkoutDayDetails'
 import Exercises from './pages/Exercises'
 import Profile from './pages/Profile'
 import AICoach from './pages/AICoach'
@@ -26,6 +27,7 @@ function App() {
           <Route index element={<DashboardHome />} />
           <Route path="treinos" element={<Workouts />} />
           <Route path="treino/:id" element={<WorkoutPlan />} />
+          <Route path="treino/:id/dia/:dayId" element={<WorkoutDayDetails />} />
           <Route path="meu-treino" element={<MeuTreino />} />
           <Route path="exercicios" element={<Exercises />} />
           <Route path="perfil" element={<Profile />} />

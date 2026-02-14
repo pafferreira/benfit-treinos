@@ -4,7 +4,7 @@ import { X, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { useExercises } from '../hooks/useSupabase';
 import './WorkoutModal.css';
 
-const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = false }) => {
+const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = false, forcePublic = false }) => {
     const { exercises } = useExercises();
     const [formData, setFormData] = useState({
         title: '',
@@ -28,7 +28,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                 difficulty: workout.difficulty || 'Iniciante',
                 estimated_duration: workout.estimated_duration || 60,
                 days_per_week: workout.days_per_week || 3,
-                is_public: workout.is_public !== undefined ? workout.is_public : true
+                is_public: forcePublic ? true : (workout.is_public !== undefined ? workout.is_public : true)
             });
             setSchedule(workout.schedule || []);
         } else {
@@ -44,7 +44,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
         }
         setScheduleDirty(false);
         setSubmitError('');
-    }, [workout, isOpen]);
+    }, [workout, isOpen, forcePublic]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -150,7 +150,7 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
             ...formData,
             estimated_duration: parseInt(formData.estimated_duration, 10) || 0,
             days_per_week: parseInt(formData.days_per_week, 10) || 1,
-            is_public: !!formData.is_public
+            is_public: forcePublic ? true : !!formData.is_public
         };
 
         // Ensure schedule length is at least days_per_week (pad with empty days) to keep consistency
@@ -393,9 +393,15 @@ const WorkoutModal = ({ isOpen, onClose, onSave, workout = null, isLoading = fal
                             name="is_public"
                             checked={formData.is_public}
                             onChange={handleChange}
+                            disabled={forcePublic}
                         />
                         Tornar este treino público
                     </label>
+                    {forcePublic && (
+                        <p className="text-xs text-gray-500 mt-2">
+                            Perfil personal só pode criar e editar planos públicos.
+                        </p>
+                    )}
                 </div>
 
                 {submitError && (

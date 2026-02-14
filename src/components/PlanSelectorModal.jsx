@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Dumbbell, ChevronRight, Loader2, Globe } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { supabaseHelpers } from '../lib/supabase';
 import './PlanSelectorModal.css';
 
 const PlanSelectorModal = ({ isOpen, onClose, onSelectPlan, onCreateNew, userActivePlanIds = [] }) => {
@@ -18,13 +17,26 @@ const PlanSelectorModal = ({ isOpen, onClose, onSelectPlan, onCreateNew, userAct
         try {
             setLoading(true);
             const { data: { user } } = await supabase.auth.getUser();
+            let isAdmin = false;
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('b_users')
+                    .select('role')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                isAdmin = profile?.role === 'admin';
+            }
 
-            // Buscar planos públicos + planos do próprio criador
-            const { data, error } = await supabase
+            let query = supabase
                 .from('b_workouts')
                 .select('id, title, description, difficulty, days_per_week, estimated_duration, is_public, creator_id')
-                .or(`is_public.eq.true${user ? `,creator_id.eq.${user.id}` : ''}`)
                 .order('created_at', { ascending: false });
+
+            if (!isAdmin) {
+                query = query.eq('is_public', true);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             setPlans(data || []);

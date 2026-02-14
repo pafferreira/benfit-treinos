@@ -74,6 +74,13 @@ const DashboardLayoutContent = () => {
 
     // Determine Header Content based on Route
     const getHeaderContent = (pathname) => {
+        if (pathname.startsWith('/treino/') && pathname.includes('/dia/')) {
+            return { title: 'Sessão do Dia', subtitle: 'Detalhes completos dos exercícios' };
+        }
+        if (pathname.startsWith('/treino/')) {
+            return { title: 'Plano de Treino', subtitle: 'Escolha uma sessão para abrir' };
+        }
+
         switch (pathname) {
             case '/treinos':
                 return { title: 'Meus Treinos', subtitle: 'Seus programas personalizados' };
