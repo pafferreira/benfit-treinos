@@ -1,93 +1,39 @@
 /* ExerciseDetailModal.css */
 
-.exercise-detail-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
+.modal-header-custom {
+    padding: 0;
+    background-color: #fff;
+    border-bottom: 1px solid #dbe3ee;
+    margin: -1.5rem -1.5rem 1rem -1.5rem;
+    /* Negate modal padding */
 }
 
-.exercise-detail-modal .modal-overlay {
-    position: absolute;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(3px);
-}
-
-.exercise-detail-modal .modal-content {
-    position: relative;
-    width: 100%;
-    max-width: 28rem;
-    height: 94vh;
-    background-color: var(--color-background-light);
-    border-top-left-radius: var(--radius-2xl);
-    border-top-right-radius: var(--radius-2xl);
-    border: 1px solid #dbe3ee;
-    border-bottom: none;
-    overflow-y: auto;
-    animation: slideUp 0.22s ease-out;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(100%);
-    }
-
-    to {
-        transform: translateY(0);
-    }
-}
-
-.exercise-detail-modal .modal-close-btn {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    z-index: 10;
-    width: 2.1rem;
-    height: 2.1rem;
-    border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.48);
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.exercise-detail-modal .modal-close-btn:hover {
-    background-color: rgba(0, 0, 0, 0.66);
-}
-
-.exercise-detail-modal .exercise-image-large {
+.exercise-image-large {
     width: 100%;
     height: 15rem;
     background-color: #eef2f7;
     overflow: hidden;
+    position: relative;
+    border-top-left-radius: 0.5rem;
+    /* Match modal border radius if applicable */
+    border-top-right-radius: 0.5rem;
 }
 
-.exercise-detail-modal .exercise-image-large img {
+.exercise-image-large img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.exercise-detail-modal .exercise-title-section {
+.exercise-title-section {
     padding: 1rem;
-    background-color: #fff;
-    border-bottom: 1px solid #dbe3ee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.exercise-detail-modal .exercise-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--color-text-main);
-    margin: 0 0 0.45rem;
-}
-
-.exercise-detail-modal .exercise-muscle-tag {
+/* Reusing existing classes but scoped if needed */
+.exercise-muscle-tag {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -100,14 +46,15 @@
     font-weight: 700;
 }
 
-.exercise-detail-modal .modal-body {
-    padding: 1rem;
+.modal-body-custom {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
+    padding-bottom: 1rem;
 }
 
-.exercise-detail-modal .section-title {
+/* Cleaned up selectors */
+.section-title {
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--color-text-main);
@@ -117,13 +64,13 @@
     gap: 0.4rem;
 }
 
-.exercise-detail-modal .sets-grid {
+.sets-grid {
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
 }
 
-.exercise-detail-modal .set-item {
+.set-item {
     background-color: #fff;
     border-radius: var(--radius-lg);
     padding: 0.8rem;
@@ -134,41 +81,41 @@
     transition: border-color 0.2s;
 }
 
-.exercise-detail-modal .set-item.completed {
+.set-item.completed {
     border-color: #10b981;
     background-color: #eefcf4;
 }
 
-.exercise-detail-modal .set-info {
+.set-info {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
 }
 
-.exercise-detail-modal .set-number {
+.set-number {
     font-size: 0.68rem;
     font-weight: 700;
     color: var(--color-subtext-light);
     text-transform: uppercase;
 }
 
-.exercise-detail-modal .set-prescription {
+.set-prescription {
     font-size: 1rem;
     font-weight: 700;
     color: var(--color-text-main);
 }
 
-.exercise-detail-modal .set-checkbox {
+.set-checkbox {
     position: relative;
     cursor: pointer;
 }
 
-.exercise-detail-modal .set-checkbox input {
+.set-checkbox input {
     position: absolute;
     opacity: 0;
 }
 
-.exercise-detail-modal .set-checkbox .checkmark {
+.set-checkbox .checkmark {
     width: 1.8rem;
     height: 1.8rem;
     border-radius: var(--radius-md);
@@ -180,21 +127,21 @@
     color: transparent;
 }
 
-.exercise-detail-modal .set-checkbox input:checked~.checkmark {
+.set-checkbox input:checked~.checkmark {
     background-color: #10b981;
     border-color: #10b981;
     color: #fff;
 }
 
-.exercise-detail-modal .rest-section,
-.exercise-detail-modal .instructions-section {
+.rest-section,
+.instructions-section {
     background: #fff;
     border: 1px solid #dbe3ee;
     border-radius: var(--radius-xl);
     padding: 0.85rem;
 }
 
-.exercise-detail-modal .instructions-list {
+.instructions-list {
     list-style: none;
     padding: 0;
     margin: 0;
@@ -203,7 +150,7 @@
     gap: 0.45rem;
 }
 
-.exercise-detail-modal .instructions-list li {
+.instructions-list li {
     padding-left: 1rem;
     position: relative;
     color: var(--color-subtext-light);
@@ -211,7 +158,7 @@
     line-height: 1.45;
 }
 
-.exercise-detail-modal .instructions-list li::before {
+.instructions-list li::before {
     content: '•';
     position: absolute;
     left: 0;
@@ -219,7 +166,7 @@
     font-weight: 700;
 }
 
-.exercise-detail-modal .exercise-notes {
+.exercise-notes {
     margin-top: 0.6rem;
     padding: 0.65rem;
     background-color: #fff6e8;

@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { X, Target, Info, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Target, Info, Check } from 'lucide-react';
 import RestTimer from './RestTimer';
+import Modal from './Modal';
 import './ExerciseDetailModal.css';
 
 const ExerciseDetailModal = ({
@@ -12,12 +13,20 @@ const ExerciseDetailModal = ({
 }) => {
     const [completedSets, setCompletedSets] = useState(new Set());
 
-    if (!isOpen || !exercise) return null;
+    // Reset state when modal opens/closes or exercise changes
+    useEffect(() => {
+        if (!isOpen) {
+            setCompletedSets(new Set());
+        }
+    }, [isOpen, exercise]);
+
+    if (!exercise) return null;
 
     const sets = workoutExercise?.sets || 3;
     const reps = workoutExercise?.reps || '10-12';
     const restSeconds = workoutExercise?.rest_seconds || 60;
     const notes = workoutExercise?.notes || '';
+    const weight = workoutExercise?.weight || '';
 
     const handleSetToggle = (setNum) => {
         const newCompleted = new Set(completedSets);
@@ -40,15 +49,15 @@ const ExerciseDetailModal = ({
             : ['Siga a forma correta e mantenha o controle durante todo o movimento.'];
 
     return (
-        <div className="exercise-detail-modal">
-            <div className="modal-overlay" onClick={onClose} />
-
-            <div className="modal-content">
-                <button className="modal-close-btn" onClick={onClose}>
-                    <X size={24} />
-                </button>
-
-                <div className="modal-header">
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={exercise.name}
+            size="large"
+            footer={null}
+        >
+            <div className="exercise-detail-content">
+                <div className="modal-header-custom">
                     <div className="exercise-image-large">
                         <img
                             src={exercise.image_url || exercise.video_url || 'https://via.placeholder.com/400x300'}
@@ -61,7 +70,6 @@ const ExerciseDetailModal = ({
                     </div>
 
                     <div className="exercise-title-section">
-                        <h2 className="exercise-title">{exercise.name}</h2>
                         <div className="exercise-muscle-tag">
                             <Target size={16} />
                             {exercise.muscle_group}
@@ -69,7 +77,7 @@ const ExerciseDetailModal = ({
                     </div>
                 </div>
 
-                <div className="modal-body">
+                <div className="modal-body-custom">
                     {/* Sets Section */}
                     <div className="sets-section">
                         <h3 className="section-title">Séries & Repetições</h3>
@@ -81,7 +89,9 @@ const ExerciseDetailModal = ({
                                 >
                                     <div className="set-info">
                                         <div className="set-number">SÉRIE {setNum}</div>
-                                        <div className="set-prescription">{reps.split('-')[0]} x 15kg</div>
+                                        <div className="set-prescription">
+                                            {reps} {weight ? `x ${weight}` : ''}
+                                        </div>
                                     </div>
                                     <label className="set-checkbox">
                                         <input
@@ -123,7 +133,7 @@ const ExerciseDetailModal = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };
 

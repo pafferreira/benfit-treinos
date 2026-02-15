@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { useUserRole } from '../hooks/useSupabase';
 import { useNavigate } from 'react-router-dom';
-import { Search, Loader2, User, Shield, Briefcase, ChevronDown, ArrowLeft } from 'lucide-react';
+import { Search, Loader2, User, Shield, ClipboardList, ChevronDown, ArrowLeft, Edit2, CheckCircle, XCircle } from 'lucide-react';
+import EditProfileModal from '../components/EditProfileModal';
 
 const AdminUsers = () => {
     const { isRealAdmin, impersonate, restoreRole, isImpersonating, role, loading: roleLoading } = useUserRole();
@@ -10,6 +11,8 @@ const AdminUsers = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [updatingUserId, setUpdatingUserId] = useState(null);
+    const [editUser, setEditUser] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -17,6 +20,20 @@ const AdminUsers = () => {
             fetchUsers();
         }
     }, [isRealAdmin]);
+
+    // Estilo PAF: Handle ESC to return to Profile
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                if (!isEditModalOpen) {
+                    navigate('/perfil');
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [navigate, isEditModalOpen]);
 
     // ... (fetchUsers and handleRoleChange remain the same)
 
@@ -56,6 +73,57 @@ const AdminUsers = () => {
         }
     };
 
+    const handleToggleActive = async (user) => {
+        try {
+            const newActive = user.active === false ? true : false;
+            // Optimistic UI update could be done here, but safe to wait or just refresh logic
+
+            const { error } = await supabase.from('b_users').update({ active: newActive }).eq('id', user.id);
+            if (error) throw error;
+
+            setUsers(prev => prev.map(u => u.id === user.id ? { ...u, active: newActive } : u));
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Usuário ${newActive ? 'ativado' : 'desativado'}.`, type: 'success' } }));
+        } catch (e) {
+            console.error(e);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Erro ao alterar status.', type: 'error' } }));
+        }
+    };
+
+    const handleEditClick = (user) => {
+        setEditUser(user);
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveUser = async (formData) => {
+        try {
+            setLoading(true); // Re-use main loading or manage separate
+            const updates = {
+                name: formData.name,
+                phone: formData.phone,
+                role: formData.role,
+                active: formData.active,
+                birth_date: formData.birth_date || null,
+                gender: formData.gender || null,
+                height_cm: formData.height_cm === '' ? null : formData.height_cm,
+                weight_kg: formData.weight_kg === '' ? null : formData.weight_kg,
+                avatar_url: formData.avatar_url
+            };
+
+            const { error } = await supabase.from('b_users').update(updates).eq('id', editUser.id);
+            if (error) throw error;
+
+            setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...updates } : u));
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Dados atualizados com sucesso.', type: 'success' } }));
+            setIsEditModalOpen(false);
+            setEditUser(null);
+        } catch (err) {
+            console.error(err);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Erro ao salvar dados.', type: 'error' } }));
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleImpersonationToggle = (e) => {
         if (e.target.checked) {
             impersonate('user');
@@ -74,7 +142,7 @@ const AdminUsers = () => {
     if (!isRealAdmin) return <div className="p-8 text-center text-red-500 font-bold">Acesso Negado. Esta área é restrita para Administradores.</div>;
 
     return (
-        <div className="p-4 sm:p-6 pb-24 w-full mx-auto overflow-hidden">
+        <div className="p-4 sm:p-6 pb-24 w-full mx-auto">
             {/* Header with Back Button */}
             <div className="flex items-center gap-4 mb-6">
                 <button
@@ -91,9 +159,9 @@ const AdminUsers = () => {
             </div>
 
             {/* Impersonation Control - Estilo PAF (Blue) */}
-            <div className="mb-6 bg-[#F3F4F6] border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
+            <div className="mb-6 bg-[#F3F4F6] border border-gray-200 rounded-lg p-4 sm:p-5 shadow-sm">
                 <div className="grid grid-cols-[84px_minmax(0,1fr)] sm:grid-cols-[96px_minmax(0,1fr)] items-stretch gap-4">
-                    <div className="flex items-center justify-center rounded-xl bg-blue-100 text-[#034EA2]">
+                    <div className="flex items-center justify-center rounded-lg bg-blue-100 text-[#034EA2]">
                         <User size={32} className="shrink-0" />
                     </div>
 
@@ -132,85 +200,99 @@ const AdminUsers = () => {
                     placeholder="Buscar por nome ou email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-[#008ACF] focus:border-[#008ACF] outline-none placeholder-gray-400"
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-[#008ACF] focus:border-[#008ACF] outline-none placeholder-gray-400"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             </div>
-
             {loading ? (
                 <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[#034EA2] w-8 h-8" /></div>
             ) : (
-                <div className="bg-transparent md:bg-white md:rounded-xl md:shadow-sm md:border md:border-gray-200 md:overflow-hidden">
+                <div className="bg-transparent md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 md:overflow-hidden">
 
                     {/* Desktop View: Table */}
-                    <div className="hidden md:block overflow-x-auto">
+                    {/* Desktop View: Table */}
+                    {/* Desktop View: Table with Maximized Width */}
+                    <div className="hidden md:block overflow-x-auto min-h-[400px]">
                         <table className="w-full text-left whitespace-nowrap">
-                            <thead className="bg-gray-50 border-b border-gray-200">
+                            <thead className="bg-[#F9FAFB] border-b border-gray-200 sticky top-0 z-10">
                                 <tr>
-                                    <th className="px-6 py-4 text-xs font-bold text-[#034EA2] uppercase tracking-wider">Usuário</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-[#034EA2] uppercase tracking-wider">Email</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-[#034EA2] uppercase tracking-wider">Papel Atual</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-[#034EA2] uppercase tracking-wider text-right">Ações</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-[#034EA2] uppercase tracking-wider w-[45%]">Usuário / Email</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-[#034EA2] uppercase tracking-wider w-[45%]">Perfil</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-[#034EA2] uppercase tracking-wider w-[10%] text-right">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-gray-100 bg-white">
                                 {filteredUsers.map(user => (
-                                    <tr key={user.id} className="hover:bg-blue-50/30 transition-colors">
+                                    <tr key={user.id} className={`transition-colors group border-l-4 
+                                        ${user.role === 'admin' ? 'bg-purple-50 border-purple-500 hover:bg-purple-100' :
+                                            user.role === 'personal' ? 'bg-blue-50 border-[#034EA2] hover:bg-blue-100' :
+                                                'bg-white border-gray-200 hover:bg-gray-50'}`}>
+
+                                        {/* User & Email Column with Integrated Status Toggle */}
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={user.avatar_url || '/Elifit_Coach.png'}
-                                                    alt=""
-                                                    className="w-8 h-8 rounded-full bg-gray-100 object-cover border border-gray-200"
-                                                    onError={(e) => e.target.src = '/Elifit_Coach.png'}
-                                                />
-                                                <span className="font-semibold text-gray-900">{user.name || 'Sem nome'}</span>
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative shrink-0">
+                                                    <img
+                                                        src={user.avatar_url || '/Elifit_Coach.png'}
+                                                        alt=""
+                                                        className={`w-12 h-12 rounded-full object-cover border-2 shadow-sm transition-all ${user.active !== false ? 'border-green-500' : 'border-red-500 grayscale'}`}
+                                                        onError={(e) => e.target.src = '/Elifit_Coach.png'}
+                                                    />
+
+                                                    {/* Status Toggle Button overlay */}
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleToggleActive(user); }}
+                                                        className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center transition-all shadow-md hover:scale-110 ${user.active !== false ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}
+                                                        title={user.active !== false ? 'Clique para Desativar' : 'Clique para Ativar'}
+                                                    >
+                                                        {user.active !== false ? <CheckCircle size={10} strokeWidth={4} /> : <XCircle size={10} strokeWidth={4} />}
+                                                    </button>
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className={`font-bold text-sm truncate ${user.active !== false ? 'text-gray-900' : 'text-gray-400'}`}>
+                                                        {user.name || 'Sem nome'}
+                                                    </span>
+                                                    <span className="text-xs text-gray-500 font-medium truncate">{user.email}</span>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">
-                                            {user.email}
-                                        </td>
+
+                                        {/* Profile (Role) Column - Icon + Text */}
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border
-                                                ${user.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                                    user.role === 'personal' ? 'bg-blue-50 text-[#034EA2] border-blue-200' :
-                                                        'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                                                {user.role === 'admin' && <Shield size={12} />}
-                                                {user.role === 'personal' && <Briefcase size={12} />}
-                                                {user.role === 'user' && <User size={12} />}
-                                                {user.role || 'user'}
-                                            </span>
+                                            <div className={`flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide
+                                                ${user.role === 'admin' ? 'text-purple-700' :
+                                                    user.role === 'personal' ? 'text-[#034EA2]' :
+                                                        'text-gray-500'}`}
+                                            >
+                                                {user.role === 'admin' && <Shield size={14} />}
+                                                {user.role === 'personal' && <ClipboardList size={14} />}
+                                                {user.role === 'user' && <User size={14} />}
+                                                <span>
+                                                    {user.role === 'admin' ? 'Admin' : user.role === 'personal' ? 'Personal' : 'Usuário'}
+                                                </span>
+                                            </div>
                                         </td>
+
+                                        {/* Actions Column */}
                                         <td className="px-6 py-4 text-right">
-                                            <div className="relative inline-block">
-                                                <select
-                                                    style={{ minWidth: '200px' }}
-                                                    disabled={updatingUserId === user.id}
-                                                    value={user.role || 'user'}
-                                                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                                    className="appearance-none bg-white border border-gray-200 text-gray-700 py-1.5 pl-3 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#008ACF] cursor-pointer disabled:opacity-50 font-medium"
-                                                >
-                                                    <option value="user">Usuário</option>
-                                                    <option value="personal">Personal</option>
-                                                    <option value="admin">Admin</option>
-                                                </select>
-                                                {updatingUserId === user.id ? (
-                                                    <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-[#008ACF]" size={14} />
-                                                ) : (
-                                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                                                )}
-                                            </div>
+                                            <button
+                                                onClick={() => handleEditClick(user)}
+                                                className="p-2 text-gray-400 hover:text-[#034EA2] hover:bg-white rounded-lg transition-all transform hover:scale-110 active:scale-95 shadow-sm border border-transparent hover:shadow-md"
+                                                title="Editar"
+                                            >
+                                                <Edit2 size={18} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
-                    </div>
+                        </table >
+                    </div >
 
                     {/* Mobile View: Cards */}
                     <div className="md:hidden space-y-4">
                         {filteredUsers.map(user => (
-                            <div key={user.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-4">
+                            <div key={user.id} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4">
                                 <div className="flex items-center gap-3">
                                     <img
                                         src={user.avatar_url || '/Elifit_Coach.png'}
@@ -221,17 +303,28 @@ const AdminUsers = () => {
                                     <div className="flex flex-col min-w-0">
                                         <span className="font-bold text-gray-900 text-lg leading-tight truncate">{user.name || 'Sem nome'}</span>
                                         <span className="text-sm text-gray-500 break-all">{user.email}</span>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${user.active !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {user.active !== false ? 'Ativo' : 'Inativo'}
+                                            </span>
+                                        </div>
                                     </div>
+                                    <button
+                                        onClick={() => handleEditClick(user)}
+                                        className="ml-auto p-2 text-gray-400 hover:text-[#008ACF] bg-gray-50 hover:bg-blue-50 rounded-lg border border-gray-100"
+                                    >
+                                        <Edit2 size={20} />
+                                    </button>
                                 </div>
 
                                 <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
                                     <span className="text-xs font-semibold text-gray-500 uppercase">Papel Atual</span>
                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border
-                                        ${user.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                    ${user.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                                             user.role === 'personal' ? 'bg-blue-50 text-[#034EA2] border-blue-200' :
                                                 'bg-gray-50 text-gray-600 border-gray-200'}`}>
                                         {user.role === 'admin' && <Shield size={12} />}
-                                        {user.role === 'personal' && <Briefcase size={12} />}
+                                        {user.role === 'personal' && <ClipboardList size={12} />}
                                         {user.role === 'user' && <User size={12} />}
                                         {user.role || 'user'}
                                     </span>
@@ -261,14 +354,27 @@ const AdminUsers = () => {
                         ))}
                     </div>
 
-                    {filteredUsers.length === 0 && (
-                        <div className="p-8 text-center text-gray-500">
-                            Nenhum usuário encontrado.
-                        </div>
-                    )}
-                </div>
+                    {
+                        filteredUsers.length === 0 && (
+                            <div className="p-8 text-center text-gray-500">
+                                Nenhum usuário encontrado.
+                            </div>
+                        )
+                    }
+                </div >
+            )
+            }
+
+            {isEditModalOpen && editUser && (
+                <EditProfileModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => { setIsEditModalOpen(false); setEditUser(null); }}
+                    onSave={handleSaveUser}
+                    user={editUser}
+                    isLoading={loading}
+                />
             )}
-        </div>
+        </div >
     );
 };
 

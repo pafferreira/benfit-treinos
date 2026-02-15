@@ -71,6 +71,7 @@ const WorkoutDayDetails = () => {
     const [showFinishModal, setShowFinishModal] = useState(false);
     const [feelingScore, setFeelingScore] = useState(6);
     const [finishingSession, setFinishingSession] = useState(false);
+    const [lastFeelingLog, setLastFeelingLog] = useState(null);
     const finishModalHistoryRef = useRef(false);
 
     useEffect(() => {
@@ -176,10 +177,33 @@ const WorkoutDayDetails = () => {
 
             if (currentUser?.id) {
                 await loadOpenSessionProgress(workoutData.id, dayData.id, currentUser.id);
+                const { data: lastSession, error: lastSessionError } = await supabase
+                    .from('b_workout_sessions')
+                    .select('feeling, ended_at, calories_burned')
+                    .eq('user_id', currentUser.id)
+                    .eq('workout_id', workoutData.id)
+                    .eq('workout_day_id', dayData.id)
+                    .not('ended_at', 'is', null)
+                    .order('ended_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (lastSessionError) throw lastSessionError;
+
+                if (lastSession?.feeling) {
+                    setLastFeelingLog({
+                        score: lastSession.feeling,
+                        endedAt: lastSession.ended_at,
+                        calories: lastSession.calories_burned
+                    });
+                } else {
+                    setLastFeelingLog(null);
+                }
             } else {
                 setCompletedExercises([]);
                 setCurrentSessionId(null);
                 setCurrentSessionStartedAt(null);
+                setLastFeelingLog(null);
             }
         } catch (error) {
             console.error('Erro ao carregar detalhes do dia:', error);
@@ -257,6 +281,21 @@ const WorkoutDayDetails = () => {
         [currentSessionStartedAt, userWeightKg, workout?.difficulty]
     );
 
+    const lastFeelingLabel = useMemo(() => {
+        if (!lastFeelingLog?.endedAt) return null;
+        try {
+            return new Date(lastFeelingLog.endedAt).toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (err) {
+            console.error('Erro ao formatar feeling registrado', err);
+            return null;
+        }
+    }, [lastFeelingLog]);
+
     const handleFinishSession = async () => {
         if (!currentSessionId || !workout || !day) return;
 
@@ -273,6 +312,11 @@ const WorkoutDayDetails = () => {
                 caloriesBurned: estimatedSessionCalories,
                 feeling: feelingScore,
                 isFullyCompleted
+            });
+
+            setLastFeelingLog({
+                score: feelingScore,
+                endedAt: new Date().toISOString()
             });
 
             closeFinishModal();
@@ -343,6 +387,22 @@ const WorkoutDayDetails = () => {
                     </span>
                 )}
             </div>
+
+            {lastFeelingLog && (
+                <div className="day-feeling-card">
+                    <span className="feeling-score-pill">{lastFeelingLog.score}/10</span>
+                    <div className="feeling-meta">
+                        <strong>Feeling registrado</strong>
+                        <small>{lastFeelingLabel || 'Último registro disponível'}</small>
+                        {lastFeelingLog.calories > 0 && (
+                            <div className="feeling-calories">
+                                <Flame size={12} />
+                                {lastFeelingLog.calories} kcal
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <section className="workout-day-panel">
                 <div className="workout-day-panel-header">

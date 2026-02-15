@@ -23,7 +23,7 @@ const Header = () => {
     // 2. Busca dados atualizados no banco (como o avatar customizado)
     const { data } = await supabase
       .from('b_users')
-      .select('email, avatar_url')
+      .select('email, avatar_url, gender')
       .eq('id', user.id)
       .single();
 
@@ -76,16 +76,20 @@ const Header = () => {
         <div className="header-logo">
           <span className="logo-text">BEN<span className="highlight">FIT</span></span>
         </div>
-        
+
         <div className="header-profile">
           {profile && (
             <>
               <span className="user-identifier">{profile.email}</span>
               <div className="avatar-wrapper">
-                <img 
-                  src={profile.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'} 
-                  alt="User Avatar" 
+                <img
+                  src={profile.avatar_url || (profile.gender === 'Feminino' ? '/avatar_skeleton_female.png' : '/avatar_skeleton.png')}
+                  alt="User Avatar"
                   className="header-avatar"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/avatar_skeleton.png';
+                  }}
                 />
               </div>
             </>

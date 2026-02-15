@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import Modal from './Modal';
-import { X, ChevronDown, ChevronUp, Image as ImageIcon, Tag, User, Users, Upload, Loader } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Image as ImageIcon, Tag, User, Users, Upload, Loader, CheckCircle } from 'lucide-react';
 
 const Accordion = ({ title, icon: Icon, children, defaultOpen = false }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -223,87 +223,6 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
                                         />
                                     </div>
 
-                                    {/* File Upload Section */}
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                            Selecionar Arquivo <span className="text-red-500">*</span>
-                                        </label>
-
-                                        <div className="relative">
-                                            <input
-                                                type="file"
-                                                accept=".png,.jpg,.jpeg,image/png,image/jpeg"
-                                                onChange={handleFileUpload}
-                                                disabled={uploading}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                            />
-                                            <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${uploading ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/50'}`}>
-                                                {uploading ? (
-                                                    <div className="space-y-3">
-                                                        <Loader className="w-8 h-8 text-blue-600 mx-auto animate-spin" />
-                                                        <p className="text-sm font-medium text-blue-700">Fazendo upload... {uploadProgress}%</p>
-                                                        <div className="w-full bg-blue-200 rounded-full h-2">
-                                                            <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                                                        <p className="text-sm font-medium text-gray-700">Clique para selecionar ou arraste aqui</p>
-                                                        <p className="text-xs text-gray-500 mt-1">PNG ou JPG (máx. 5MB)</p>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {formData.public_url && !uploading && (
-                                            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                                                <p className="text-xs text-green-700 font-medium flex items-center gap-1">
-                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                    </svg>
-                                                    Imagem carregada com sucesso
-                                                </p>
-                                                <p className="text-xs text-gray-600 mt-1 truncate">{formData.storage_path || 'URL externa'}</p>
-                                            </div>
-                                        )}
-
-                                        <details className="group mt-2">
-                                            <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
-                                                <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
-                                                Ou inserir URL manualmente (avançado)
-                                            </summary>
-                                            <div className="mt-2 space-y-2">
-                                                <input
-                                                    type="url"
-                                                    name="public_url"
-                                                    value={formData.public_url}
-                                                    onChange={handleChange}
-                                                    placeholder="https://exemplo.com/avatar.png"
-                                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
-                                                />
-                                                <p className="text-xs text-gray-500">Use apenas se souber o que está fazendo</p>
-                                            </div>
-                                        </details>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                            Caminho de Armazenamento (Opcional)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="storage_path"
-                                            value={formData.storage_path}
-                                            onChange={handleChange}
-                                            placeholder="avatars/avatar_ana_feliz.png"
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm"
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1 pl-1">
-                                            Caminho dentro do storage bucket (se aplicável)
-                                        </p>
-                                    </div>
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -348,6 +267,34 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
                                         </div>
                                     </div>
 
+                                    <Accordion title="Tags e Metadados" icon={Tag} defaultOpen={true}>
+                                        <div className="space-y-3">
+                                            <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[50px]">
+                                                {formData.tags.map((tag, index) => (
+                                                    <span key={index} className="inline-flex items-center px-3 py-1 rounded-lg text-sm bg-white border border-gray-200 text-gray-700 shadow-sm">
+                                                        {tag}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeTag(tag)}
+                                                            className="ml-2 text-gray-400 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                                <input
+                                                    type="text"
+                                                    value={tagInput}
+                                                    onChange={(e) => setTagInput(e.target.value)}
+                                                    onKeyDown={handleTagKeyDown}
+                                                    placeholder="Digite uma tag e pressione Enter..."
+                                                    className="bg-transparent border-none outline-none text-sm min-w-[150px] placeholder-gray-400 focus:ring-0"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-gray-500 pl-1">Tags ajudam a organizar e filtrar avatares (ex: feliz, triste, neutro).</p>
+                                        </div>
+                                    </Accordion>
+
                                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
                                         <div className="flex-1">
                                             <label className="block text-sm font-semibold text-gray-700">
@@ -365,34 +312,7 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
                                             <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${formData.is_active ? 'translate-x-7' : 'translate-x-1'}`} />
                                         </button>
                                     </div>
-                                </div>
-                            </Accordion>
 
-                            <Accordion title="Tags e Metadados" icon={Tag}>
-                                <div className="space-y-3">
-                                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[50px]">
-                                        {formData.tags.map((tag, index) => (
-                                            <span key={index} className="inline-flex items-center px-3 py-1 rounded-lg text-sm bg-white border border-gray-200 text-gray-700 shadow-sm">
-                                                {tag}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeTag(tag)}
-                                                    className="ml-2 text-gray-400 hover:text-red-500 transition-colors"
-                                                >
-                                                    <X size={14} />
-                                                </button>
-                                            </span>
-                                        ))}
-                                        <input
-                                            type="text"
-                                            value={tagInput}
-                                            onChange={(e) => setTagInput(e.target.value)}
-                                            onKeyDown={handleTagKeyDown}
-                                            placeholder="Digite uma tag e pressione Enter..."
-                                            className="bg-transparent border-none outline-none text-sm min-w-[150px] placeholder-gray-400 focus:ring-0"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-gray-500 pl-1">Tags ajudam a organizar e filtrar avatares (ex: feliz, triste, neutro).</p>
                                 </div>
                             </Accordion>
 
@@ -400,8 +320,9 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
 
                     </div>
 
-                    {/* Right Column: Image Preview (4 cols) */}
-                    <div className="lg:col-span-4 flex flex-col gap-4">
+                    {/* Right Column: Image Preview & Upload (4 cols) */}
+                    <div className="lg:col-span-4 flex flex-col gap-6">
+                        {/* Preview Section */}
                         <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
                             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                                 <ImageIcon size={18} className="text-blue-500" />
@@ -434,6 +355,84 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
                                     Para imagens locais, coloque os arquivos na pasta <code className="bg-white px-1 py-0.5 rounded">public/</code>
                                     e use caminhos como <code className="bg-white px-1 py-0.5 rounded">/avatar.png</code>
                                 </p>
+                            </div>
+                        </div>
+
+                        {/* Upload Section - Moved Here */}
+                        <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm space-y-4">
+                            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                <Upload size={18} className="text-blue-500" />
+                                Carregar Imagem
+                            </h3>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
+                                    Selecionar Arquivo <span className="text-red-500">*</span>
+                                </label>
+
+                                <div className="relative">
+                                    <input
+                                        type="file"
+                                        accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                                        onChange={handleFileUpload}
+                                        disabled={uploading}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-all ${uploading ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/50'}`}>
+                                        {uploading ? (
+                                            <div className="space-y-2">
+                                                <Loader className="w-6 h-6 text-blue-600 mx-auto animate-spin" />
+                                                <p className="text-xs font-medium text-blue-700">Enviando... {uploadProgress}%</p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-1" />
+                                                <p className="text-xs font-medium text-gray-700">Clique ou arraste</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {formData.public_url && !uploading && (
+                                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                        <p className="text-xs text-green-700 font-medium flex items-center gap-1">
+                                            <CheckCircle size={12} />
+                                            Sucesso
+                                        </p>
+                                        <p className="text-[10px] text-gray-600 mt-0.5 truncate">{formData.storage_path || 'URL externa'}</p>
+                                    </div>
+                                )}
+
+                                <details className="group mt-2">
+                                    <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                                        <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
+                                        URL Manual
+                                    </summary>
+                                    <div className="mt-2 space-y-2">
+                                        <input
+                                            type="url"
+                                            name="public_url"
+                                            value={formData.public_url}
+                                            onChange={handleChange}
+                                            placeholder="https://..."
+                                            className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                </details>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">
+                                    Caminho Storage (Opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    name="storage_path"
+                                    value={formData.storage_path}
+                                    onChange={handleChange}
+                                    placeholder="avatars/nome.png"
+                                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                                />
                             </div>
                         </div>
                     </div>

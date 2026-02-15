@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
-const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
+const openModals = []; // Stack to keep track of open modals
+
+const Modal = ({ isOpen, onClose, title, children, footer, size = 'medium' }) => {
     if (!isOpen) return null;
 
     const handleBackdropClick = (e) => {
@@ -10,20 +12,47 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
         }
     };
 
+    const onCloseRef = useRef(onClose);
     useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
+
+    useEffect(() => {
+        // Register this modal instance
+        const modalId = Symbol('modal');
+        openModals.push(modalId);
+
+        // Lock body scroll
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
         const handleEsc = (e) => {
+            // Only strictly check for Escape key
             if (e.key === 'Escape') {
-                onClose();
+                // Only close if this is the topmost modal
+                if (openModals[openModals.length - 1] === modalId) {
+                    // Prevent event from bubbling to underlying modals if needed, 
+                    // though the check above handles the logic.
+                    // e.stopPropagation(); 
+                    if (onCloseRef.current) onCloseRef.current();
+                }
             }
         };
 
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-            window.addEventListener('keydown', handleEsc);
-        }
+        window.addEventListener('keydown', handleEsc);
 
         return () => {
-            document.body.style.overflow = 'unset';
+            // Remove from stack
+            const index = openModals.indexOf(modalId);
+            if (index > -1) {
+                openModals.splice(index, 1);
+            }
+
+            // Restore body scroll only if no other modals are open
+            if (openModals.length === 0) {
+                document.body.style.overflow = originalOverflow || 'unset';
+            }
+
             window.removeEventListener('keydown', handleEsc);
         };
     }, [isOpen]);
@@ -43,7 +72,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
             onClick={handleBackdropClick}
         >
             <div
-                className={`relative w-[90%] md:w-full ${sizeClasses[size] || 'max-w-lg'} mx-auto bg-white rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-[#dbe3ee]`}
+                className={`relative w-[90%] md:w-full ${sizeClasses[size] || 'max-w-lg'} mx-auto bg-white rounded-lg shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-[#dbe3ee]`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[#e8eef6] shrink-0">
@@ -57,9 +86,14 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
                         <X size={20} aria-hidden="true" />
                     </button>
                 </div>
-                <div className="p-6 overflow-y-auto overscroll-contain">
+                <div className="p-6 overflow-y-auto overscroll-contain flex-1">
                     {children}
                 </div>
+                {footer && (
+                    <div className="p-4 border-t border-[#e8eef6] bg-gray-50 flex justify-end shrink-0 rounded-b-lg">
+                        {footer}
+                    </div>
+                )}
             </div>
         </div>
     );

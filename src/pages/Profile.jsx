@@ -13,17 +13,11 @@ import './Profile.css';
 
 
 
-const AVATARS = [
-    '/avatar-female.png',
-    '/avatar-male.png'
-];
-
-const SUGGESTED_GOALS = [
-    { title: 'Longevidade', description: 'Manter corpo funcional e sem dores por longo prazo.' },
-    { title: 'Mobilidade', description: 'Melhorar amplitude de movimento e flexibilidade.' },
-    { title: 'Força Funcional', description: 'Ganhar força para atividades do dia a dia.' },
-    { title: 'Isometria', description: 'Fortalecimento seguro através de exercícios estáticos.' }
-];
+const DISPLAY_AVATAR = (user) => {
+    if (user?.avatar_url) return user.avatar_url;
+    if (user?.gender === 'Feminino') return '/avatar_skeleton_female.png';
+    return '/avatar_skeleton.png';
+};
 
 const Profile = () => {
     const [user, setUser] = useState(null);
@@ -61,13 +55,17 @@ const Profile = () => {
     const [filterActive, setFilterActive] = useState(true);
 
     useEffect(() => {
+        console.log('Profile: Avatars loading:', loadingAvatars, 'Count:', avatars.length);
         fetchUserData();
-    }, []);
+    }, [avatars.length]); // Re-run if avatars update (maybe not needed loop, but safe to check)
 
     const fetchUserData = async () => {
         try {
+            console.log('Profile: Starting fetchUserData');
             setLoading(true);
             const currentUser = await supabaseHelpers.getCurrentUser();
+            console.log('Profile: Fetched user:', currentUser);
+
             if (currentUser) {
                 setUser(currentUser);
                 setFormData({
@@ -77,7 +75,7 @@ const Profile = () => {
                     gender: currentUser.gender || '',
                     height_cm: currentUser.height_cm || '',
                     weight_kg: currentUser.weight_kg || '',
-                    avatar_url: currentUser.avatar_url || AVATARS[0]
+                    avatar_url: currentUser.avatar_url
                 });
 
                 // Fetch Stats
@@ -99,16 +97,21 @@ const Profile = () => {
                     hours: totalHours,
                     weight: progress && progress.length > 0 ? progress[0].weight_kg : 0
                 });
+                console.log('Profile: Stats set', totalWorkouts, totalHours);
 
                 // Fetch Goals
                 if (currentUser) {
                     const userGoals = await supabaseHelpers.getUserGoals(currentUser.id);
+                    console.log('Profile: Goals set', userGoals);
                     setGoals(userGoals || []);
                 }
+            } else {
+                console.warn('Profile: No current user found');
             }
         } catch (error) {
             console.error('Error loading profile:', error);
         } finally {
+            console.log('Profile: Finished loading, setting loading=false');
             setLoading(false);
         }
     };
@@ -257,9 +260,9 @@ const Profile = () => {
 
     if (loading) return <SkeletonProfile />;
 
-    const displayWeight = user?.weight_kg
+    const displayWeight = (user && user.weight_kg)
         ? user.weight_kg
-        : (stats.weight ? stats.weight : '-');
+        : ((stats && stats.weight) ? stats.weight : '-');
 
     // Filtered avatars - search across ALL fields
     const filteredAvatars = avatars.filter(avatar => {
@@ -283,9 +286,13 @@ const Profile = () => {
             <div className="profile-header">
                 <div className="profile-avatar-wrapper" onClick={() => setShowAvatarSelector(true)}>
                     <img
-                        src={user?.avatar_url || AVATARS[0]}
+                        src={DISPLAY_AVATAR(user)}
                         alt="Profile"
                         className="profile-avatar-large"
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/avatar_skeleton.png';
+                        }}
                     />
                     <div className="avatar-edit-overlay">
                         <Camera size={24} color="white" />
@@ -387,13 +394,15 @@ const Profile = () => {
             </button>
 
             {/* MODAL: EDIT PROFILE */}
-            <EditProfileModal
-                isOpen={showEditProfile}
-                onClose={() => setShowEditProfile(false)}
-                onSave={handleSaveProfile}
-                user={user}
-                isLoading={saving}
-            />
+            {showEditProfile && (
+                <EditProfileModal
+                    isOpen={showEditProfile}
+                    onClose={() => setShowEditProfile(false)}
+                    onSave={handleSaveProfile}
+                    user={user}
+                    isLoading={saving}
+                />
+            )}
 
             {/* MODAL: AVATAR SELECTOR */}
             <Modal
@@ -423,7 +432,7 @@ const Profile = () => {
                 <div className="flex justify-end pt-4 border-t border-gray-200 mt-4">
                     <button
                         onClick={() => setShowAvatarSelector(false)}
-                        className="px-6 py-2.5 text-gray-700 font-medium bg-gray-100 hover:bg-gray-200 rounded-xl border border-gray-200 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                        className="px-6 py-2.5 text-gray-700 font-medium bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 transition-all hover:scale-105 active:scale-95 shadow-sm"
                     >
                         Fechar
                     </button>
@@ -437,12 +446,7 @@ const Profile = () => {
                 title="Minhas Metas"
                 size="large"
             >
-                {goals.length === 0 && !isAddingGoal && (
-                    <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-subtext-light)' }}>
-                        <p>Nenhuma meta definida ainda.</p>
-                    </div>
-                )}
-
+                {/* Goals content... */}
                 {goals.map(goal => (
                     <div key={goal.id} className="goal-card">
                         <div>
@@ -457,242 +461,186 @@ const Profile = () => {
                         </button>
                     </div>
                 ))}
-
-                {isAddingGoal ? (
-                    <div className="form-group" style={{ marginTop: '1rem' }}>
-                        <label>Título da Meta</label>
-                        <input
-                            type="text"
-                            placeholder="Ex: Correr 5km"
-                            className="form-input"
-                            style={{ marginBottom: '0.5rem' }}
-                            value={newGoal.title}
-                            onChange={e => setNewGoal({ ...newGoal, title: e.target.value })}
-                        />
-
-                        <label>Descrição Detalhada</label>
-                        <textarea
-                            placeholder="Descreva como atingir..."
-                            className="form-textarea"
-                            style={{ marginBottom: '0.5rem' }}
-                            value={newGoal.description}
-                            onChange={e => setNewGoal({ ...newGoal, description: e.target.value })}
-                        />
-
-                        <label>Prazo / Data Alvo</label>
-                        <input
-                            type="date"
-                            className="form-input"
-                            style={{ marginBottom: '0.5rem' }}
-                            value={newGoal.deadline}
-                            onChange={e => setNewGoal({ ...newGoal, deadline: e.target.value })}
-                        />
-
-                        <div className="modal-actions">
-                            <button className="btn-secondary" onClick={() => setIsAddingGoal(false)}>Cancelar</button>
-                            <button className="btn-primary" onClick={handleAddGoal}>Salvar</button>
-                        </div>
-                    </div>
-                ) : (
-                    <button className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-medium hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2" onClick={() => setIsAddingGoal(true)}>
-                        <Plus size={20} />
-                        Adicionar Nova Meta
-                    </button>
-                )}
-
-                {!isAddingGoal && (
-                    <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #374151' }}>
-                        <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--color-subtext-light)', marginBottom: '0.5rem' }}>Sugestões Benfit</p>
-                        <div className="suggested-goals">
-                            {SUGGESTED_GOALS.map((sg, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => {
-                                        setNewGoal({ ...newGoal, title: sg.title, description: sg.description });
-                                        setIsAddingGoal(true);
-                                    }}
-                                    className="suggestion-chip"
-                                >
-                                    {sg.title}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </Modal>
 
             {/* MODAL: AVATAR MANAGER */}
-            <Modal
-                isOpen={showAvatarManager}
-                onClose={() => setShowAvatarManager(false)}
-                title="Gerenciar Avatares"
-                size="large"
-            >
-                {loadingAvatars ? (
-                    <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando avatares...</div>
-                ) : (
-                    <div className="flex flex-col h-full" style={{ maxHeight: '70vh' }}>
-                        {/* Scrollable Grid Area */}
-                        <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(70vh - 80px)' }}>
+            {showAvatarManager && (
+                <Modal
+                    isOpen={showAvatarManager}
+                    onClose={() => setShowAvatarManager(false)}
+                    title="Gerenciar Avatares"
+                    size="large"
+                >
+                    {loadingAvatars ? (
+                        <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando avatares...</div>
+                    ) : (
+                        <div className="flex flex-col h-full" style={{ maxHeight: '70vh' }}>
+                            {/* Scrollable Grid Area */}
+                            <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(70vh - 80px)' }}>
 
-                            {/* Avatar Filter Section */}
-                            <div className="mb-4 sticky top-0 bg-white z-20 pb-4 border-b border-gray-100 shadow-sm px-1">
+                                {/* Avatar Filter Section */}
+                                <div className="mb-4 sticky top-0 bg-white z-20 pb-4 border-b border-gray-100 shadow-sm px-1">
 
-                                {/* Header: Count & Active Toggle */}
-                                <div className="flex justify-between items-center mb-2 px-1">
-                                    <span className="text-xs font-semibold text-gray-500">
-                                        {filteredAvatars.length} registros encontrados
-                                    </span>
+                                    {/* Header: Count & Active Toggle */}
+                                    <div className="flex justify-between items-center mb-2 px-1">
+                                        <span className="text-xs font-semibold text-gray-500">
+                                            {filteredAvatars.length} registros encontrados
+                                        </span>
 
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-medium text-gray-600">{filterActive ? 'Ativos' : 'Não Ativos'}</span>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={filterActive}
-                                                onChange={(e) => setFilterActive(e.target.checked)}
-                                                className="sr-only peer"
-                                            />
-                                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                                        </label>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-medium text-gray-600">{filterActive ? 'Ativos' : 'Não Ativos'}</span>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={filterActive}
+                                                    onChange={(e) => setFilterActive(e.target.checked)}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Search Bar */}
+                                    <div className="relative mb-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar..."
+                                            value={filterTerm}
+                                            onChange={(e) => setFilterTerm(e.target.value)}
+                                            className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                                        />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                        {filterTerm && (
+                                            <button
+                                                onClick={() => setFilterTerm('')}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Filters Row */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="relative">
+                                            <select
+                                                value={filterCategory}
+                                                onChange={(e) => setFilterCategory(e.target.value)}
+                                                className="w-full pl-2 pr-6 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-gray-700"
+                                            >
+                                                <option value="Todas">Todas Categ.</option>
+                                                {[...new Set(avatars.map(a => a.category).filter(Boolean))].map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                        </div>
+
+                                        <div className="relative">
+                                            <select
+                                                value={filterGender}
+                                                onChange={(e) => setFilterGender(e.target.value)}
+                                                className="w-full pl-2 pr-6 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-gray-700"
+                                            >
+                                                <option value="Todos">Todos Gên.</option>
+                                                {[...new Set(avatars.map(a => a.gender).filter(Boolean))].map(gen => (
+                                                    <option key={gen} value={gen}>{gen}</option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Search Bar */}
-                                <div className="relative mb-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Buscar..."
-                                        value={filterTerm}
-                                        onChange={(e) => setFilterTerm(e.target.value)}
-                                        className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                                    />
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                    {filterTerm && (
-                                        <button
-                                            onClick={() => setFilterTerm('')}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                    )}
-                                </div>
-
-                                {/* Filters Row */}
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="relative">
-                                        <select
-                                            value={filterCategory}
-                                            onChange={(e) => setFilterCategory(e.target.value)}
-                                            className="w-full pl-2 pr-6 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-gray-700"
-                                        >
-                                            <option value="Todas">Todas Categ.</option>
-                                            {[...new Set(avatars.map(a => a.category).filter(Boolean))].map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                                    </div>
-
-                                    <div className="relative">
-                                        <select
-                                            value={filterGender}
-                                            onChange={(e) => setFilterGender(e.target.value)}
-                                            className="w-full pl-2 pr-6 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-gray-700"
-                                        >
-                                            <option value="Todos">Todos Gên.</option>
-                                            {[...new Set(avatars.map(a => a.gender).filter(Boolean))].map(gen => (
-                                                <option key={gen} value={gen}>{gen}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Grid Area with Fixed Height */}
-                            <div className="min-h-[400px]">
-                                {filteredAvatars.length > 0 ? (
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pb-4">
-                                        {filteredAvatars.map((avatar) => (
-                                            <div key={avatar.id} className="relative group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all">
-                                                <div className="aspect-square w-full bg-gray-100 relative cursor-pointer" onClick={() => handleEditAvatar(avatar)}>
-                                                    <img
-                                                        src={avatar.public_url}
-                                                        alt={avatar.name}
-                                                        className={`w-full h-full object-cover transition-all ${!avatar.is_active ? 'opacity-40 grayscale' : 'group-hover:scale-105'}`}
-                                                        onError={(e) => {
-                                                            e.target.onerror = null;
-                                                            e.target.src = 'https://via.placeholder.com/150?text=Sem+Imagem';
-                                                        }}
-                                                    />
-                                                    {/* DELETE BUTTON - Glassmorphism style, hover only */}
-                                                    <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteAvatar(avatar); }}
-                                                            className="p-1.5 bg-red-500/20 backdrop-blur-md hover:bg-red-500/40 text-white rounded-lg shadow-lg border border-white/20 transition-all active:scale-90"
-                                                            title="Deletar"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-
-                                                    {!avatar.is_active && (
-                                                        <div className="absolute top-2 left-2 pointer-events-none z-10">
-                                                            <span className="text-[9px] font-bold bg-gray-800 text-white px-2 py-0.5 rounded-full shadow-sm">INATIVO</span>
+                                {/* Grid Area with Fixed Height */}
+                                <div className="min-h-[400px]">
+                                    {filteredAvatars.length > 0 ? (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pb-4">
+                                            {filteredAvatars.map((avatar) => (
+                                                <div key={avatar.id} className="relative group bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-all">
+                                                    <div className="aspect-square w-full bg-gray-100 relative cursor-pointer" onClick={() => handleEditAvatar(avatar)}>
+                                                        <img
+                                                            src={avatar.public_url}
+                                                            alt={avatar.name}
+                                                            className={`w-full h-full object-cover transition-all ${!avatar.is_active ? 'opacity-40 grayscale' : 'group-hover:scale-105'}`}
+                                                            onError={(e) => {
+                                                                e.target.onerror = null;
+                                                                e.target.src = 'https://via.placeholder.com/150?text=Sem+Imagem';
+                                                            }}
+                                                        />
+                                                        {/* DELETE BUTTON - Glassmorphism style, hover only */}
+                                                        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleDeleteAvatar(avatar); }}
+                                                                className="p-1.5 bg-red-500/20 backdrop-blur-md hover:bg-red-500/40 text-white rounded-lg shadow-lg border border-white/20 transition-all active:scale-90"
+                                                                title="Deletar"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
                                                         </div>
-                                                    )}
-                                                </div>
-                                                <div className="p-2.5 cursor-pointer" onClick={() => handleEditAvatar(avatar)}>
-                                                    <h4 className="font-semibold text-xs text-gray-900 truncate" title={avatar.name}>{avatar.name}</h4>
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-100">{avatar.category}</span>
-                                                        {avatar.gender && (
-                                                            <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{avatar.gender}</span>
+
+                                                        {!avatar.is_active && (
+                                                            <div className="absolute top-2 left-2 pointer-events-none z-10">
+                                                                <span className="text-[9px] font-bold bg-gray-800 text-white px-2 py-0.5 rounded-full shadow-sm">INATIVO</span>
+                                                            </div>
                                                         )}
                                                     </div>
+                                                    <div className="p-2.5 cursor-pointer" onClick={() => handleEditAvatar(avatar)}>
+                                                        <h4 className="font-semibold text-xs text-gray-900 truncate" title={avatar.name}>{avatar.name}</h4>
+                                                        <div className="flex items-center gap-1.5 mt-1">
+                                                            <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-100">{avatar.category}</span>
+                                                            {avatar.gender && (
+                                                                <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{avatar.gender}</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 py-12">
-                                        <Search size={48} className="mb-4 opacity-20" />
-                                        <p className="text-sm">Nenhum avatar encontrado.</p>
-                                    </div>
-                                )}
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-400 py-12">
+                                            <Search size={48} className="mb-4 opacity-20" />
+                                            <p className="text-sm">Nenhum avatar encontrado.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Fixed Button at Bottom */}
+                            <div className="sticky bottom-0 pt-4 pb-2 bg-white border-t border-gray-200 mt-auto">
+                                <button
+                                    onClick={handleCreateAvatar}
+                                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Plus size={20} />
+                                    Adicionar Novo Avatar
+                                </button>
                             </div>
                         </div>
-
-                        {/* Fixed Button at Bottom */}
-                        <div className="sticky bottom-0 pt-4 pb-2 bg-white border-t border-gray-200 mt-auto">
-                            <button
-                                onClick={handleCreateAvatar}
-                                className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Plus size={20} />
-                                Adicionar Novo Avatar
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </Modal>
+                    )}
+                </Modal>
+            )}
 
             {/* MODAL: AVATAR CRUD */}
-            <AvatarModal
-                isOpen={showAvatarModal}
-                onClose={() => setShowAvatarModal(false)}
-                onSave={handleSaveAvatar}
-                avatar={selectedAvatar}
-                isLoading={saving}
-            />
+            {showAvatarModal && (
+                <AvatarModal
+                    isOpen={showAvatarModal}
+                    onClose={() => setShowAvatarModal(false)}
+                    onSave={handleSaveAvatar}
+                    avatar={selectedAvatar}
+                    isLoading={saving}
+                />
+            )}
 
             {/* MODAL: ACTIVITY HISTORY */}
-            <ActivityHistory
-                isOpen={showActivityHistory}
-                onClose={() => setShowActivityHistory(false)}
-                userId={user?.id}
-            />
+            {showActivityHistory && (
+                <ActivityHistory
+                    isOpen={showActivityHistory}
+                    onClose={() => setShowActivityHistory(false)}
+                    userId={user?.id}
+                />
+            )}
 
             {/* Confirmation Modal */}
             <ConfirmationModal

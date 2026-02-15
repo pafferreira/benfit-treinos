@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, Target, Repeat, Timer, Undo2, Play, Layers, StickyNote, ClipboardList, Dumbbell, Tags } from 'lucide-react';
+import { Check, Target, Repeat, Timer, Play, Layers, StickyNote, ClipboardList, Dumbbell, Tags } from 'lucide-react';
 import './SessionExerciseItem.css';
 
 const SessionExerciseItem = ({
@@ -83,100 +83,111 @@ const SessionExerciseItem = ({
 
     return (
         <div className={`session-exercise-item ${isCompleted ? 'completed' : ''} ${showUndo ? 'undo-mode' : ''}`}>
-            <div className="exercise-main">
-                <div className="exercise-avatar">
+            <div className="session-exercise-main">
+                <div className="session-exercise-avatar">
                     {safeImage ? (
                         <img src={safeImage} alt={safeName} />
                     ) : (
-                        <div className="avatar-placeholder">
+                        <div className="session-avatar-placeholder">
                             <Target size={24} />
                         </div>
                     )}
                 </div>
 
-                <div className="exercise-info">
-                    <div className="exercise-header-row">
-                        <h4 className="exercise-name">
+                <div className="session-exercise-info">
+                    <div className="session-exercise-header-row">
+                        <h4 className="session-exercise-name">
                             {orderIndex}. {safeName}
                         </h4>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.875rem', color: isCompleted ? '#10B981' : '#9CA3AF', fontWeight: 600 }}>
-                                {isCompleted ? 'Feito' : 'Feito?'}
-                            </span>
-                            <button
-                                className={`checkbox-btn ${isCompleted ? 'checked' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleComplete();
-                                }}
-                                disabled={isCompleted && !showUndo}
-                                title={isCompleted ? "Feito" : "Marcar como feito"}
-                            >
-                                {isCompleted && <Check size={18} strokeWidth={3} />}
-                            </button>
+                        <div className="completion-area">
+                            <div className="completion-label">
+                                <span className={isCompleted ? 'status-done' : 'status-pending'}>
+                                    {isCompleted ? 'Feito' : 'Feito?'}
+                                </span>
+                                {showUndo && (
+                                    <span className="undo-countdown">
+                                        {undoTimeLeft}s
+                                    </span>
+                                )}
+                            </div>
+                            <div className="completion-actions">
+                                <button
+                                    className={`session-checkbox-btn ${isCompleted ? 'checked' : ''}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleComplete();
+                                    }}
+                                    disabled={isCompleted && !showUndo}
+                                    title={isCompleted ? "Feito" : "Marcar como feito"}
+                                >
+                                    {isCompleted && <Check size={18} strokeWidth={3} />}
+                                </button>
+                                {showUndo && (
+                                    <button
+                                        className="undo-chip"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleComplete();
+                                        }}
+                                    >
+                                        Desfazer
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    <div className="exercise-meta">
-                        <span className="meta-badge">
+                    <div className="session-exercise-meta">
+                        <span className="session-meta-badge">
                             <Layers size={14} />
                             {workoutExercise.sets || '-'} séries
                         </span>
-                        <span className="meta-badge">
+                        <span className="session-meta-badge">
                             <Repeat size={14} />
                             {workoutExercise.reps || '-'} reps
                         </span>
-                        <span className="meta-badge">
+                        {workoutExercise.weight && (
+                            <span className="session-meta-badge">
+                                <Dumbbell size={14} />
+                                {workoutExercise.weight}
+                            </span>
+                        )}
+                        <span className="session-meta-badge">
                             <Timer size={14} />
                             {(() => {
                                 const time = formatRestTime(workoutExercise.rest_seconds);
                                 return time === '-' ? '-' : `${time} descanso`;
                             })()}
                         </span>
-                        <span className="meta-badge">
+                        <span className="session-meta-badge">
                             <Target size={14} />
                             {safeMuscle}
                         </span>
                         {safeEquipment && (
-                            <span className="meta-badge">
+                            <span className="session-meta-badge">
                                 <Dumbbell size={14} />
                                 {safeEquipment}
                             </span>
                         )}
                     </div>
-
-                    {showUndo && (
-                        <div className="undo-bar">
-                            <button
-                                className="undo-btn"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleComplete();
-                                }}
-                            >
-                                <Undo2 size={14} />
-                                Desfazer ({undoTimeLeft}s)
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
 
             {/* Detalhes sempre visíveis */}
-            <div className="exercise-details open">
+            <div className="session-exercise-details open">
                 {safeNotes && (
-                    <div className="detail-section">
+                    <div className="session-detail-section">
                         <strong><StickyNote size={14} className="inline mr-1" /> Notas:</strong>
                         <p>{safeNotes}</p>
                     </div>
                 )}
 
                 {safeTags.length > 0 && (
-                    <div className="detail-section">
+                    <div className="session-detail-section">
                         <strong><Tags size={14} className="inline mr-1" /> Tags:</strong>
-                        <div className="detail-tags-row">
+                        <div className="session-detail-tags-row">
                             {safeTags.map((tag) => (
-                                <span key={tag} className="detail-tag">{tag}</span>
+                                <span key={tag} className="session-detail-tag">{tag}</span>
                             ))}
                         </div>
                     </div>
@@ -204,7 +215,7 @@ const SessionExerciseItem = ({
                     if (list.length === 0) return null;
 
                     return (
-                        <div className="detail-section">
+                        <div className="session-detail-section">
                             <strong><ClipboardList size={14} className="inline mr-1" /> Instruções:</strong>
                             <ul>
                                 {list.map((instruction, idx) => (
@@ -215,13 +226,13 @@ const SessionExerciseItem = ({
                     );
                 })()}
 
-                <div className="exercise-actions">
+                <div className="session-exercise-actions">
                     {safeVideo && (
                         <a
                             href={safeVideo}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="video-link"
+                            className="session-video-link"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <Play size={16} />

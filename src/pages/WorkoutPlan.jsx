@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Calendar, Clock, Layers, ChevronRight } from 'lucide-react';
-import WeeklyCalendar from '../components/WeeklyCalendar';
+
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import { supabase } from '../lib/supabase';
 import './WorkoutPlan.css';
@@ -13,7 +13,7 @@ const WorkoutPlan = () => {
     const [loading, setLoading] = useState(true);
     const [workout, setWorkout] = useState(null);
     const [days, setDays] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(null);
+
 
     useEffect(() => {
         loadWorkoutData();
@@ -73,24 +73,9 @@ const WorkoutPlan = () => {
         navigate(`/treino/${id}/dia/${day.id}`);
     };
 
-    const handleDayClick = (date) => {
-        const dayOfWeek = date.getDay();
-        const selectedDay = days.find((d) => {
-            const dayNum = d.day_number - 1;
-            const adjustedDayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-            return dayNum === adjustedDayOfWeek;
-        });
 
-        setSelectedDate(date);
-        if (selectedDay) {
-            handleOpenDay(selectedDay);
-        }
-    };
 
-    const scheduledDays = days.map((d) => {
-        const dayNum = d.day_number - 1;
-        return dayNum === -1 ? 6 : dayNum;
-    });
+
 
     if (loading) {
         return <SkeletonWorkouts />;
@@ -143,13 +128,7 @@ const WorkoutPlan = () => {
                 </div>
             </div>
 
-            <WeeklyCalendar
-                currentDate={new Date()}
-                scheduledDays={scheduledDays}
-                completedDates={[]}
-                onDayClick={handleDayClick}
-                selectedDate={selectedDate}
-            />
+
 
             <div className="days-section">
                 <h2 className="section-title">Sessões desta Semana</h2>

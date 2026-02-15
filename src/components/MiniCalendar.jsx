@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, CircleDot } from 'lucide-react';
 import './MiniCalendar.css';
 
-const MiniCalendar = ({ completedDates = [], incompleteDates = [], currentDate = new Date() }) => {
+const MiniCalendar = ({ completedDates = [], incompleteDates = [], currentDate = new Date(), variant = 'cards' }) => {
     const [weekStart, setWeekStart] = useState(getWeekStart(currentDate));
 
     useEffect(() => {
@@ -53,32 +53,121 @@ const MiniCalendar = ({ completedDates = [], incompleteDates = [], currentDate =
         weekDays.push(date);
     }
 
-    const monthYear = weekStart.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    const monthName = weekStart.toLocaleDateString('pt-BR', { month: 'long' });
+    const year = weekStart.getFullYear();
+    const monthYear = `${capitalizeFirstLetter(monthName)} de ${year}`;
     const weekNumber = getWeekNumber(weekStart);
 
+    const renderPills = () => (
+        <div className="calendar-days variant-pills">
+            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
+                const date = weekDays[idx];
+                const isCompleted = isDateCompleted(date);
+                const isIncomplete = !isCompleted && isDateIncomplete(date);
+                const isTodayDate = isToday(date);
+                const dayNumber = date.getDate();
+
+                return (
+                    <div key={day} className="day-column">
+                        <div className="day-label">{day}</div>
+                        <div className={`day-pill ${isTodayDate ? 'today' : ''} ${isCompleted ? 'completed' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
+                            <span className="day-number">{dayNumber}</span>
+                            <div className="day-status-dot">
+                                {isCompleted && <Check size={12} strokeWidth={4} />}
+                                {isIncomplete && <CircleDot size={10} strokeWidth={3} />}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    const renderTimeline = () => (
+        <div className="calendar-days variant-timeline">
+            <div className="timeline-line"></div>
+            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
+                const date = weekDays[idx];
+                const isCompleted = isDateCompleted(date);
+                const isIncomplete = !isCompleted && isDateIncomplete(date);
+                const isTodayDate = isToday(date);
+                const dayNumber = date.getDate();
+
+                return (
+                    <div key={day} className="day-column">
+                        <div className="day-label">{day}</div>
+                        <div className={`day-node ${isTodayDate ? 'today' : ''} ${isCompleted ? 'completed' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
+                            {isCompleted ? <Check size={14} strokeWidth={3} /> : <span className="day-number">{dayNumber}</span>}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    const renderCards = () => (
+        <div className="calendar-days variant-cards">
+            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
+                const date = weekDays[idx];
+                const isCompleted = isDateCompleted(date);
+                const isIncomplete = !isCompleted && isDateIncomplete(date);
+                const isTodayDate = isToday(date);
+                const dayNumber = date.getDate();
+
+                return (
+                    <div key={day} className={`day-card ${isTodayDate ? 'today' : ''} ${isCompleted ? 'completed' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
+                        <div className="day-label">{day}</div>
+                        <div className="day-number">{dayNumber}</div>
+                        <div className="day-status-bar"></div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    const renderClassic = () => (
+        <div className="calendar-days variant-classic">
+            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
+                const date = weekDays[idx];
+                const isCompleted = isDateCompleted(date);
+                const isIncomplete = !isCompleted && isDateIncomplete(date);
+                const isTodayDate = isToday(date);
+                const dayNumber = date.getDate();
+
+                return (
+                    <div key={day} className="day-column">
+                        <div className="day-label">{day}</div>
+                        <div className={`day-circle ${isTodayDate ? 'today' : ''} ${isCompleted ? 'completed' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
+                            <span className="day-number">{dayNumber}</span>
+                            <div className="day-status-icon">
+                                {isCompleted ? (
+                                    <Check size={12} strokeWidth={3} />
+                                ) : isIncomplete ? (
+                                    <CircleDot size={10} strokeWidth={3} />
+                                ) : null}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
     return (
-        <div className="mini-calendar">
+        <div className={`mini-calendar-wrapper ${variant}`}>
             <div className="calendar-header">
                 <h3 className="calendar-month">{monthYear}</h3>
                 <div className="week-badge">Semana {weekNumber}</div>
             </div>
 
-            <div className="calendar-days">
-                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => (
-                    <div key={day} className="day-column">
-                        <div className="day-label">{day}</div>
-                        <div className={`day-circle ${isToday(weekDays[idx]) ? 'today' : ''} ${isDateCompleted(weekDays[idx]) ? 'completed' : ''} ${!isDateCompleted(weekDays[idx]) && isDateIncomplete(weekDays[idx]) ? 'incomplete' : ''}`}>
-                            {isDateCompleted(weekDays[idx]) ? (
-                                <Check size={16} />
-                            ) : isDateIncomplete(weekDays[idx]) ? (
-                                <AlertCircle size={14} />
-                            ) : (
-                                weekDays[idx].getDate()
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
+            {variant === 'pills' && renderPills()}
+            {variant === 'timeline' && renderTimeline()}
+            {variant === 'cards' && renderCards()}
+            {variant === 'classic' && renderClassic()}
         </div>
     );
 };

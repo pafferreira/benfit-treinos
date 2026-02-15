@@ -6,6 +6,7 @@ import { Clock, Plus, Dumbbell } from 'lucide-react';
 import ActionButton from '../components/ActionButton';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
+import MiniCalendar from '../components/MiniCalendar';
 import './Workouts.css';
 
 const Workouts = () => {
@@ -16,9 +17,12 @@ const Workouts = () => {
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
     const [userActivePlanIds, setUserActivePlanIds] = useState([]);
     const [processingWorkoutId, setProcessingWorkoutId] = useState(null);
+    const [completedDates, setCompletedDates] = useState([]);
+    const [incompleteDates, setIncompleteDates] = useState([]);
 
     useEffect(() => {
         loadUserActivePlans();
+        loadCalendarDates();
     }, []);
 
     const loadUserActivePlans = async () => {
@@ -29,6 +33,22 @@ const Workouts = () => {
             setUserActivePlanIds(activePlans.map((p) => p.workout_id));
         } catch (err) {
             console.error('Erro ao carregar planos ativos:', err);
+        }
+    };
+
+    const loadCalendarDates = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                setCompletedDates([]);
+                setIncompleteDates([]);
+                return;
+            }
+            const calendarDates = await supabaseHelpers.getUserWorkoutCalendarDates(user.id, 45);
+            setCompletedDates(calendarDates.completedDates || []);
+            setIncompleteDates(calendarDates.incompleteDates || []);
+        } catch (err) {
+            console.error('Erro ao carregar calendário de treinos:', err);
         }
     };
 
@@ -143,12 +163,20 @@ const Workouts = () => {
     return (
         <div className="workouts-container">
             <div className="workouts-topbar">
-                <h3 className="section-title">Planos Ativos</h3>
+                <h3 className="section-title">Meus Planos</h3>
                 {(isAdmin || isPersonal) && (
                     <button className="new-plan-btn" onClick={handleCreateWorkout}>
                         <Plus size={16} /> Novo Plano
                     </button>
                 )}
+            </div>
+
+            <div className="calendar-section">
+                <MiniCalendar
+                    completedDates={completedDates}
+                    incompleteDates={incompleteDates}
+                    currentDate={new Date()}
+                />
             </div>
 
             <div className="plans-grid">

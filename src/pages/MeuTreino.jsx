@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Dumbbell, ChevronRight } from 'lucide-react';
-import MiniCalendar from '../components/MiniCalendar';
 import MotivationalCard from '../components/MotivationalCard';
 import ExerciseCard from '../components/ExerciseCard';
 import ExerciseDetailModal from '../components/ExerciseDetailModal';
@@ -13,8 +12,6 @@ const MeuTreino = () => {
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
-    const [completedDates, setCompletedDates] = useState([]);
-    const [incompleteDates, setIncompleteDates] = useState([]);
     const [todaysWorkout, setTodaysWorkout] = useState(null);
     const [exercises, setExercises] = useState([]);
     const [completedExercises, setCompletedExercises] = useState(new Set());
@@ -32,16 +29,10 @@ const MeuTreino = () => {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
-                setCompletedDates([]);
-                setIncompleteDates([]);
                 setTodaysWorkout(null);
                 setExercises([]);
                 return;
             }
-
-            const calendarDates = await supabaseHelpers.getUserWorkoutCalendarDates(user.id, 45);
-            setCompletedDates(calendarDates.completedDates || []);
-            setIncompleteDates(calendarDates.incompleteDates || []);
 
             const activePlans = await supabaseHelpers.getUserActivePlans(user.id);
             const selectedPlan = activePlans.find((plan) => plan.status === 'em_andamento') || activePlans[0];
@@ -169,13 +160,6 @@ const MeuTreino = () => {
 
     return (
         <div className="meu-treino-container">
-            {/* Mini Calendar */}
-            <MiniCalendar
-                completedDates={completedDates}
-                incompleteDates={incompleteDates}
-                currentDate={new Date()}
-            />
-
             {/* Motivational Card */}
             <MotivationalCard
                 message={todaysWorkout ? 'Treino de hoje pronto' : 'Nenhum treino ativo'}
