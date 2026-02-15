@@ -1,41 +1,37 @@
 /* ExerciseCard.css */
 
 .exercise-card-container {
-    background-color: var(--color-card-light);
-    border-radius: var(--radius-2xl);
+    background-color: #fff;
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-sm);
-    border: 1px solid #F3F4F6;
+    border: 1px solid #dbe3ee;
     overflow: hidden;
-    transition: all 0.2s;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.dark .exercise-card-container {
-    background-color: var(--color-card-dark);
-    border-color: #1F2937;
+.exercise-card-container:hover {
+    border-color: rgba(var(--color-primary-rgb), 0.35);
 }
 
 .exercise-card-container.completed {
-    opacity: 0.7;
+    opacity: 0.75;
 }
 
 .exercise-card-main {
     display: flex;
-    gap: 1rem;
-    padding: 1rem;
+    gap: 0.75rem;
+    padding: 0.85rem;
     cursor: pointer;
 }
 
 .exercise-card-image {
-    width: 5rem;
-    height: 5rem;
+    width: 4.6rem;
+    height: 4.6rem;
     flex-shrink: 0;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    background-color: #F3F4F6;
-}
-
-.dark .exercise-card-image {
-    background-color: #374151;
+    background-color: #eef2f7;
+    border: 1px solid #dbe3ee;
 }
 
 .exercise-card-image img {
@@ -48,7 +44,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.6rem;
 }
 
 .exercise-card-header {
@@ -58,158 +54,132 @@
 }
 
 .exercise-card-name {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    color: var(--color-text-light);
+    color: var(--color-text-main);
     line-height: 1.2;
-    margin-bottom: 0.25rem;
-}
-
-.dark .exercise-card-name {
-    color: var(--color-text-dark);
+    margin: 0 0 0.25rem;
 }
 
 .exercise-card-muscle {
-    font-size: 0.75rem;
-    color: var(--color-secondary);
-    display: flex;
+    font-size: 0.72rem;
+    color: var(--color-primary);
+    display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    font-weight: 600;
+    font-weight: 700;
 }
 
-.exercise-checkbox {
+.exercise-card-container .exercise-checkbox {
     position: relative;
     cursor: pointer;
 }
 
-.exercise-checkbox input {
+.exercise-card-container .exercise-checkbox input {
     position: absolute;
     opacity: 0;
     cursor: pointer;
 }
 
-.checkmark {
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 50%;
-    border: 2px solid #D1D5DB;
+.exercise-card-container .checkmark {
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: var(--radius-md);
+    border: 2px solid #9ab3d2;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
     color: transparent;
+    background: #fff;
 }
 
-.dark .checkmark {
-    border-color: #4B5563;
+.exercise-card-container .exercise-checkbox input:checked~.checkmark {
+    background-color: #10b981;
+    border-color: #10b981;
+    color: #fff;
 }
 
-.exercise-checkbox input:checked~.checkmark {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary);
-    color: white;
-}
-
-.exercise-card-meta {
-    display: flex;
-    gap: 0.75rem;
-}
-
-.meta-item {
-    font-size: 0.75rem;
-    color: var(--color-subtext-light);
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.dark .meta-item {
-    color: var(--color-subtext-dark);
-}
-
-.set-selector {
+.exercise-card-container .exercise-card-meta {
     display: flex;
     gap: 0.5rem;
+}
+
+.exercise-card-container .meta-item {
+    font-size: 0.73rem;
+    color: var(--color-subtext-light);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 600;
+}
+
+.exercise-card-container .set-selector {
+    display: flex;
+    gap: 0.45rem;
     overflow-x: auto;
     scrollbar-width: none;
 }
 
-.set-btn {
-    min-width: 5rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius-xl);
-    background-color: #F3F4F6;
-    border: 2px solid transparent;
+.exercise-card-container .set-btn {
+    min-width: 4.6rem;
+    padding: 0.42rem 0.55rem;
+    border-radius: var(--radius-lg);
+    background-color: #f3f7fc;
+    border: 1px solid transparent;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.15rem;
+    gap: 0.1rem;
 }
 
-.dark .set-btn {
-    background-color: #374151;
+.exercise-card-container .set-btn.active {
+    background-color: #fff;
+    border-color: rgba(var(--color-primary-rgb), 0.4);
 }
 
-.set-btn.active {
-    background-color: white;
-    border-color: var(--color-primary);
-}
-
-.dark .set-btn.active {
-    background-color: #1F2937;
-}
-
-.set-label {
-    font-size: 0.65rem;
+.exercise-card-container .set-label {
+    font-size: 0.6rem;
     font-weight: 700;
     color: var(--color-subtext-light);
     text-transform: uppercase;
 }
 
-.dark .set-label {
-    color: var(--color-subtext-dark);
-}
-
-.set-value {
-    font-size: 0.875rem;
+.exercise-card-container .set-value {
+    font-size: 0.78rem;
     font-weight: 700;
-    color: var(--color-text-light);
+    color: var(--color-text-main);
 }
 
-.dark .set-value {
-    color: var(--color-text-dark);
-}
-
-.set-weight {
-    font-size: 0.75rem;
-    font-weight: 600;
+.exercise-card-container .set-weight {
+    font-size: 0.7rem;
+    font-weight: 700;
     color: var(--color-primary);
 }
 
-.timer-section {
-    margin-top: 0.5rem;
+.exercise-card-container .timer-section {
+    margin-top: 0.35rem;
 }
 
-.start-rest-btn {
+.exercise-card-container .start-rest-btn {
     width: 100%;
-    padding: 0.75rem;
-    border-radius: var(--radius-xl);
+    padding: 0.62rem;
+    border-radius: var(--radius-lg);
     background-color: var(--color-primary);
-    color: white;
-    font-size: 0.875rem;
+    color: #fff;
+    font-size: 0.82rem;
     font-weight: 700;
     border: none;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.2s;
+    gap: 0.4rem;
+    transition: background-color 0.2s;
 }
 
-.start-rest-btn:hover {
-    background-color: #2563EB;
+.exercise-card-container .start-rest-btn:hover {
+    background-color: #003c80;
 }

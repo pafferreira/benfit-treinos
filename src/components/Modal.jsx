@@ -39,17 +39,17 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
     // We set a high z-index here to avoid the modal being overlapped by the header.
     return (
         <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4 animate-in fade-in duration-200"
             onClick={handleBackdropClick}
         >
             <div
-                className={`relative w-[90%] md:w-full ${sizeClasses[size] || 'max-w-lg'} mx-auto bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100`}
+                className={`relative w-[90%] md:w-full ${sizeClasses[size] || 'max-w-lg'} mx-auto bg-white rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-[#dbe3ee]`}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
-                    <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+                <div className="flex items-center justify-between p-4 border-b border-[#e8eef6] shrink-0">
+                    <h2 className="text-lg font-bold text-[var(--color-text-main)]">{title}</h2>
                     <button
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                        className="p-2 text-[var(--color-subtext-light)] hover:text-[var(--color-primary)] hover:bg-[#f3f6fb] rounded-md transition-colors"
                         onClick={onClose}
                         title="Fechar"
                         aria-label="Fechar"

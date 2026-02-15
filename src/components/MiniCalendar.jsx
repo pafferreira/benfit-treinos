@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Check, AlertCircle } from 'lucide-react';
 import './MiniCalendar.css';
 
-const MiniCalendar = ({ completedDates = [], currentDate = new Date() }) => {
+const MiniCalendar = ({ completedDates = [], incompleteDates = [], currentDate = new Date() }) => {
     const [weekStart, setWeekStart] = useState(getWeekStart(currentDate));
+
+    useEffect(() => {
+        setWeekStart(getWeekStart(currentDate));
+    }, [currentDate]);
 
     function getWeekStart(date) {
         const d = new Date(date);
@@ -21,12 +25,20 @@ const MiniCalendar = ({ completedDates = [], currentDate = new Date() }) => {
     }
 
     function formatDate(date) {
-        return date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     function isDateCompleted(date) {
         const dateStr = formatDate(date);
-        return completedDates.some(d => formatDate(new Date(d)) === dateStr);
+        return completedDates.some((d) => formatDate(new Date(d)) === dateStr);
+    }
+
+    function isDateIncomplete(date) {
+        const dateStr = formatDate(date);
+        return incompleteDates.some((d) => formatDate(new Date(d)) === dateStr);
     }
 
     function isToday(date) {
@@ -55,9 +67,11 @@ const MiniCalendar = ({ completedDates = [], currentDate = new Date() }) => {
                 {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => (
                     <div key={day} className="day-column">
                         <div className="day-label">{day}</div>
-                        <div className={`day-circle ${isToday(weekDays[idx]) ? 'today' : ''} ${isDateCompleted(weekDays[idx]) ? 'completed' : ''}`}>
+                        <div className={`day-circle ${isToday(weekDays[idx]) ? 'today' : ''} ${isDateCompleted(weekDays[idx]) ? 'completed' : ''} ${!isDateCompleted(weekDays[idx]) && isDateIncomplete(weekDays[idx]) ? 'incomplete' : ''}`}>
                             {isDateCompleted(weekDays[idx]) ? (
                                 <Check size={16} />
+                            ) : isDateIncomplete(weekDays[idx]) ? (
+                                <AlertCircle size={14} />
                             ) : (
                                 weekDays[idx].getDate()
                             )}

@@ -1,12 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useWorkouts, useExercises, useUserRole } from '../hooks/useSupabase';
-import { supabaseHelpers } from '../lib/supabase';
-import { supabase } from '../lib/supabase';
-import { Calendar, Clock, Plus, Search, Loader2, Dumbbell } from 'lucide-react';
-import WorkoutModal from '../components/WorkoutModal';
+import { useWorkouts, useUserRole } from '../hooks/useSupabase';
+import { supabaseHelpers, supabase } from '../lib/supabase';
+import { Clock, Plus, Dumbbell } from 'lucide-react';
 import ActionButton from '../components/ActionButton';
-import PlanSelectorModal from '../components/PlanSelectorModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import './Workouts.css';
@@ -15,18 +12,11 @@ const Workouts = () => {
     const navigate = useNavigate();
     const { workouts, loading: workoutsLoading, error: workoutsError, reload } = useWorkouts();
     const { isAdmin, isPersonal, isUser } = useUserRole();
-    const { exercises } = useExercises();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isPlanSelectorOpen, setIsPlanSelectorOpen] = useState(false);
-    const [editingWorkout, setEditingWorkout] = useState(null);
-    const [isSaving, setIsSaving] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [difficultyFilter, setDifficultyFilter] = useState('all');
+
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
     const [userActivePlanIds, setUserActivePlanIds] = useState([]);
     const [processingWorkoutId, setProcessingWorkoutId] = useState(null);
 
-    // Carregar planos ativos do usuário
     useEffect(() => {
         loadUserActivePlans();
     }, []);
@@ -36,61 +26,16 @@ const Workouts = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
             const activePlans = await supabaseHelpers.getUserActivePlans(user.id);
-            setUserActivePlanIds(activePlans.map(p => p.workout_id));
+            setUserActivePlanIds(activePlans.map((p) => p.workout_id));
         } catch (err) {
             console.error('Erro ao carregar planos ativos:', err);
         }
     };
 
-    useEffect(() => {
-        if (!isModalOpen) return;
-        const onKeyDown = (e) => {
-            if (e.key === 'Escape' || e.key === 'Esc') {
-                setIsModalOpen(false);
-            }
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [isModalOpen]);
-
-    const filteredWorkouts = useMemo(() => {
-        if (!workouts) return [];
-        return workouts.filter(w => {
-            const matchesSearch = !searchTerm || (w.title && w.title.toLowerCase().includes(searchTerm.toLowerCase())) || (w.description && w.description.toLowerCase().includes(searchTerm.toLowerCase()));
-            const matchesDifficulty = difficultyFilter === 'all' || w.difficulty === difficultyFilter;
-            return matchesSearch && matchesDifficulty;
-        });
-    }, [workouts, searchTerm, difficultyFilter]);
-
-    // Abrir o seletor de planos (ao invés do WorkoutModal)
     const handleCreateWorkout = () => {
-        setIsPlanSelectorOpen(true);
+        navigate('/treinos/novo');
     };
 
-    // Selecionar um plano existente
-    const handleSelectPlan = async (plan) => {
-        try {
-            setIsSaving(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Usuário não autenticado.', type: 'error' } }));
-                return;
-            }
-
-            await supabaseHelpers.assignPlanToUser(user.id, plan.id);
-            setIsPlanSelectorOpen(false);
-            await loadUserActivePlans();
-            reload();
-            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Plano "${plan.title}" atribuído com sucesso! 🎉`, type: 'success' } }));
-        } catch (err) {
-            console.error('Erro ao atribuir plano:', err);
-            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: err.message || 'Erro ao atribuir plano.', type: 'error' } }));
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    // Toggle assign/unassign when user clicks checkbox
     const handleToggleAssign = async (e, workout) => {
         e.stopPropagation();
         const { data: { user } } = await supabase.auth.getUser();
@@ -101,7 +46,6 @@ const Workouts = () => {
 
         const isActive = userActivePlanIds.includes(workout.id);
 
-        // If already active, ask for confirmation before unassign
         if (isActive) {
             setConfirmModal({
                 isOpen: true,
@@ -119,14 +63,13 @@ const Workouts = () => {
                         window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: err.message || 'Não foi possível remover o plano.', type: 'error' } }));
                     } finally {
                         setProcessingWorkoutId(null);
-                        setConfirmModal({ ...confirmModal, isOpen: false });
+                        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
                     }
                 }
             });
             return;
         }
 
-        // Assign flow
         try {
             setProcessingWorkoutId(workout.id);
             await supabaseHelpers.assignPlanToUser(user.id, workout.id);
@@ -139,13 +82,6 @@ const Workouts = () => {
         } finally {
             setProcessingWorkoutId(null);
         }
-    };
-
-    // Criar novo plano (abre WorkoutModal a partir do PlanSelector)
-    const handleCreateNewPlan = () => {
-        setIsPlanSelectorOpen(false);
-        setEditingWorkout(null);
-        setIsModalOpen(true);
     };
 
     const canManageWorkout = (workout) => {
@@ -161,8 +97,8 @@ const Workouts = () => {
             window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Personal só pode editar planos públicos.', type: 'error' } }));
             return;
         }
-        setEditingWorkout(workout);
-        setIsModalOpen(true);
+
+        navigate(`/treinos/${workout.id}/editar`);
     };
 
     const handleDeleteWorkout = (e, workout) => {
@@ -171,6 +107,7 @@ const Workouts = () => {
             window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Personal só pode excluir planos públicos.', type: 'error' } }));
             return;
         }
+
         setConfirmModal({
             isOpen: true,
             title: 'Excluir Plano',
@@ -185,44 +122,9 @@ const Workouts = () => {
             reload();
         } catch (err) {
             console.error('Error deleting workout:', err);
-            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Erro ao excluir treino: ' + (err.message || ''), type: 'error' } }));
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Erro ao excluir treino: ${err.message || ''}`, type: 'error' } }));
         } finally {
-            setConfirmModal({ ...confirmModal, isOpen: false });
-        }
-    };
-
-    const handleSaveWorkout = async (workoutData) => {
-        setIsSaving(true);
-        try {
-            const normalizedWorkoutData = isPersonal && !isAdmin
-                ? { ...workoutData, is_public: true }
-                : workoutData;
-
-            if (editingWorkout) {
-                await supabaseHelpers.updateWorkout(editingWorkout.id, normalizedWorkoutData);
-                window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Treino atualizado com sucesso!', type: 'success' } }));
-            } else {
-                const newWorkout = await supabaseHelpers.createWorkout(normalizedWorkoutData);
-                // Atribuir o novo plano ao usuário automaticamente
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user && newWorkout) {
-                    try {
-                        await supabaseHelpers.assignPlanToUser(user.id, newWorkout.id);
-                    } catch (assignErr) {
-                        console.error('Erro ao atribuir plano automaticamente:', assignErr);
-                    }
-                }
-                await loadUserActivePlans();
-                window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Treino criado e atribuído com sucesso! 🎉', type: 'success' } }));
-            }
-            setIsModalOpen(false);
-            await reload();
-        } catch (err) {
-            console.error('Error saving workout:', err);
-            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Erro ao salvar treino: ' + (err.message || ''), type: 'error' } }));
-            throw err;
-        } finally {
-            setIsSaving(false);
+            setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         }
     };
 
@@ -240,7 +142,6 @@ const Workouts = () => {
 
     return (
         <div className="workouts-container">
-            {/* Header */}
             <div className="workouts-topbar">
                 <h3 className="section-title">Planos Ativos</h3>
                 {(isAdmin || isPersonal) && (
@@ -250,9 +151,8 @@ const Workouts = () => {
                 )}
             </div>
 
-            {/* Workouts List */}
             <div className="plans-grid">
-                {filteredWorkouts.map((workout, index) => {
+                {workouts.map((workout) => {
                     const isActive = userActivePlanIds.includes(workout.id);
                     const iconColor = isActive ? 'green' : 'orange';
                     const status = isActive ? 'Ativo' : 'Disponível';
@@ -274,6 +174,7 @@ const Workouts = () => {
                                     <span className={`status-badge ${status.toLowerCase()}`}>{status}</span>
                                 </div>
                             </div>
+
                             {canManage && (
                                 <div className="plan-actions-vertical">
                                     <ActionButton
@@ -289,7 +190,6 @@ const Workouts = () => {
                                 </div>
                             )}
 
-                            {/* Checkbox for regular users to (de)atribuir planos */}
                             {isUser && (
                                 <div className="plan-actions-checkbox" onClick={(e) => e.stopPropagation()}>
                                     <label className="plan-checkbox-label">
@@ -309,26 +209,6 @@ const Workouts = () => {
                 })}
             </div>
 
-            {/* Plan Selector Modal */}
-            <PlanSelectorModal
-                isOpen={isPlanSelectorOpen}
-                onClose={() => setIsPlanSelectorOpen(false)}
-                onSelectPlan={handleSelectPlan}
-                onCreateNew={handleCreateNewPlan}
-                userActivePlanIds={userActivePlanIds}
-            />
-
-            {/* Workout Modal */}
-            <WorkoutModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSave={handleSaveWorkout}
-                workout={editingWorkout}
-                isLoading={isSaving}
-                forcePublic={isPersonal && !isAdmin}
-            />
-
-            {/* Confirmation Modal */}
             <ConfirmationModal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}

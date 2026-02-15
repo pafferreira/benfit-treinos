@@ -81,7 +81,11 @@ const DashboardHome = () => {
         );
     }
 
-    const firstName = user?.full_name?.split(' ')[0] || user?.display_name || 'Atleta';
+    const firstName = user?.name?.split(' ')[0]
+        || user?.full_name?.split(' ')[0]
+        || user?.display_name
+        || user?.email?.split('@')[0]
+        || 'Atleta';
 
     return (
         <div className="dashboard-home">

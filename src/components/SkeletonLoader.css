@@ -168,3 +168,39 @@
 .mt-2 {
     margin-top: 0.5em;
 }
+
+/* Meu Treino Specific */
+.meu-treino-skeleton {
+    gap: 1rem;
+    padding: 0;
+}
+
+.sk-calendar-card {
+    width: 100%;
+    height: 130px;
+    border-radius: var(--radius-xl);
+}
+
+.sk-motivation-card {
+    width: 100%;
+    height: 110px;
+    border-radius: var(--radius-xl);
+}
+
+.sk-routine-card {
+    width: 100%;
+    height: 92px;
+    border-radius: var(--radius-xl);
+}
+
+.sk-exercises-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sk-exercise-card {
+    width: 100%;
+    height: 120px;
+    border-radius: var(--radius-xl);
+}

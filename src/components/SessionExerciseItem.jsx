@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, Target, Repeat, Timer, Undo2, ChevronDown, Play, Clock, Layers, StickyNote, ClipboardList } from 'lucide-react';
+import { Check, Target, Repeat, Timer, Undo2, Play, Layers, StickyNote, ClipboardList, Dumbbell, Tags } from 'lucide-react';
 import './SessionExerciseItem.css';
 
 const SessionExerciseItem = ({
@@ -74,8 +74,12 @@ const SessionExerciseItem = ({
     const safeName = typeof exercise.name === 'string' ? exercise.name : 'Exercício';
     const safeImage = typeof exercise.image_url === 'string' ? exercise.image_url : null;
     const safeMuscle = typeof exercise.muscle_group === 'string' ? exercise.muscle_group : '';
+    const safeEquipment = typeof exercise.equipment === 'string' ? exercise.equipment : '';
     const safeNotes = typeof workoutExercise.notes === 'string' ? workoutExercise.notes : null;
     const safeVideo = typeof exercise.video_url === 'string' ? exercise.video_url : null;
+    const safeTags = Array.isArray(exercise.tags)
+        ? exercise.tags.filter((tag) => typeof tag === 'string' && tag.trim() !== '')
+        : [];
 
     return (
         <div className={`session-exercise-item ${isCompleted ? 'completed' : ''} ${showUndo ? 'undo-mode' : ''}`}>
@@ -133,6 +137,12 @@ const SessionExerciseItem = ({
                             <Target size={14} />
                             {safeMuscle}
                         </span>
+                        {safeEquipment && (
+                            <span className="meta-badge">
+                                <Dumbbell size={14} />
+                                {safeEquipment}
+                            </span>
+                        )}
                     </div>
 
                     {showUndo && (
@@ -158,6 +168,17 @@ const SessionExerciseItem = ({
                     <div className="detail-section">
                         <strong><StickyNote size={14} className="inline mr-1" /> Notas:</strong>
                         <p>{safeNotes}</p>
+                    </div>
+                )}
+
+                {safeTags.length > 0 && (
+                    <div className="detail-section">
+                        <strong><Tags size={14} className="inline mr-1" /> Tags:</strong>
+                        <div className="detail-tags-row">
+                            {safeTags.map((tag) => (
+                                <span key={tag} className="detail-tag">{tag}</span>
+                            ))}
+                        </div>
                     </div>
                 )}
 

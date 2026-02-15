@@ -462,6 +462,47 @@ export const supabaseHelpers = {
         return data
     },
 
+    async finalizeWorkoutSession({
+        sessionId,
+        userId,
+        workoutId,
+        workoutDayId,
+        caloriesBurned,
+        feeling,
+        isFullyCompleted = true
+    }) {
+        if (!sessionId) {
+            throw new Error('Sessão inválida para finalização.');
+        }
+
+        const session = await this.endWorkoutSession(sessionId, caloriesBurned, feeling);
+
+        if (!userId || !workoutId || !workoutDayId) {
+            return session;
+        }
+
+        const now = new Date().toISOString();
+        const { error: logError } = await supabase
+            .from('b_daily_workout_logs')
+            .update({
+                ended_at: now,
+                calories_burned: caloriesBurned,
+                feeling,
+                status: isFullyCompleted ? 'concluido' : 'em_andamento'
+            })
+            .eq('user_id', userId)
+            .eq('workout_id', workoutId)
+            .eq('workout_day_id', workoutDayId)
+            .in('status', ['atribuido', 'em_andamento']);
+
+        if (logError) {
+            // Não bloquear a finalização da sessão caso o log diário falhe por estrutura/política.
+            console.error('Erro ao atualizar daily_workout_log na finalização:', logError);
+        }
+
+        return session;
+    },
+
     async logSet(sessionId, exerciseId, setNumber, weightKg, repsCompleted) {
         const { data, error } = await supabase
             .from('b_session_logs')
@@ -562,7 +603,7 @@ export const supabaseHelpers = {
 
         // If not found by ID, try by Email (fallback for inconsistent IDs)
         if (!profile && user.email) {
-            const { data: profileByEmail, error: emailError } = await supabase
+            const { data: profileByEmail } = await supabase
                 .from('b_users')
                 .select('*')
                 .eq('email', user.email)
@@ -1079,6 +1120,88 @@ export const supabaseHelpers = {
             completedThisWeek,
             caloriesThisWeek,
             lastSession
+        };
+    },
+
+    async getUserWorkoutCalendarDates(userId, days = 45) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        const { data: sessions, error: sessionsError } = await supabase
+            .from('b_workout_sessions')
+            .select('id, workout_day_id, started_at, ended_at')
+            .eq('user_id', userId)
+            .gte('started_at', startDate.toISOString())
+            .order('started_at', { ascending: false });
+
+        if (sessionsError) throw sessionsError;
+        if (!sessions || sessions.length === 0) {
+            return { completedDates: [], incompleteDates: [] };
+        }
+
+        const sessionIds = sessions.map((session) => session.id);
+        const workoutDayIds = [...new Set(sessions.map((session) => session.workout_day_id).filter(Boolean))];
+
+        const logsBySession = {};
+        if (sessionIds.length > 0) {
+            const { data: sessionLogs, error: logsError } = await supabase
+                .from('b_session_logs')
+                .select('session_id')
+                .in('session_id', sessionIds);
+
+            if (logsError) throw logsError;
+            (sessionLogs || []).forEach((log) => {
+                logsBySession[log.session_id] = (logsBySession[log.session_id] || 0) + 1;
+            });
+        }
+
+        const exercisesByDay = {};
+        if (workoutDayIds.length > 0) {
+            const { data: workoutExercises, error: exercisesError } = await supabase
+                .from('b_workout_exercises')
+                .select('workout_day_id')
+                .in('workout_day_id', workoutDayIds);
+
+            if (exercisesError) throw exercisesError;
+            (workoutExercises || []).forEach((item) => {
+                exercisesByDay[item.workout_day_id] = (exercisesByDay[item.workout_day_id] || 0) + 1;
+            });
+        }
+
+        const toDateKey = (isoDate) => {
+            const parsed = new Date(isoDate);
+            const year = parsed.getFullYear();
+            const month = String(parsed.getMonth() + 1).padStart(2, '0');
+            const day = String(parsed.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const completedSet = new Set();
+        const incompleteSet = new Set();
+
+        sessions.forEach((session) => {
+            if (!session.started_at) return;
+
+            const dateKey = toDateKey(session.started_at);
+            const requiredExercises = session.workout_day_id ? (exercisesByDay[session.workout_day_id] || 0) : 0;
+            const loggedExercises = logsBySession[session.id] || 0;
+            const completedByExercises = requiredExercises > 0 ? loggedExercises >= requiredExercises : Boolean(session.ended_at);
+            const isCompleted = Boolean(session.ended_at) && completedByExercises;
+
+            if (isCompleted) {
+                completedSet.add(dateKey);
+                incompleteSet.delete(dateKey);
+                return;
+            }
+
+            if (!completedSet.has(dateKey)) {
+                incompleteSet.add(dateKey);
+            }
+        });
+
+        return {
+            completedDates: Array.from(completedSet),
+            incompleteDates: Array.from(incompleteSet)
         };
     }
 }

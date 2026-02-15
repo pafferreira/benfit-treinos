@@ -15,7 +15,19 @@ const DashboardLayoutContent = () => {
     const { isImpersonating, role } = useUserRole();
 
     const [avatarUrl, setAvatarUrl] = useState('/Elifit_Coach.png');
-    const [userEmail, setUserEmail] = useState('...');
+    const [userName, setUserName] = useState('Usuário');
+
+    const getRoleLabel = (roleValue) => {
+        switch (roleValue) {
+            case 'admin':
+                return 'Administrador';
+            case 'personal':
+                return 'Personal';
+            case 'user':
+            default:
+                return 'Usuário';
+        }
+    };
 
     // Ensure light mode on mount
     useEffect(() => {
@@ -32,8 +44,12 @@ const DashboardLayoutContent = () => {
                 console.log('🔄 Dashboard Refreshed User:', userData);
                 if (userData) {
                     setAvatarUrl(userData.avatar_url || '/Elifit_Coach.png');
-                    // Ensure email is set even if empty string
-                    setUserEmail(userData.email || 'Sem e-mail');
+                    const resolvedName = userData.name
+                        || userData.full_name
+                        || userData.display_name
+                        || userData.email?.split('@')[0]
+                        || 'Usuário';
+                    setUserName(resolvedName);
                 }
             } catch (e) {
                 console.error('Error loading user in dashboard:', e);
@@ -74,6 +90,12 @@ const DashboardLayoutContent = () => {
 
     // Determine Header Content based on Route
     const getHeaderContent = (pathname) => {
+        if (pathname === '/treinos/novo') {
+            return { title: 'Novo Plano', subtitle: 'Monte a estrutura completa do treino' };
+        }
+        if (pathname.startsWith('/treinos/') && pathname.endsWith('/editar')) {
+            return { title: 'Editar Plano', subtitle: 'Atualize dias, exercícios e parâmetros' };
+        }
         if (pathname.startsWith('/treino/') && pathname.includes('/dia/')) {
             return { title: 'Sessão do Dia', subtitle: 'Detalhes completos dos exercícios' };
         }
@@ -119,6 +141,9 @@ const DashboardLayoutContent = () => {
     return (
         <div className="dashboard-layout">
             <div className="mobile-container">
+                <a href="#main-content" className="skip-link">
+                    Pular para o conteúdo principal
+                </a>
                 {/* Fixed Header */}
                 <header className="layout-header">
                     <div style={{ flex: 1 }}> {/* Title takes available space */}
@@ -129,16 +154,11 @@ const DashboardLayoutContent = () => {
                     {/* User Info Container */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
 
-                        {/* Email Display - Now explicit */}
-                        <div className="header-user-info" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#4B5563' }}>
-                                {userEmail}
+                        <div className="header-user-info">
+                            <span className="header-user-name">{userName}</span>
+                            <span className={`header-user-role ${isImpersonating ? 'is-impersonating' : ''}`}>
+                                {getRoleLabel(role)}
                             </span>
-                            {isImpersonating && (
-                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 rounded border border-red-100 mt-0.5">
-                                    Agindo como {role}
-                                </span>
-                            )}
                         </div>
 
                         <div
@@ -158,8 +178,10 @@ const DashboardLayoutContent = () => {
 
                 {/* Main Content */}
                 <main
+                    id="main-content"
                     className="layout-content hide-scrollbar"
                     ref={mainContentRef}
+                    tabIndex={-1}
                 >
                     <Outlet />
                 </main>

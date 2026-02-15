@@ -11,7 +11,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
             size="small"
         >
             <div className="flex flex-col items-center text-center gap-4">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isDangerous ? 'bg-red-100 text-red-500' : 'bg-blue-100 text-blue-500'}`}>
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isDangerous ? 'bg-red-100 text-red-500' : 'bg-[rgba(0,138,207,0.14)] text-[var(--color-primary)]'}`}>
                     {isDangerous ? <AlertTriangle size={28} /> : <Info size={28} />}
                 </div>
 

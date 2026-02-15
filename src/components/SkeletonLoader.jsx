@@ -62,3 +62,18 @@ export const SkeletonWorkouts = () => {
         </div>
     );
 };
+
+export const SkeletonMeuTreino = () => {
+    return (
+        <div className="skeleton-container meu-treino-skeleton fade-in">
+            <div className="sk-calendar-card shimmer"></div>
+            <div className="sk-motivation-card shimmer"></div>
+            <div className="sk-routine-card shimmer"></div>
+            <div className="sk-exercises-stack">
+                {[1, 2, 3].map((item) => (
+                    <div key={item} className="sk-exercise-card shimmer"></div>
+                ))}
+            </div>
+        </div>
+    );
+};

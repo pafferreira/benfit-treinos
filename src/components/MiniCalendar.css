@@ -1,106 +1,96 @@
 /* MiniCalendar.css */
 
 .mini-calendar {
-    background-color: var(--color-card-light);
-    border-radius: var(--radius-2xl);
-    padding: 1.25rem;
+    background-color: #fff;
+    border-radius: var(--radius-xl);
+    padding: 0.95rem;
     box-shadow: var(--shadow-sm);
-    border: 1px solid #F3F4F6;
+    border: 1px solid #dbe3ee;
 }
 
-.dark .mini-calendar {
-    background-color: var(--color-card-dark);
-    border-color: #1F2937;
-}
-
-.calendar-header {
+.mini-calendar .calendar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
-.calendar-month {
-    font-size: 1rem;
+.mini-calendar .calendar-month {
+    font-size: 0.95rem;
     font-weight: 700;
-    color: var(--color-text-light);
+    color: var(--color-text-main);
     text-transform: capitalize;
+    margin: 0;
 }
 
-.dark .calendar-month {
-    color: var(--color-text-dark);
-}
-
-.week-badge {
-    background-color: #DBEAFE;
+.mini-calendar .week-badge {
+    background-color: rgba(var(--color-secondary-rgb), 0.14);
     color: var(--color-primary);
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     font-weight: 700;
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(var(--color-primary-rgb), 0.2);
 }
 
-.dark .week-badge {
-    background-color: rgba(59, 130, 246, 0.2);
-}
-
-.calendar-days {
+.mini-calendar .calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.5rem;
+    gap: 0.35rem;
 }
 
-.day-column {
+.mini-calendar .day-column {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.32rem;
 }
 
-.day-label {
-    font-size: 0.7rem;
-    font-weight: 600;
+.mini-calendar .day-label {
+    font-size: 0.66rem;
+    font-weight: 700;
     color: var(--color-subtext-light);
 }
 
-.dark .day-label {
-    color: var(--color-subtext-dark);
-}
-
-.day-circle {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
+.mini-calendar .day-circle {
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--color-text-light);
-    background-color: transparent;
-    transition: all 0.2s;
-}
-
-.dark .day-circle {
-    color: var(--color-text-dark);
-}
-
-.day-circle.today {
-    background-color: var(--color-primary);
-    color: white;
+    font-size: 0.78rem;
     font-weight: 700;
+    color: var(--color-text-main);
+    background-color: #f3f6fa;
+    border: 1px solid transparent;
 }
 
-.day-circle.completed {
-    background-color: #DCFCE7;
-    color: var(--color-secondary);
-}
-
-.dark .day-circle.completed {
-    background-color: rgba(16, 185, 129, 0.2);
-}
-
-.day-circle.completed.today {
+.mini-calendar .day-circle.today {
     background-color: var(--color-primary);
-    color: white;
+    color: #fff;
+}
+
+.mini-calendar .day-circle.completed {
+    background-color: #e8f8ef;
+    color: #10b981;
+    border-color: #bdecd2;
+}
+
+.mini-calendar .day-circle.completed.today {
+    background-color: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
+.mini-calendar .day-circle.incomplete {
+    background-color: #fff6e8;
+    color: #b45309;
+    border-color: #f7d7a4;
+}
+
+.mini-calendar .day-circle.incomplete.today {
+    background-color: #f59e0b;
+    color: #fff;
+    border-color: #f59e0b;
 }

@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, Dumbbell, ChevronRight } from 'lucide-react';
 import MiniCalendar from '../components/MiniCalendar';
 import MotivationalCard from '../components/MotivationalCard';
 import ExerciseCard from '../components/ExerciseCard';
 import ExerciseDetailModal from '../components/ExerciseDetailModal';
-import { supabase } from '../lib/supabase';
+import { SkeletonMeuTreino } from '../components/SkeletonLoader';
+import { supabase, supabaseHelpers } from '../lib/supabase';
 import './MeuTreino.css';
 
 const MeuTreino = () => {
+    const navigate = useNavigate();
+
     const [loading, setLoading] = useState(true);
     const [completedDates, setCompletedDates] = useState([]);
+    const [incompleteDates, setIncompleteDates] = useState([]);
     const [todaysWorkout, setTodaysWorkout] = useState(null);
     const [exercises, setExercises] = useState([]);
     const [completedExercises, setCompletedExercises] = useState(new Set());
@@ -24,82 +29,110 @@ const MeuTreino = () => {
     const loadWorkoutData = async () => {
         try {
             setLoading(true);
+            const { data: { user } } = await supabase.auth.getUser();
 
-            // For demo purposes, using mock data
-            // In production, fetch from Supabase based on user's active workout
+            if (!user) {
+                setCompletedDates([]);
+                setIncompleteDates([]);
+                setTodaysWorkout(null);
+                setExercises([]);
+                return;
+            }
 
-            // Mock completed dates (last 7 days with some workouts)
-            const mockCompletedDates = [
-                new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-                new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
-            ];
-            setCompletedDates(mockCompletedDates);
+            const calendarDates = await supabaseHelpers.getUserWorkoutCalendarDates(user.id, 45);
+            setCompletedDates(calendarDates.completedDates || []);
+            setIncompleteDates(calendarDates.incompleteDates || []);
 
-            // Mock today's workout
-            const mockWorkout = {
-                id: '1',
-                title: 'Força de Tronco',
-                day_name: 'Dia 1 - Peito & Tríceps',
-                estimated_duration: 45,
-                exercise_count: 6
-            };
-            setTodaysWorkout(mockWorkout);
+            const activePlans = await supabaseHelpers.getUserActivePlans(user.id);
+            const selectedPlan = activePlans.find((plan) => plan.status === 'em_andamento') || activePlans[0];
 
-            // Mock exercises for today
-            const mockExercises = [
-                {
-                    exercise: {
-                        id: '1',
-                        name: 'Supino com Halteres',
-                        muscle_group: 'Peito & Tríceps',
-                        image_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2hlc3QlMjB3b3Jrb3V0fGVufDB8fDB8fHww',
-                        video_url: null,
-                        instructions: ['Mantenha as costas apoiadas no banco', 'Abaixe os pesos lentamente', 'Empurre para cima de forma explosiva']
-                    },
-                    workoutExercise: {
-                        sets: 3,
-                        reps: '12',
-                        rest_seconds: 60,
-                        notes: 'Foque na forma mais do que no peso'
-                    }
-                },
-                {
-                    exercise: {
-                        id: '2',
-                        name: 'Swing com Kettlebell',
-                        muscle_group: 'Corpo Inteiro',
-                        image_url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Z3ltfGVufDB8fDB8fHww',
-                        video_url: null,
-                        instructions: ['Faça o movimento com os quadris', 'Mantenha o core contraído', 'Empurre através dos calcanhares']
-                    },
-                    workoutExercise: {
-                        sets: 3,
-                        reps: '15',
-                        rest_seconds: 90,
-                        notes: null
-                    }
-                },
-                {
-                    exercise: {
-                        id: '3',
-                        name: 'Aquecimento Cardio',
-                        muscle_group: 'Cardio',
-                        image_url: 'https://images.unsplash.com/photo-1538805060518-7beebe9d1798?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y2FyZGlvfGVufDB8fDB8fHww',
-                        video_url: null,
-                        instructions: ['Comece devagar', 'Aumente a intensidade gradualmente', 'Mantenha a respiração estável']
-                    },
-                    workoutExercise: {
-                        sets: 1,
-                        reps: '10 Min',
-                        rest_seconds: 0,
-                        notes: 'Corrida leve ou bicicleta'
-                    }
-                }
-            ];
-            setExercises(mockExercises);
+            if (!selectedPlan?.workout_id) {
+                setTodaysWorkout(null);
+                setExercises([]);
+                return;
+            }
+
+            const { data: daysData, error: daysError } = await supabase
+                .from('b_workout_days')
+                .select('id, day_name, day_number')
+                .eq('workout_id', selectedPlan.workout_id)
+                .order('day_number');
+
+            if (daysError) throw daysError;
+
+            const todayWeekday = new Date().getDay();
+            const normalizedWeekday = todayWeekday === 0 ? 7 : todayWeekday;
+            const selectedDay = (daysData || []).find((day) => day.day_number === normalizedWeekday) || daysData?.[0];
+
+            if (!selectedDay) {
+                setTodaysWorkout(null);
+                setExercises([]);
+                return;
+            }
+
+            const { data: exerciseRows, error: exerciseRowsError } = await supabase
+                .from('b_workout_exercises')
+                .select(`
+                    exercise_id,
+                    sets,
+                    reps,
+                    rest_seconds,
+                    notes,
+                    order_index,
+                    b_exercises (*)
+                `)
+                .eq('workout_day_id', selectedDay.id)
+                .order('order_index');
+
+            if (exerciseRowsError) throw exerciseRowsError;
+
+            const mappedExercises = (exerciseRows || [])
+                .filter((row) => row.b_exercises)
+                .map((row) => ({
+                    exercise: row.b_exercises,
+                    workoutExercise: row
+                }));
+
+            setExercises(mappedExercises);
+            setTodaysWorkout({
+                workout_id: selectedPlan.workout_id,
+                workout_day_id: selectedDay.id,
+                title: selectedPlan.b_workouts?.title || 'Plano Ativo',
+                difficulty: selectedPlan.b_workouts?.difficulty || 'Intermediário',
+                day_name: selectedDay.day_name || `Dia ${selectedDay.day_number}`,
+                estimated_duration: selectedPlan.b_workouts?.estimated_duration || 45,
+                exercise_count: mappedExercises.length
+            });
+
+            const { data: openSession } = await supabase
+                .from('b_workout_sessions')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('workout_id', selectedPlan.workout_id)
+                .eq('workout_day_id', selectedDay.id)
+                .is('ended_at', null)
+                .order('started_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (openSession?.id) {
+                const { data: logs } = await supabase
+                    .from('b_session_logs')
+                    .select('exercise_id')
+                    .eq('session_id', openSession.id)
+                    .eq('user_id', user.id);
+
+                const completedIds = new Set((logs || []).map((item) => item.exercise_id).filter(Boolean));
+                setCompletedExercises(completedIds);
+            } else {
+                setCompletedExercises(new Set());
+            }
 
         } catch (error) {
             console.error('Error loading workout data:', error);
+            window.dispatchEvent(new CustomEvent('app-toast', {
+                detail: { message: 'Erro ao carregar dados do treino.', type: 'error' }
+            }));
         } finally {
             setLoading(false);
         }
@@ -131,11 +164,7 @@ const MeuTreino = () => {
     };
 
     if (loading) {
-        return (
-            <div className="loading-container">
-                <p>Carregando seu treino...</p>
-            </div>
-        );
+        return <SkeletonMeuTreino />;
     }
 
     return (
@@ -143,21 +172,33 @@ const MeuTreino = () => {
             {/* Mini Calendar */}
             <MiniCalendar
                 completedDates={completedDates}
+                incompleteDates={incompleteDates}
                 currentDate={new Date()}
             />
 
             {/* Motivational Card */}
             <MotivationalCard
-                message="Vamos com tudo!"
-                subtitle="Hoje é treino de força para o tronco. Pronto para bater seu recorde?"
-                intensity="Alta Intensidade"
+                message={todaysWorkout ? 'Treino de hoje pronto' : 'Nenhum treino ativo'}
+                subtitle={todaysWorkout
+                    ? `${todaysWorkout.day_name} • ${todaysWorkout.title}`
+                    : 'Atribua um plano para começar e registrar sua evolução.'}
+                intensity={todaysWorkout?.difficulty || 'Sem sessão'}
             />
 
             {/* Today's Routine */}
             <div className="routine-section">
                 <div className="routine-header">
                     <h2 className="routine-title">Rotina de Hoje</h2>
-                    <button className="btn-ghost flex items-center gap-1 text-xs">
+                    <button
+                        className="btn-ghost flex items-center gap-1 text-xs"
+                        onClick={() => {
+                            if (todaysWorkout?.workout_id && todaysWorkout?.workout_day_id) {
+                                navigate(`/treino/${todaysWorkout.workout_id}/dia/${todaysWorkout.workout_day_id}`);
+                            }
+                        }}
+                        disabled={!todaysWorkout?.workout_id || !todaysWorkout?.workout_day_id}
+                        data-tooltip="Abrir sessão do dia"
+                    >
                         Ver Detalhes
                         <ChevronRight size={14} />
                     </button>
@@ -170,23 +211,27 @@ const MeuTreino = () => {
                     </span>
                     <span className="meta-item">
                         <Dumbbell size={16} />
-                        {exercises.length} Exercícios
+                        {todaysWorkout?.exercise_count ?? exercises.length} Exercícios
                     </span>
                 </div>
             </div>
 
             {/* Exercise List */}
             <div className="exercises-list">
-                {exercises.map(({ exercise, workoutExercise }) => (
-                    <ExerciseCard
-                        key={exercise.id}
-                        exercise={exercise}
-                        workoutExercise={workoutExercise}
-                        isCompleted={completedExercises.has(exercise.id)}
-                        onComplete={handleExerciseComplete}
-                        onClick={handleExerciseClick}
-                    />
-                ))}
+                {exercises.length === 0 ? (
+                    <p className="empty-workout-message">Sem exercícios para hoje.</p>
+                ) : (
+                    exercises.map(({ exercise, workoutExercise }) => (
+                        <ExerciseCard
+                            key={exercise.id}
+                            exercise={exercise}
+                            workoutExercise={workoutExercise}
+                            isCompleted={completedExercises.has(exercise.id)}
+                            onComplete={handleExerciseComplete}
+                            onClick={handleExerciseClick}
+                        />
+                    ))
+                )}
             </div>
 
             {/* Exercise Detail Modal */}

@@ -54,6 +54,23 @@ O padrão moderno do governo utiliza fontes sem serifa, limpas e legíveis.
 *   **Estilo**: Sólido (Primary Color) ou Branco com borda inferior.
 *   **Logo**: Alinhado à esquerda.
 
+### Tooltips em Botões (Obrigatório)
+*   **Aplicação**: botões e elementos interativos com tooltip devem seguir padrão único.
+*   **Fundo**: branco sólido (`#FFFFFF`).
+*   **Texto**: escuro com alto contraste (`--color-text-main`).
+*   **Borda/Sombra**: borda sutil (`#dbe3ee`) + sombra leve (`shadow-sm`/`shadow-md`).
+*   **Acessibilidade**: tooltip deve aparecer em `hover` e também em foco por teclado (`:focus-visible`).
+
+### Fluxo de Saída / Cancelamento (Obrigatório)
+*   **Escape (`ESC`)**: Toda tela de criação/edição e todo modal deve permitir fechar/cancelar via tecla `ESC`.
+*   **Botão Voltar (dispositivo/browser)**: Fluxos de edição devem respeitar o botão de voltar nativo (Android/browser), levando o usuário ao contexto anterior sem travar navegação.
+*   **Ação Visível**: Sempre exibir ação explícita de `Cancelar`/`Voltar` na interface.
+
+### Estados de Carregamento (Skeleton)
+*   **Skeleton obrigatório** em telas de listagem/detalhe com carregamento remoto.
+*   **Estilo**: placeholders com shimmer suave, bordas arredondadas moderadas (`rounded-md`/`rounded-lg`), mantendo hierarquia visual da tela real.
+*   **Comportamento**: remover skeleton assim que os dados chegarem; não manter animações decorativas contínuas fora de estado de loading.
+
 ## 4. Como Aplicar (Tailwind Configuration)
 
 Para implementar este estilo, atualize o `tailwind.config.js` ou as variáveis CSS em `index.css`:
