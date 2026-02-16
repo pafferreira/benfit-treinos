@@ -238,42 +238,53 @@ const ActivityHistory = ({ isOpen, onClose, userId }) => {
             <div
                 key={session.id}
                 className={`activity-session-card ${isExpanded ? 'expanded' : ''}`}
-                onClick={() => toggleExpand(session.id)}
             >
-                <div className="session-card-header">
-                    <div className="session-card-info">
-                        <h4 className="session-workout-title">
-                            {workout?.title || 'Treino'}
-                        </h4>
-                        {day?.day_name && (
-                            <div className="session-day-name">{day.day_name}</div>
-                        )}
-                        <div className="session-card-meta">
-                            <span className="session-meta-item">
-                                <Clock size={12} />
-                                {formatTime(session.started_at)}
-                            </span>
-                            {duration && (
-                                <span className="session-meta-item">
-                                    <Timer size={12} />
-                                    {duration}
-                                </span>
-                            )}
-                            {session.calories_burned > 0 && (
-                                <span className="session-meta-item">
-                                    <Flame size={12} />
-                                    {session.calories_burned} kcal
-                                </span>
-                            )}
-                        </div>
+                <div className="session-card-rows">
+                    {/* Linha 1: Nome do Plano */}
+                    <div className="session-row-plan">
+                        {session.plans?.b_workouts?.title ? `Plano: ${session.plans.b_workouts.title}` : 'Treino Avulso'}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {/* Linha 2: Nome do Treino */}
+                    <div className="session-row-workout">
+                        {workout?.title || 'Treino sem título'}
+                    </div>
+
+                    {/* Linha 3: Detalhes */}
+                    <div className="session-row-details">
+                        <span className="detail-item">
+                            <Calendar size={11} />
+                            {formatDate(session.started_at)}
+                        </span>
+                        {duration && (
+                            <span className="detail-item">
+                                <Clock size={11} />
+                                {duration}
+                            </span>
+                        )}
+                        {session.calories_burned > 0 && (
+                            <span className="detail-item">
+                                <Flame size={11} />
+                                {session.calories_burned} kcal
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Linha 4: Botão de Status e Ação */}
+                    <div className="session-row-action">
                         <span className={`session-status-badge ${isActive ? 'status-em_andamento' : 'status-concluido'}`}>
                             {isActive ? 'Em Andamento' : 'Concluído'}
                         </span>
-                        <button className={`session-expand-btn ${isExpanded ? 'rotated' : ''}`}>
-                            <ChevronDown size={14} />
+
+                        <button
+                            className="session-view-exercises-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(session.id);
+                            }}
+                        >
+                            Ver Exercícios
+                            <ChevronDown size={14} className={`chevron-icon ${isExpanded ? 'rotated' : ''}`} />
                         </button>
                     </div>
                 </div>

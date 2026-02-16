@@ -176,7 +176,7 @@
     position: fixed;
     bottom: 0;
     left: 0;
-    right: 0;
+    width: 100%;
     background-color: #fff;
     border-top: 1px solid #dbe3ee;
     padding: 1rem 1.5rem;
@@ -185,6 +185,9 @@
     justify-content: space-between;
     z-index: 100;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+    /* Ensure it spans full viewport width */
+    max-width: 100vw;
+    box-sizing: border-box;
 }
 
 .day-progress-summary {
@@ -214,21 +217,28 @@
 }
 
 /* Floating Timer Button */
+
+/* Timer Button Centered in Footer */
 .day-floating-timer-btn {
     position: fixed;
-    bottom: 6rem;
-    right: 1.5rem;
-    width: 3.5rem;
-    height: 3.5rem;
+    /* Center horizontally */
+    left: 50%;
+    transform: translateX(-50%);
+    /* Position smoothly over/in the footer */
+    bottom: 0.8rem;
+    width: 3.8rem;
+    height: 3.8rem;
     border-radius: 50%;
     background-color: #fff;
-    border: 1px solid #dbe3ee;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    border: 4px solid #f8fafc;
+    /* Create a 'cutout' effect border */
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05), 0 4px 10px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--color-text-main);
-    z-index: 90;
+    z-index: 102;
+    /* Above footer */
     cursor: pointer;
     transition: transform 0.2s, background-color 0.2s;
 }
@@ -236,32 +246,23 @@
 .day-floating-timer-btn.active {
     background-color: var(--color-primary);
     color: #fff;
-    border-color: var(--color-primary);
+    border-color: #f8fafc;
 }
 
 .day-floating-timer-btn:hover {
-    transform: scale(1.05);
+    transform: translateX(-50%) scale(1.05);
 }
 
-/* Rest Timer Overlay */
 .day-rest-timer-overlay {
     position: fixed;
-    bottom: 10.5rem;
-    right: 1.5rem;
-    z-index: 95;
+    bottom: 5.5rem;
+    /* Above the centered button */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 105;
     animation: slideUpFade 0.3s ease-out;
-}
-
-@keyframes slideUpFade {
-    from {
-        opacity: 0;
-        transform: translateY(1rem);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    width: 90%;
+    max-width: 20rem;
 }
 
 .day-rest-timer-wrapper {
@@ -269,20 +270,20 @@
     border: 1px solid #dbe3ee;
     padding: 1rem;
     border-radius: var(--radius-xl);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-    width: 18rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    width: 100%;
     position: relative;
+    margin: 0 auto;
 }
 
-.day-close-timer-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #9ca3af;
-    padding: 0.2rem;
+/* Adjust finish button to not overlap center */
+.finish-session-btn {
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-lg);
+    font-size: 0.85rem;
+    font-weight: 700;
+    /* Ensure it doesn't get too close to the center button */
+    margin-left: 1rem;
 }
 
 /* Finish Modal Content */

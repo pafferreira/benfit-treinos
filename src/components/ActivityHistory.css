@@ -217,8 +217,10 @@
     min-width: 0;
 }
 
+/* ... */
+
 .session-workout-title {
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--color-text-light);
     margin: 0;
@@ -227,43 +229,24 @@
     text-overflow: ellipsis;
 }
 
-.dark .session-workout-title {
-    color: var(--color-text-dark);
-}
-
-.session-day-name {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--color-subtext-light);
-    margin-top: 0.15rem;
-}
-
-.session-card-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-    flex-wrap: wrap;
-}
+/* ... */
 
 .session-meta-item {
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     font-weight: 500;
     color: var(--color-subtext-light);
 }
 
-.session-meta-item svg {
-    opacity: 0.7;
-}
+/* ... */
 
 /* Status Badge */
 .session-status-badge {
     padding: 0.2rem 0.6rem;
     border-radius: 999px;
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -495,4 +478,87 @@
     .session-card-header {
         flex-wrap: wrap;
     }
+}
+
+/* New 4-Row Layout Styles for Activity Cards */
+.session-card-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.session-row-plan {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-subtext-light);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.session-row-workout {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--color-text-light);
+    line-height: 1.25;
+}
+
+.dark .session-row-workout {
+    color: var(--color-text-dark);
+}
+
+.session-row-details {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.15rem;
+    color: var(--color-subtext-light);
+    flex-wrap: wrap;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.session-row-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.dark .session-row-action {
+    border-color: #374151;
+}
+
+.session-view-exercises-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: var(--color-primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.session-view-exercises-btn:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.chevron-icon {
+    transition: transform 0.3s;
+}
+
+.chevron-icon.rotated {
+    transform: rotate(180deg);
 }

@@ -188,6 +188,7 @@ const DashboardLayoutContent = () => {
 
                 {/* Bottom Navigation */}
                 <nav className="bottom-nav">
+                    <span className="app-version">v1.2.6</span>
                     <button
                         className={`nav-btn ${isActive('/') ? 'active' : ''}`}
                         onClick={() => handleNav('/')}
@@ -215,7 +216,7 @@ const DashboardLayoutContent = () => {
                             }
                         }}
                         data-tooltip={action?.label || "Coach IA"}
-                        style={{ display: action?.visible === false ? 'none' : 'flex' }}
+                        style={{ display: location.pathname === '/' ? 'flex' : 'none' }}
                     >
                         {action?.icon ? action.icon : <Play size={28} fill="currentColor" />}
                     </button>

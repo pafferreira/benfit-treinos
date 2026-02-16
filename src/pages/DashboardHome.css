@@ -76,7 +76,7 @@
 }
 
 .welcome-title {
-    font-size: 1.25rem;
+    font-size: 1.4rem;
     font-weight: 800;
     line-height: 1.2;
     margin: 0;
@@ -193,18 +193,14 @@
 }
 
 .qs-value {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     font-weight: 800;
     color: var(--color-text-light);
     line-height: 1;
 }
 
-.dark .qs-value {
-    color: var(--color-text-dark);
-}
-
 .qs-label {
-    font-size: 0.625rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: var(--color-subtext-light);
     text-transform: uppercase;
@@ -294,8 +290,8 @@
 
 /* Cover image */
 .dpc-cover {
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
     border-radius: var(--radius-xl);
     overflow: hidden;
     flex-shrink: 0;
@@ -328,28 +324,6 @@
     min-width: 0;
 }
 
-.dpc-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.5rem;
-}
-
-.dpc-title {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--color-text-light);
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-}
-
-.dark .dpc-title {
-    color: var(--color-text-dark);
-}
-
 /* Status badges */
 .dpc-status {
     padding: 0.15rem 0.5rem;
@@ -360,6 +334,7 @@
     letter-spacing: 0.03em;
     white-space: nowrap;
     flex-shrink: 0;
+    display: inline-block;
 }
 
 .dpc-status.status-atribuido {
@@ -389,11 +364,24 @@
     flex-wrap: wrap;
 }
 
+.dpc-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+/* ... */
+
 .dpc-meta-tag {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--color-subtext-light);
 }
@@ -537,4 +525,26 @@
     .quick-stat-item {
         gap: 0.4rem;
     }
+}
+
+/* Fix for Card Layout with Larger Fonts */
+.dpc-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+}
+
+.dpc-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    margin: 0;
+    line-height: 1.3;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
