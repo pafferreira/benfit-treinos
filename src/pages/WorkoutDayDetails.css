@@ -3,21 +3,28 @@
 .workout-day-screen {
     width: 100%;
     max-width: 60rem;
-    margin: 0 auto;
-    padding-bottom: 5rem;
+    margin: -6rem auto 0;
+    padding-top: 6rem;
     animation: fadeIn 0.4s ease-out;
 }
 
 .workout-day-top {
+    position: sticky;
+    top: -6rem;
+    z-index: 101;
+    background-color: #fff;
+    border-bottom: 1px solid #e5e7eb;
     display: flex;
     align-items: center;
-    gap: 0.8rem;
-    margin-bottom: 1.25rem;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+    margin-bottom: 0.75rem;
+    margin-top: 0;
 }
 
 .day-back-btn {
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2rem;
+    height: 2rem;
     border-radius: var(--radius-lg);
     border: 1px solid #dbe3ee;
     background: #fff;
@@ -48,7 +55,7 @@
 }
 
 .workout-day-subtitle {
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     color: var(--color-subtext-light);
     margin: 0.15rem 0 0;
     font-weight: 600;
@@ -58,7 +65,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .day-stat-badge {
@@ -69,21 +76,22 @@
     background-color: #fff;
     border: 1px solid #e0e7f0;
     border-radius: var(--radius-lg);
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 700;
     color: #5d6f88;
     box-shadow: var(--shadow-sm);
+    word-spacing: 0.15rem;
 }
 
 .day-feeling-card {
     background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
     border: 1px solid #dbe3ee;
     border-radius: var(--radius-xl);
-    padding: 0.8rem 1rem;
+    padding: 0.6rem 0.8rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
     box-shadow: var(--shadow-sm);
 }
 

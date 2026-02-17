@@ -108,7 +108,15 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         e.preventDefault();
         // Filter empty instructions
         const cleanInstructions = formData.instructions.filter(i => i.trim() !== '');
-        onSave({ ...formData, instructions: cleanInstructions });
+
+        // Use generic kettlebell image as default if none selected
+        const finalData = {
+            ...formData,
+            instructions: cleanInstructions,
+            image_url: formData.image_url || '/exercicios/exerc_generico_3.png'
+        };
+
+        onSave(finalData);
     };
 
     const muscleGroups = [
@@ -120,7 +128,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
     ];
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={readOnly ? 'Detalhes do Exercício' : (exercise ? 'Editar Exercício' : 'Novo Exercício')} size="full">
+        <Modal isOpen={isOpen} onClose={onClose} title={readOnly ? 'Detalhes do Exercício' : (exercise?.id ? 'Editar Exercício' : 'Novo Exercício')} size="full">
             <form onSubmit={!readOnly ? handleSubmit : (e) => e.preventDefault()} className="flex flex-col gap-6">
 
                 {/* Top Section: Main Info & Visuals in a Grid */}
@@ -328,19 +336,26 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                     {loadingAvatars ? (
                                         <div className="text-center py-4 text-xs text-gray-400">Carregando...</div>
                                     ) : (
-                                        <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
-                                            {avatars.filter(a => a.category === 'exercicio').map((avatar) => (
+                                        <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
+                                            {avatars.filter(a => a.category === 'exercicio' || !a.category).map((avatar) => (
                                                 <div
                                                     key={avatar.id}
                                                     onClick={() => {
                                                         setFormData(prev => ({ ...prev, image_url: avatar.public_url }));
                                                         setShowAvatarSelector(false);
                                                     }}
-                                                    className={`cursor-pointer aspect-square rounded-lg overflow-hidden border-2 transition-all ${formData.image_url === avatar.public_url ? 'border-blue-500 ring-2 ring-blue-200' : 'border-transparent hover:border-gray-300'}`}
+                                                    className={`group relative cursor-pointer aspect-video rounded-xl overflow-hidden border-2 transition-all shadow-sm hover:shadow-md ${formData.image_url === avatar.public_url ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-100 hover:border-blue-300'}`}
                                                 >
-                                                    <img src={avatar.public_url} alt={avatar.name} className="w-full h-full object-cover" />
+                                                    <img src={avatar.public_url} alt={avatar.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                                                 </div>
                                             ))}
+                                            {/* Fallback/Generic Options if needed, or if empty */}
+                                            {avatars.filter(a => a.category === 'exercicio').length === 0 && (
+                                                <div className="col-span-2 text-center py-4 text-xs text-gray-400">
+                                                    Nenhuma imagem encontrada na galeria.
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

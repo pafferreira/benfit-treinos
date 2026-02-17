@@ -816,7 +816,11 @@ export const supabaseHelpers = {
                 { id: 'ex1', public_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', name: 'Supino', category: 'exercicio' },
                 { id: 'ex2', public_url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400', name: 'Agachamento', category: 'exercicio' },
                 { id: 'ex3', public_url: 'https://images.unsplash.com/photo-1538805060518-7beebe9d1798?w=400', name: 'Cardio', category: 'exercicio' },
-                { id: 'ex4', public_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400', name: 'Halteres', category: 'exercicio' }
+                { id: 'ex4', public_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400', name: 'Halteres', category: 'exercicio' },
+                // Generic 3D Images
+                { id: 'gen1', public_url: '/exercicios/exerc_generico_1.png', name: 'Barra', category: 'exercicio' },
+                { id: 'gen2', public_url: '/exercicios/exerc_generico_2.png', name: 'Halteres 3D', category: 'exercicio' },
+                { id: 'gen3', public_url: '/exercicios/exerc_generico_3.png', name: 'Kettlebell', category: 'exercicio' }
             ];
         }
 
@@ -833,7 +837,11 @@ export const supabaseHelpers = {
                 { id: 'ex1', public_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', name: 'Supino', category: 'exercicio' },
                 { id: 'ex2', public_url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400', name: 'Agachamento', category: 'exercicio' },
                 { id: 'ex3', public_url: 'https://images.unsplash.com/photo-1538805060518-7beebe9d1798?w=400', name: 'Cardio', category: 'exercicio' },
-                { id: 'ex4', public_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400', name: 'Halteres', category: 'exercicio' }
+                { id: 'ex4', public_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400', name: 'Halteres', category: 'exercicio' },
+                // Generic 3D Images
+                { id: 'gen1', public_url: '/exercicios/exerc_generico_1.png', name: 'Barra', category: 'exercicio' },
+                { id: 'gen2', public_url: '/exercicios/exerc_generico_2.png', name: 'Halteres 3D', category: 'exercicio' },
+                { id: 'gen3', public_url: '/exercicios/exerc_generico_3.png', name: 'Kettlebell', category: 'exercicio' }
             ];
         }
 

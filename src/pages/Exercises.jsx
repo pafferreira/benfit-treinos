@@ -238,6 +238,8 @@ const Exercises = () => {
                                     </button>
                                 </Tooltip>
                             </div>
+
+
                         </div>
 
                         {/* Row 2: Filters Dropdowns */}

@@ -1,0 +1,10 @@
+.activity-history-page {
+    width: 100%;
+    padding-bottom: 2rem;
+    height: 100%;
+}
+
+/* Override or extend specific styles if needed when not in modal */
+.activity-history-page .activity-history {
+    gap: 1.5rem;
+}

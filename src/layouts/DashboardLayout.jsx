@@ -216,7 +216,7 @@ const DashboardLayoutContent = () => {
                             }
                         }}
                         data-tooltip={action?.label || "Coach IA"}
-                        style={{ display: location.pathname === '/' ? 'flex' : 'none' }}
+                        style={{ display: (location.pathname === '/' || action?.visible) ? 'flex' : 'none' }}
                     >
                         {action?.icon ? action.icon : <Play size={28} fill="currentColor" />}
                     </button>

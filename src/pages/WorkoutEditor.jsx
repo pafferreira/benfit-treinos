@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, ChevronDown, Plus, Trash2, X } from 'lucide-react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { supabase, supabaseHelpers } from '../lib/supabase';
+import SearchableExerciseSelect from '../components/SearchableExerciseSelect';
+import ExerciseModal from '../components/ExerciseModal';
 import './WorkoutEditor.css';
 
 const EMPTY_EXERCISE = {
@@ -37,12 +39,18 @@ const WorkoutEditor = () => {
     const { id } = useParams();
     const isEditMode = Boolean(id);
 
-    const { exercises } = useExercises();
+    const { exercises, reload: reloadExercises } = useExercises();
     const { isAdmin, isPersonal, loading: roleLoading } = useUserRole();
 
     const [loading, setLoading] = useState(isEditMode);
     const [saving, setSaving] = useState(false);
     const [submitError, setSubmitError] = useState('');
+
+    // Exercise Modal State
+    const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
+    const [pendingNewExerciseName, setPendingNewExerciseName] = useState('');
+    const [pendingExerciseLocation, setPendingExerciseLocation] = useState(null);
+    const [isCreatingExercise, setIsCreatingExercise] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -242,6 +250,36 @@ const WorkoutEditor = () => {
         };
     };
 
+    const handleCreateNewExercise = (name, dayIndex, exerciseIndex) => {
+        setPendingNewExerciseName(name);
+        setPendingExerciseLocation({ dayIndex, exerciseIndex });
+        setExerciseModalOpen(true);
+    };
+
+    const handleSaveNewExercise = async (exerciseData) => {
+        try {
+            setIsCreatingExercise(true);
+            const newExercise = await supabaseHelpers.createExercise(exerciseData);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Exercício criado com sucesso!', type: 'success' } }));
+
+            await reloadExercises();
+
+            if (pendingExerciseLocation) {
+                const { dayIndex, exerciseIndex } = pendingExerciseLocation;
+                updateExercise(dayIndex, exerciseIndex, 'exercise_id', newExercise.id);
+            }
+
+            setExerciseModalOpen(false);
+            setPendingExerciseLocation(null);
+            setPendingNewExerciseName('');
+        } catch (err) {
+            console.error('Erro ao criar exercício:', err);
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Erro ao criar exercício: ${err.message}`, type: 'error' } }));
+        } finally {
+            setIsCreatingExercise(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitError('');
@@ -432,17 +470,12 @@ const WorkoutEditor = () => {
                                                         <div className="flex gap-3 mb-3 items-end">
                                                             <div className="exercise-field flex-1">
                                                                 <label className="mb-1 block">Exercício</label>
-                                                                <select
+                                                                <SearchableExerciseSelect
+                                                                    exercises={exercises}
                                                                     value={ex.exercise_id}
-                                                                    onChange={(e) => updateExercise(dayIndex, exIndex, 'exercise_id', e.target.value)}
-                                                                    className="exercise-select"
-                                                                    required
-                                                                >
-                                                                    <option value="">Selecione...</option>
-                                                                    {exercises.map((opt) => (
-                                                                        <option key={opt.id} value={opt.id}>{opt.name}</option>
-                                                                    ))}
-                                                                </select>
+                                                                    onChange={(newId) => updateExercise(dayIndex, exIndex, 'exercise_id', newId)}
+                                                                    onCreateNew={(name) => handleCreateNewExercise(name, dayIndex, exIndex)}
+                                                                />
                                                             </div>
                                                             <button
                                                                 type="button"
@@ -556,6 +589,14 @@ const WorkoutEditor = () => {
                     </form>
                 )}
             </div>
+
+            <ExerciseModal
+                isOpen={exerciseModalOpen}
+                onClose={() => setExerciseModalOpen(false)}
+                onSave={handleSaveNewExercise}
+                exercise={pendingNewExerciseName ? { name: pendingNewExerciseName } : null}
+                isLoading={isCreatingExercise}
+            />
         </div>
     );
 };

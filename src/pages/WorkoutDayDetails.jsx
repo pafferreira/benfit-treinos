@@ -73,6 +73,68 @@ const WorkoutDayDetails = () => {
     const [finishingSession, setFinishingSession] = useState(false);
     const [lastFeelingLog, setLastFeelingLog] = useState(null);
     const finishModalHistoryRef = useRef(false);
+    const lastScrollY = useRef(0);
+
+    // Auto-hide header and footer on scroll
+    useEffect(() => {
+        const scrollContainer = document.querySelector('.layout-content');
+        if (!scrollContainer) {
+            console.error('Scroll container .layout-content not found');
+            return;
+        }
+
+        const handleScroll = () => {
+            const currentScrollY = scrollContainer.scrollTop;
+            const scrollingDown = currentScrollY > lastScrollY.current;
+            const scrollingUp = currentScrollY < lastScrollY.current;
+
+            const header = document.querySelector('.layout-header');
+            const footer = document.querySelector('.bottom-nav');
+
+            console.log('Scroll Y:', currentScrollY, 'Down:', scrollingDown, 'Up:', scrollingUp);
+
+            // Only hide/show if scrolled more than 50px
+            if (currentScrollY > 50) {
+                if (scrollingDown) {
+                    console.log('Hiding header and footer');
+                    if (header && !header.classList.contains('header-hidden')) {
+                        header.classList.add('header-hidden');
+                    }
+                    if (footer && !footer.classList.contains('nav-hidden')) {
+                        footer.classList.add('nav-hidden');
+                    }
+                } else if (scrollingUp) {
+                    console.log('Showing header and footer');
+                    if (header && header.classList.contains('header-hidden')) {
+                        header.classList.remove('header-hidden');
+                    }
+                    if (footer && footer.classList.contains('nav-hidden')) {
+                        footer.classList.remove('nav-hidden');
+                    }
+                }
+            } else {
+                // Always show when near top
+                if (header && header.classList.contains('header-hidden')) {
+                    header.classList.remove('header-hidden');
+                }
+                if (footer && footer.classList.contains('nav-hidden')) {
+                    footer.classList.remove('nav-hidden');
+                }
+            }
+
+            lastScrollY.current = currentScrollY;
+        };
+
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            scrollContainer.removeEventListener('scroll', handleScroll);
+            // Clean up classes on unmount
+            const header = document.querySelector('.layout-header');
+            const footer = document.querySelector('.bottom-nav');
+            if (header) header.classList.remove('header-hidden');
+            if (footer) footer.classList.remove('nav-hidden');
+        };
+    }, []);
 
     useEffect(() => {
         const handlePopState = () => {

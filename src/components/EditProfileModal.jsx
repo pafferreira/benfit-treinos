@@ -54,7 +54,7 @@ const EditProfileModal = ({ isOpen, onClose, onSave, user, isLoading = false }) 
                 role: user.role || 'user',
                 height_cm: user.height_cm || '',
                 weight_kg: user.weight_kg || '',
-                avatar_url: user.avatar_url || '',
+                avatar_url: user.avatar_url || '/Elifit_Coach.png',
                 active: user.active !== false
             });
         }

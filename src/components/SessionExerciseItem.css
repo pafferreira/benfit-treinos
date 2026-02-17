@@ -91,7 +91,7 @@
 /* ... */
 
 .session-exercise-name {
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     font-weight: 800;
     color: var(--color-text-main);
     margin: 0;
@@ -190,16 +190,19 @@
 }
 
 .session-meta-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.5rem 0.75rem;
-    background: #f4f8fd;
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
     border-radius: var(--radius-md);
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--color-subtext-light);
-    border: 1px solid #dbe3ee;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0369a1;
+}
+
+.session-meta-badge svg {
+    vertical-align: middle;
+    margin-right: 0.3rem;
 }
 
 /* ... */
@@ -219,16 +222,34 @@
 }
 
 .session-detail-section strong {
-    font-size: 1rem;
+    font-size: 1.15rem;
     color: var(--color-text-main);
     font-weight: 800;
 }
 
 .session-detail-section p,
 .session-detail-section li {
-    font-size: 1rem;
+    font-size: 1.15rem;
     color: var(--color-subtext-light);
     line-height: 1.6;
+}
+
+.session-detail-tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.session-detail-tag {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    border-radius: var(--radius-md);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0369a1;
 }
 
 /* ... */

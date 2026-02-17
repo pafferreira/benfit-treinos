@@ -61,13 +61,7 @@ const SessionExerciseItem = ({
     const formatRestTime = (seconds) => {
         const val = parseInt(seconds, 10);
         if (isNaN(val) || val <= 0) return '-';
-
-        const mins = Math.floor(val / 60);
-        const secs = val % 60;
-        if (mins > 0) {
-            return `${mins}min ${secs}s`;
-        }
-        return `${secs}s`;
+        return `${val}s`;
     };
 
     // Safe getters

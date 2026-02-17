@@ -446,21 +446,97 @@ const Profile = () => {
                 title="Minhas Metas"
                 size="large"
             >
-                {/* Goals content... */}
-                {goals.map(goal => (
-                    <div key={goal.id} className="goal-card">
-                        <div>
-                            <h4 className="goal-title">{goal.title}</h4>
-                            <p className="goal-desc">{goal.description}</p>
-                            {goal.deadline && (
-                                <span className="goal-meta">Meta até: {new Date(goal.deadline).toLocaleDateString()}</span>
-                            )}
+                {!isAddingGoal && (
+                    <button
+                        onClick={() => setIsAddingGoal(true)}
+                        className="w-full mb-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 font-medium hover:border-blue-500 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <Plus size={20} />
+                        Adicionar Nova Meta
+                    </button>
+                )}
+
+                {isAddingGoal && (
+                    <div className="bg-gray-50 p-4 rounded-xl mb-6 border border-gray-200 animate-in fade-in slide-in-from-top-2">
+                        <h4 className="font-semibold mb-3 text-gray-700">Nova Meta</h4>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1">Título</label>
+                                <input
+                                    type="text"
+                                    value={newGoal.title}
+                                    onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                                    placeholder="Ex: Correr 5km"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none bg-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1">Descrição</label>
+                                <textarea
+                                    value={newGoal.description}
+                                    onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+                                    placeholder="Detalhes sobre a meta..."
+                                    rows={2}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none resize-none bg-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1">Prazo</label>
+                                <input
+                                    type="date"
+                                    value={newGoal.deadline}
+                                    onChange={(e) => setNewGoal({ ...newGoal, deadline: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none bg-white"
+                                />
+                            </div>
+                            <div className="flex gap-2 pt-2 justify-end">
+                                <button
+                                    onClick={() => setIsAddingGoal(false)}
+                                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 bg-white"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleAddGoal}
+                                    className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors shadow-sm font-medium"
+                                >
+                                    Salvar Meta
+                                </button>
+                            </div>
                         </div>
-                        <button onClick={() => handleDeleteGoalRequest(goal.id)} className="close-btn">
-                            <Trash2 size={18} />
-                        </button>
                     </div>
-                ))}
+                )}
+
+                <div className="space-y-3">
+                    {goals.length === 0 && !isAddingGoal && (
+                        <div className="text-center py-8 text-gray-400">
+                            <Award size={48} className="mx-auto mb-2 opacity-20" />
+                            <p className="text-sm">Nenhuma meta definida ainda.</p>
+                        </div>
+                    )}
+
+                    {goals.map(goal => (
+                        <div key={goal.id} className="goal-card relative group hover:shadow-md transition-all border border-transparent hover:border-gray-200">
+                            <div>
+                                <h4 className="goal-title text-gray-800">{goal.title}</h4>
+                                <p className="goal-desc text-gray-500 text-sm mt-1">{goal.description}</p>
+                                {goal.deadline && (
+                                    <div className="flex items-center gap-1 mt-2 text-xs text-blue-600 font-medium">
+                                        <Award size={12} />
+                                        <span>Meta até: {new Date(goal.deadline).toLocaleDateString()}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => handleDeleteGoalRequest(goal.id)}
+                                className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                title="Excluir Meta"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
             </Modal>
 
             {/* MODAL: AVATAR MANAGER */}

@@ -149,24 +149,17 @@ const SessionExercises = ({ sessionId }) => {
                             {group.exercise?.name || 'Exercício'}
                         </div>
                         <div className="exercise-log-details">
-                            <span className="exercise-log-detail-tag">
-                                <Zap size={10} />
-                                {group.sets.length} {group.sets.length === 1 ? 'série' : 'séries'}
-                            </span>
                             {group.exercise?.muscle_group && (
                                 <span className="exercise-log-detail-tag">
                                     {group.exercise.muscle_group}
                                 </span>
                             )}
-                            {group.sets.some(s => s.weight_kg) && (
+                            {group.exercise?.equipment && (
                                 <span className="exercise-log-detail-tag">
-                                    {Math.max(...group.sets.map(s => s.weight_kg || 0))}kg
+                                    {group.exercise.equipment}
                                 </span>
                             )}
                         </div>
-                    </div>
-                    <div className="exercise-log-check">
-                        <Check size={12} />
                     </div>
                 </div>
             ))}
@@ -177,18 +170,32 @@ const SessionExercises = ({ sessionId }) => {
 // ==========================================
 // Componente Principal
 // ==========================================
-const ActivityHistory = ({ isOpen, onClose, userId }) => {
+const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }) => {
     const [loading, setLoading] = useState(true);
     const [sessions, setSessions] = useState([]);
     const [plans, setPlans] = useState([]);
     const [activeTab, setActiveTab] = useState('sessoes');
     const [expandedSession, setExpandedSession] = useState(null);
+    const [currentUserId, setCurrentUserId] = useState(propUserId);
+
+    useEffect(() => {
+        const resolveUser = async () => {
+            if (propUserId) {
+                setCurrentUserId(propUserId);
+            } else {
+                const user = await supabaseHelpers.getCurrentUser();
+                if (user) setCurrentUserId(user.id);
+            }
+        };
+        resolveUser();
+    }, [propUserId]);
+
 
     const fetchHistory = useCallback(async () => {
-        if (!userId) return;
+        if (!currentUserId) return;
         try {
             setLoading(true);
-            const { sessions: s, plans: p } = await supabaseHelpers.getUserActivityHistory(userId);
+            const { sessions: s, plans: p } = await supabaseHelpers.getUserActivityHistory(currentUserId);
             setSessions(s);
             setPlans(p);
         } catch (error) {
@@ -196,13 +203,13 @@ const ActivityHistory = ({ isOpen, onClose, userId }) => {
         } finally {
             setLoading(false);
         }
-    }, [userId]);
+    }, [currentUserId]);
 
     useEffect(() => {
-        if (isOpen && userId) {
+        if ((isOpen || isPage) && currentUserId) {
             fetchHistory();
         }
-    }, [isOpen, userId, fetchHistory]);
+    }, [isOpen, isPage, currentUserId, fetchHistory]);
 
     // Stats computados
     const totalSessions = sessions.length;
@@ -283,7 +290,7 @@ const ActivityHistory = ({ isOpen, onClose, userId }) => {
                                 toggleExpand(session.id);
                             }}
                         >
-                            Ver Exercícios
+                            Exercícios
                             <ChevronDown size={14} className={`chevron-icon ${isExpanded ? 'rotated' : ''}`} />
                         </button>
                     </div>
@@ -302,38 +309,36 @@ const ActivityHistory = ({ isOpen, onClose, userId }) => {
 
         return (
             <div key={plan.id} className="activity-session-card">
-                <div className="session-card-header">
-                    <div className="session-card-info">
-                        <h4 className="session-workout-title">
-                            {workout?.title || 'Plano'}
-                        </h4>
-                        <div className="session-card-meta">
+                <div className="plan-card-column">
+                    <h4 className="plan-card-title">
+                        {workout?.title || 'Plano sem título'}
+                    </h4>
+
+                    <div className="plan-card-dates">
+                        <span className="session-meta-item">
+                            Selecionado em: {formatDate(plan.created_at)}
+                        </span>
+                        {plan.started_at && (
                             <span className="session-meta-item">
-                                <Calendar size={12} />
-                                Atribuído em {formatDate(plan.created_at)}
+                                Iniciado em: {formatDate(plan.started_at)}
                             </span>
-                            {plan.started_at && (
-                                <span className="session-meta-item">
-                                    <Play size={12} />
-                                    Iniciado em {formatDate(plan.started_at)}
-                                </span>
-                            )}
-                            {plan.ended_at && (
-                                <span className="session-meta-item">
-                                    <Check size={12} />
-                                    Finalizado em {formatDate(plan.ended_at)}
-                                </span>
-                            )}
-                        </div>
-                        {plan.notes && (
-                            <div className="session-day-name" style={{ marginTop: '0.35rem', fontStyle: 'italic' }}>
-                                "{plan.notes}"
-                            </div>
+                        )}
+                        {plan.ended_at && (
+                            <span className="session-meta-item">
+                                Finalizado em: {formatDate(plan.ended_at)}
+                            </span>
                         )}
                     </div>
-                    <span className={`session-status-badge ${statusClass}`}>
+
+                    <span className={`session-status-badge ${statusClass} plan-card-status`}>
                         {STATUS_LABELS[plan.status] || plan.status}
                     </span>
+
+                    {plan.notes && (
+                        <div className="session-day-name" style={{ marginTop: '0.2rem', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                            "{plan.notes}"
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -342,6 +347,96 @@ const ActivityHistory = ({ isOpen, onClose, userId }) => {
     const currentItems = activeTab === 'sessoes' ? sessionGroups : planGroups;
     const hasItems = activeTab === 'sessoes' ? sessions.length > 0 : plans.length > 0;
 
+    const Content = (
+        <div className="activity-history">
+            {/* Stats Bar */}
+            <div className="activity-stats-bar">
+                <div className="activity-stat-card">
+                    <div className="stat-icon">
+                        <Activity size={16} />
+                    </div>
+                    <span className="stat-value">{totalSessions}</span>
+                    <span className="stat-label">Sessões</span>
+                </div>
+                <div className="activity-stat-card">
+                    <div className="stat-icon">
+                        <TrendingUp size={16} />
+                    </div>
+                    <span className="stat-value">{completedSessions}</span>
+                    <span className="stat-label">Concluídas</span>
+                </div>
+                <div className="activity-stat-card">
+                    <div className="stat-icon">
+                        <Flame size={16} />
+                    </div>
+                    <span className="stat-value">{totalCalories}</span>
+                    <span className="stat-label">Calorias</span>
+                </div>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="activity-filter-tabs">
+                <button
+                    className={`activity-filter-tab ${activeTab === 'sessoes' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('sessoes')}
+                >
+                    <Activity size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
+                    Sessões ({sessions.length})
+                </button>
+                <button
+                    className={`activity-filter-tab ${activeTab === 'planos' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('planos')}
+                >
+                    <Calendar size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
+                    Planos ({plans.length})
+                </button>
+            </div>
+
+            {/* Content Body */}
+            {loading ? (
+                <div className="activity-empty">
+                    <div className="exercises-loading">
+                        <div className="spinner-small" />
+                        <span>Carregando histórico...</span>
+                    </div>
+                </div>
+            ) : !hasItems ? (
+                <div className="activity-empty">
+                    <div className="activity-empty-icon">
+                        <Activity size={28} />
+                    </div>
+                    <h4>
+                        {activeTab === 'sessoes'
+                            ? 'Nenhuma sessão registrada'
+                            : 'Nenhum plano atribuído'}
+                    </h4>
+                    <p>
+                        {activeTab === 'sessoes'
+                            ? 'Comece um treino para registrar suas atividades aqui.'
+                            : 'Atribua um plano de treino para acompanhar seu progresso.'}
+                    </p>
+                </div>
+            ) : (
+                <div className="activity-timeline">
+                    {Object.entries(currentItems).map(([dateLabel, items]) => (
+                        <div key={dateLabel} className="activity-date-group">
+                            <div className="activity-date-label">{dateLabel}</div>
+                            {items.map(item =>
+                                activeTab === 'sessoes'
+                                    ? renderSessionCard(item)
+                                    : renderPlanCard(item)
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
+    if (isPage) {
+        return Content;
+    }
+
     return (
         <Modal
             isOpen={isOpen}
@@ -349,89 +444,7 @@ const ActivityHistory = ({ isOpen, onClose, userId }) => {
             title="Histórico de Atividades"
             size="large"
         >
-            <div className="activity-history">
-                {/* Stats Bar */}
-                <div className="activity-stats-bar">
-                    <div className="activity-stat-card">
-                        <div className="stat-icon">
-                            <Activity size={16} />
-                        </div>
-                        <span className="stat-value">{totalSessions}</span>
-                        <span className="stat-label">Sessões</span>
-                    </div>
-                    <div className="activity-stat-card">
-                        <div className="stat-icon">
-                            <TrendingUp size={16} />
-                        </div>
-                        <span className="stat-value">{completedSessions}</span>
-                        <span className="stat-label">Concluídas</span>
-                    </div>
-                    <div className="activity-stat-card">
-                        <div className="stat-icon">
-                            <Flame size={16} />
-                        </div>
-                        <span className="stat-value">{totalCalories}</span>
-                        <span className="stat-label">Calorias</span>
-                    </div>
-                </div>
-
-                {/* Filter Tabs */}
-                <div className="activity-filter-tabs">
-                    <button
-                        className={`activity-filter-tab ${activeTab === 'sessoes' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('sessoes')}
-                    >
-                        <Activity size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-                        Sessões ({sessions.length})
-                    </button>
-                    <button
-                        className={`activity-filter-tab ${activeTab === 'planos' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('planos')}
-                    >
-                        <Calendar size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-                        Planos ({plans.length})
-                    </button>
-                </div>
-
-                {/* Content */}
-                {loading ? (
-                    <div className="activity-empty">
-                        <div className="exercises-loading">
-                            <div className="spinner-small" />
-                            <span>Carregando histórico...</span>
-                        </div>
-                    </div>
-                ) : !hasItems ? (
-                    <div className="activity-empty">
-                        <div className="activity-empty-icon">
-                            <Activity size={28} />
-                        </div>
-                        <h4>
-                            {activeTab === 'sessoes'
-                                ? 'Nenhuma sessão registrada'
-                                : 'Nenhum plano atribuído'}
-                        </h4>
-                        <p>
-                            {activeTab === 'sessoes'
-                                ? 'Comece um treino para registrar suas atividades aqui.'
-                                : 'Atribua um plano de treino para acompanhar seu progresso.'}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="activity-timeline">
-                        {Object.entries(currentItems).map(([dateLabel, items]) => (
-                            <div key={dateLabel} className="activity-date-group">
-                                <div className="activity-date-label">{dateLabel}</div>
-                                {items.map(item =>
-                                    activeTab === 'sessoes'
-                                        ? renderSessionCard(item)
-                                        : renderPlanCard(item)
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+            {Content}
         </Modal>
     );
 };

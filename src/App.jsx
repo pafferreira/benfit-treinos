@@ -13,6 +13,7 @@ import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import SupabaseDiagnostic from './pages/SupabaseDiagnostic'
 import AdminUsers from './pages/AdminUsers'
+import ActivityHistoryPage from './pages/ActivityHistoryPage'
 import './App.css'
 import ToastContainer from './components/ToastContainer'
 
@@ -34,6 +35,8 @@ function App() {
           <Route path="meu-treino" element={<MeuTreino />} />
           <Route path="exercicios" element={<Exercises />} />
           <Route path="perfil" element={<Profile />} />
+          <Route path="historico" element={<ActivityHistoryPage />} />
+          <Route path="historico/:userId" element={<ActivityHistoryPage />} />
           <Route path="coach" element={<AICoach />} />
           <Route path="diagnostic" element={<SupabaseDiagnostic />} />
           <Route path="admin/users" element={<AdminUsers />} />
