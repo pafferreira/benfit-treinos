@@ -100,30 +100,33 @@ const WorkoutPlan = () => {
                 >
                     <ChevronLeft size={24} />
                 </button>
-                <h1 className="plan-title">{workout.title}</h1>
             </div>
 
-            <div className="plan-header">
-                <div className="plan-info-section">
-                    {workout.description && (
-                        <p className="plan-description">{workout.description}</p>
-                    )}
+            <div className="plan-header plan-header-compact">
+                <h1 className="plan-title">{workout.title}</h1>
 
-                    <div className="plan-stats">
-                        <span className="stat-badge">
-                            <Layers size={14} />
-                            {workout.difficulty}
+                {workout.description && (
+                    <p className="plan-description">{workout.description}</p>
+                )}
+
+                <div className="plan-stats-grid">
+                    <div className="plan-stat-box">
+                        <span className="plan-stat-label">Dificuldade</span>
+                        <span className="plan-stat-value">
+                            <Layers size={16} /> {workout.difficulty}
                         </span>
-                        <span className="stat-badge">
-                            <Calendar size={14} />
-                            {workout.days_per_week}x/sem
+                    </div>
+                    <div className="plan-stat-box">
+                        <span className="plan-stat-label">Duração</span>
+                        <span className="plan-stat-value">
+                            <Clock size={16} /> {workout.estimated_duration ? `${workout.estimated_duration} min` : '-'}
                         </span>
-                        {workout.estimated_duration && (
-                            <span className="stat-badge">
-                                <Clock size={14} />
-                                {workout.estimated_duration} min
-                            </span>
-                        )}
+                    </div>
+                    <div className="plan-stat-box">
+                        <span className="plan-stat-label">Dias/Semana</span>
+                        <span className="plan-stat-value">
+                            <Calendar size={16} /> {workout.days_per_week}x/sem
+                        </span>
                     </div>
                 </div>
             </div>

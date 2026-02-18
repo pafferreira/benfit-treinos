@@ -182,3 +182,60 @@
     font-weight: 700;
     cursor: pointer;
 }
+
+/* Compact Layout Match for Plan Viewer */
+.plan-header-compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.plan-header-compact .plan-title {
+    grid-column: 1 / -1;
+    margin-bottom: 0.25rem;
+}
+
+.plan-header-compact .plan-description {
+    grid-column: 1 / -1;
+    margin-bottom: 0.5rem;
+}
+
+.plan-stats-grid {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.plan-stat-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-lg);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.plan-stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--color-subtext-light);
+    font-weight: 700;
+}
+
+.plan-stat-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+@media (max-width: 640px) {
+    .plan-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}

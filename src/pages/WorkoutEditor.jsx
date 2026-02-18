@@ -355,7 +355,6 @@ const WorkoutEditor = () => {
                 <button type="button" className="btn-secondary workout-editor-back" onClick={handleCancel}>
                     <ChevronLeft size={16} /> Voltar
                 </button>
-                <h2 className="workout-editor-title">{isEditMode ? 'Editar Plano de Treino' : 'Novo Plano de Treino'}</h2>
             </div>
 
             <div className="workout-editor-content">
@@ -363,32 +362,32 @@ const WorkoutEditor = () => {
                     <WorkoutEditorSkeleton />
                 ) : (
                     <form className="modal-form workout-editor-form" onSubmit={handleSubmit}>
-                        <div className="form-group">
-                            <label>
-                                Título do Treino <span className="required">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="title"
-                                value={formData.title}
-                                onChange={handleChange}
-                                placeholder="Ex: Treino de Hipertrofia ABC"
-                                required
-                            />
-                        </div>
+                        <div className="workout-editor-compact-grid">
+                            <div className="form-group full-width">
+                                <label>
+                                    Título do Treino <span className="required">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    placeholder="Ex: Treino de Hipertrofia ABC"
+                                    required
+                                />
+                            </div>
 
-                        <div className="form-group">
-                            <label>Descrição</label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                placeholder="Descreva o objetivo e detalhes do treino..."
-                                rows={3}
-                            />
-                        </div>
+                            <div className="form-group full-width">
+                                <label>Descrição</label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    placeholder="Descreva o objetivo e detalhes do treino..."
+                                    rows={3}
+                                />
+                            </div>
 
-                        <div className="modal-grid-fields">
                             <div className="form-group">
                                 <label className="modal-field-label">Dificuldade</label>
                                 <select
@@ -467,16 +466,7 @@ const WorkoutEditor = () => {
                                             <div className="day-content">
                                                 {day.exercises.map((ex, exIndex) => (
                                                     <div key={exIndex} className="exercise-row-card">
-                                                        <div className="flex gap-3 mb-3 items-end">
-                                                            <div className="exercise-field flex-1">
-                                                                <label className="mb-1 block">Exercício</label>
-                                                                <SearchableExerciseSelect
-                                                                    exercises={exercises}
-                                                                    value={ex.exercise_id}
-                                                                    onChange={(newId) => updateExercise(dayIndex, exIndex, 'exercise_id', newId)}
-                                                                    onCreateNew={(name) => handleCreateNewExercise(name, dayIndex, exIndex)}
-                                                                />
-                                                            </div>
+                                                        <div className="exercise-number-header flex justify-between items-center">Exercício {exIndex + 1}
                                                             <button
                                                                 type="button"
                                                                 onClick={() => removeExerciseFromDay(dayIndex, exIndex)}
@@ -485,6 +475,18 @@ const WorkoutEditor = () => {
                                                             >
                                                                 <X size={18} />
                                                             </button>
+                                                        </div>
+                                                        <div className="flex gap-3 mb-3 items-end">
+                                                            <div className="exercise-field flex-1">
+                                                                <label className="mb-1 block">Nome Exercício</label>
+                                                                <SearchableExerciseSelect
+                                                                    exercises={exercises}
+                                                                    value={ex.exercise_id}
+                                                                    onChange={(newId) => updateExercise(dayIndex, exIndex, 'exercise_id', newId)}
+                                                                    onCreateNew={(name) => handleCreateNewExercise(name, dayIndex, exIndex)}
+                                                                />
+                                                            </div>
+
                                                         </div>
 
                                                         <div className="grid grid-cols-3 gap-3 mb-3">
@@ -555,15 +557,16 @@ const WorkoutEditor = () => {
                         </div>
 
                         <div className="form-group public-toggle-row">
-                            <label>
+                            <label className="public-checkbox-label">
                                 <input
                                     type="checkbox"
                                     name="is_public"
                                     checked={formData.is_public}
                                     onChange={handleChange}
                                     disabled={forcePublic}
+                                    className="public-checkbox"
                                 />
-                                Tornar este treino público
+                                <span className="public-checkbox-text">Tornar este treino público</span>
                             </label>
                             {forcePublic && (
                                 <p className="public-note">
