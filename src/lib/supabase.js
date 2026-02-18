@@ -183,14 +183,23 @@ export const supabaseHelpers = {
     async getAllWorkouts() {
         const { data: { user } } = await supabase.auth.getUser();
 
-        let canViewAll = false;
-        if (user) {
+        // Check for impersonation (admin testing as another role)
+        // localStorage is only available in browser environments
+        const impersonatedRole = typeof localStorage !== 'undefined'
+            ? localStorage.getItem('impersonated_role')
+            : null;
+
+        let role = 'user';
+        if (impersonatedRole) {
+            // Use the impersonated role directly — skip DB lookup
+            role = impersonatedRole;
+        } else if (user) {
             const { data: profile } = await supabase
                 .from('b_users')
                 .select('role')
                 .eq('id', user.id)
                 .maybeSingle();
-            canViewAll = profile?.role === 'admin';
+            role = profile?.role || 'user';
         }
 
         let query = supabase
@@ -207,7 +216,13 @@ export const supabaseHelpers = {
       `)
             .order('created_at', { ascending: false })
 
-        if (!canViewAll) {
+        if (role === 'admin') {
+            // Admin sees everything — no filter
+        } else if (role === 'personal' && user) {
+            // Personal sees public workouts + their own private ones
+            query = query.or(`is_public.eq.true,creator_id.eq.${user.id}`)
+        } else {
+            // Regular user sees only public workouts
             query = query.eq('is_public', true)
         }
 
@@ -346,62 +361,104 @@ export const supabaseHelpers = {
             throw new Error('Sem permissão para atualizar este treino. Verifique se o plano pertence ao usuário logado e se as políticas RLS de treino estão aplicadas.');
         }
 
-        // 2. Update Schedule (Delete existing and re-create)
-        // This is the simplest strategy to handle reordering, additions, and removals
+        // 2. Update Schedule (Smart Upsert — preserves existing day IDs to avoid FK violations)
+        // b_workout_sessions references b_workout_days, so we CANNOT delete days that have sessions.
+        // Strategy:
+        //   - First set all existing day_numbers to negative temps to avoid UNIQUE constraint conflicts during reorder
+        //   - Days with an existing `id` → UPDATE in place
+        //   - Days without an `id` → INSERT new
+        //   - Days that were removed → try DELETE; if FK blocks it, skip gracefully
         if (workoutData.schedule) {
             try {
-                // Delete existing days (Cascade should delete exercises if DB configured)
-                const { error: deleteError } = await supabase
+                // Fetch current days from DB
+                const { data: existingDays } = await supabase
                     .from('b_workout_days')
-                    .delete()
+                    .select('id')
                     .eq('workout_id', id);
 
-                if (deleteError) {
-                    console.error('updateWorkout - error deleting existing days:', deleteError);
-                    throw deleteError;
+                const existingDayIds = new Set((existingDays || []).map(d => d.id));
+                const keptDayIds = new Set();
+
+                // Step A: Set all existing day_numbers to negative temps to free up the unique slots
+                // This prevents duplicate key errors when reordering days
+                if (existingDays && existingDays.length > 0) {
+                    for (let i = 0; i < existingDays.length; i++) {
+                        await supabase
+                            .from('b_workout_days')
+                            .update({ day_number: -(i + 1) })
+                            .eq('id', existingDays[i].id);
+                    }
                 }
 
-                // Re-create Days and Exercises
-                if (workoutData.schedule.length > 0) {
-                    for (let i = 0; i < workoutData.schedule.length; i++) {
-                        const day = workoutData.schedule[i];
+                // Step B: Upsert each day with its final day_number
+                for (let i = 0; i < workoutData.schedule.length; i++) {
+                    const day = workoutData.schedule[i];
+                    let dayId = day.id || null;
 
-                        // Create Day
-                        const { data: dayDataResult, error: dayError } = await supabase
+                    if (dayId && existingDayIds.has(dayId)) {
+                        // UPDATE existing day with final values
+                        const { error: updateDayError } = await supabase
                             .from('b_workout_days')
-                            .insert({
-                                workout_id: id,
-                                day_number: i + 1,
-                                day_name: day.day_name
-                            })
+                            .update({ day_name: day.day_name, day_number: i + 1 })
+                            .eq('id', dayId);
+
+                        if (updateDayError) {
+                            console.error('updateWorkout - Error updating workout day:', updateDayError);
+                            throw updateDayError;
+                        }
+                        keptDayIds.add(dayId);
+                    } else {
+                        // INSERT new day
+                        const { data: newDayResult, error: insertDayError } = await supabase
+                            .from('b_workout_days')
+                            .insert({ workout_id: id, day_number: i + 1, day_name: day.day_name })
                             .select()
                             .maybeSingle();
 
-                        const dayData = dayDataResult || null;
-
-                        if (dayError) {
-                            console.error('updateWorkout - Error creating workout day:', dayError);
-                            throw dayError;
+                        if (insertDayError) {
+                            console.error('updateWorkout - Error inserting workout day:', insertDayError);
+                            throw insertDayError;
                         }
-
-                        if (!dayData) {
-                            console.error('updateWorkout - Error creating workout day: No data returned (RLS?)');
+                        if (!newDayResult) {
                             throw new Error('Falha ao criar dia do treino: Sem permissão (RLS) ou erro no banco.');
                         }
+                        dayId = newDayResult.id;
+                        keptDayIds.add(dayId);
+                    }
 
-                        // Create Exercises
-                        if (day.exercises && day.exercises.length > 0) {
-                            const exercisesToInsert = day.exercises.map((ex, index) =>
-                                normalizeWorkoutExercisePayload(ex, index, dayData.id)
-                            );
+                    // Recreate exercises for this day (safe: sessions reference days, not exercises)
+                    await supabase.from('b_workout_exercises').delete().eq('workout_day_id', dayId);
 
-                            const { error: exercisesError } = await supabase
-                                .from('b_workout_exercises')
-                                .insert(exercisesToInsert);
+                    if (day.exercises && day.exercises.length > 0) {
+                        const exercisesToInsert = day.exercises.map((ex, index) =>
+                            normalizeWorkoutExercisePayload(ex, index, dayId)
+                        );
+                        const { error: exercisesError } = await supabase
+                            .from('b_workout_exercises')
+                            .insert(exercisesToInsert);
 
-                            if (exercisesError) {
-                                console.error('updateWorkout - Error creating workout exercises:', exercisesError);
-                                throw exercisesError;
+                        if (exercisesError) {
+                            console.error('updateWorkout - Error creating workout exercises:', exercisesError);
+                            throw exercisesError;
+                        }
+                    }
+                }
+
+                // Step C: Try to delete removed days — skip gracefully if FK blocks it
+                for (const oldId of existingDayIds) {
+                    if (!keptDayIds.has(oldId)) {
+                        const { error: delError } = await supabase
+                            .from('b_workout_days')
+                            .delete()
+                            .eq('id', oldId);
+
+                        if (delError) {
+                            // FK violation: day has sessions — keep it
+                            if (delError.code === '23503') {
+                                console.warn(`updateWorkout - Day ${oldId} has sessions, cannot delete. Keeping it.`);
+                            } else {
+                                console.error('updateWorkout - Error deleting removed day:', delError);
+                                throw delError;
                             }
                         }
                     }
@@ -411,7 +468,6 @@ export const supabaseHelpers = {
                 if (scheduleErr?.code === '42501' || String(scheduleErr?.message || '').toLowerCase().includes('row-level security')) {
                     throw new Error('Falha ao atualizar estrutura do treino (dias/exercícios) por permissão RLS. Aplique as políticas de b_workout_days e b_workout_exercises para permitir edição.');
                 }
-                // Re-throw so caller knows the update didn't fully succeed
                 throw scheduleErr;
             }
         }

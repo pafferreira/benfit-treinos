@@ -44,24 +44,22 @@ export const useWorkouts = () => {
 
     useEffect(() => {
         loadWorkouts()
+
+        // Reload when impersonation changes so visibility rules are re-applied
+        const handleImpersonationChange = () => loadWorkouts();
+        window.addEventListener('impersonation-updated', handleImpersonationChange);
+        return () => window.removeEventListener('impersonation-updated', handleImpersonationChange);
     }, [])
 
     const loadWorkouts = async () => {
         try {
             setLoading(true)
             setError(null)
-            console.log('🔄 Loading workouts from Supabase...')
             const data = await supabaseHelpers.getAllWorkouts()
-            console.log('📊 Raw Supabase data:', data)
-            console.log('📊 Number of workouts:', data?.length)
 
             // Transform Supabase data to match local data structure
             const transformedData = data.map(workout => {
-                console.log('🔄 Transforming workout:', workout.title)
-                console.log('  - Days:', workout.b_workout_days?.length)
-
                 const transformed = {
-                    // Use the UUID primary key returned by the DB to avoid sending non-UUID keys where UUIDs are expected
                     id: workout.id,
                     title: workout.title,
                     description: workout.description,
@@ -73,44 +71,32 @@ export const useWorkouts = () => {
                     cover_image: workout.cover_image,
                     schedule: (workout.b_workout_days || [])
                         .sort((a, b) => (a.day_number || 0) - (b.day_number || 0))
-                        .map(day => {
-                        console.log('    - Day:', day.day_name, '- Exercises:', day.b_workout_exercises?.length)
-                        return {
+                        .map(day => ({
                             id: day.id,
                             day_number: day.day_number,
                             day_name: day.day_name,
                             exercises: (day.b_workout_exercises || [])
                                 .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
                                 .map(we => ({
-                                // prefer the explicit FK (we.exercise_id) which is a UUID; fallback to nested b_exercises.id if present
-                                exercise_id: we.exercise_id || we.b_exercises?.id,
-                                order_index: we.order_index,
-                                sets: we.sets,
-                                reps: we.reps,
-                                rest_seconds: we.rest_seconds,
-                                notes: we.notes
-                            }))
-                        }
-                    })
+                                    exercise_id: we.exercise_id || we.b_exercises?.id,
+                                    order_index: we.order_index,
+                                    sets: we.sets,
+                                    reps: we.reps,
+                                    rest_seconds: we.rest_seconds,
+                                    notes: we.notes
+                                }))
+                        }))
                 }
-
-                console.log('✅ Transformed workout:', transformed)
                 return transformed
             })
 
-            console.log('✅ Loaded', transformedData.length, 'workouts from Supabase')
             setWorkouts(transformedData)
         } catch (err) {
             console.error('❌ Error loading workouts from Supabase:', err)
-            console.error('Error code:', err.code)
-            console.error('Error message:', err.message)
-            console.error('Error details:', err.details)
-            console.warn('🔄 Falling back to local data...')
             setError(err.message)
             // Fallback to local data if Supabase fails
             const { workouts: localWorkouts } = await import('../data/workouts')
             setWorkouts(localWorkouts)
-            console.log('✅ Loaded', localWorkouts.length, 'workouts from local data')
         } finally {
             setLoading(false)
         }

@@ -119,6 +119,7 @@ const WorkoutEditor = () => {
             const transformedSchedule = (workout.b_workout_days || [])
                 .sort((a, b) => (a.day_number || 0) - (b.day_number || 0))
                 .map((day, dayIndex) => ({
+                    id: day.id, // Preserve the DB id to avoid delete+recreate on save
                     day_name: day.day_name || `Dia ${dayIndex + 1}`,
                     exercises: (day.b_workout_exercises || [])
                         .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
@@ -306,6 +307,7 @@ const WorkoutEditor = () => {
         };
 
         const normalizedSchedule = schedule.map((day) => ({
+            id: day.id || undefined, // Preserve existing day ID for smart upsert
             day_name: day.day_name || '',
             exercises: (day.exercises || []).map(normalizeExercise)
         }));
