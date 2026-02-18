@@ -104,3 +104,59 @@ Para implementar este estilo, atualize o `tailwind.config.js` ou as variáveis C
   <p className="text-gray-600">Consulte seus pontos e agende exames.</p>
 </div>
 ```
+
+## 6. Padrão de Cabeçalho Fixo Absoluto (Mobile Optimization)
+
+Este padrão otimiza o espaço vertical em dispositivos móveis, fixando o título da página no topo absoluto (`position: fixed`) sobre o cabeçalho base da aplicação ao rolar.
+
+### Conceito
+Ao rolar a página, o cabeçalho de contexto (ex: Título do Treino) deve se fixar no topo absoluto da janela (`position: fixed`), cobrindo qualquer barra de navegação superior do layout base.
+
+### Implementação CSS
+A classe `.stuck` deve ser aplicada ao container do cabeçalho quando o scroll for detectado.
+
+```css
+/* Estado Base */
+.page-header {
+  position: sticky; /* ou relative */
+  top: 0;
+  transition: all 0.2s ease;
+}
+
+/* Estado Fixado (Stuck) */
+.page-header.stuck {
+  position: fixed;   /* Sai do fluxo e vai para o topo da window */
+  top: 0;
+  left: 0;
+  width: 100%;       /* Ocupa largura total */
+  z-index: 1000;     /* Fica sobre tudo */
+  margin: 0;         /* Reseta margens do layout pai */
+  padding: 0.75rem 1rem;
+  
+  background: #ffffff; /* Fundo sólido opaco */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra suave */
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+
+  animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+```
+
+### Implementação React
+É necessário monitorar o scroll e renderizar um elemento "Spacer" invisível para evitar que o conteúdo salte quando o cabeçalho sair do fluxo.
+
+```jsx
+const [isHeaderStuck, setIsHeaderStuck] = useState(false);
+// ... lógica de scroll ...
+return (
+  <>
+    <div className={`page-header ${isHeaderStuck ? 'stuck' : ''}`}>...</div>
+    {/* Spacer condicional */}
+    {isHeaderStuck && <div style={{ height: '72px' }} aria-hidden="true" />}
+  </>
+);
+```

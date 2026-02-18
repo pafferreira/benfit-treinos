@@ -10,16 +10,16 @@ import { supabase, supabaseHelpers } from '../lib/supabase';
 import './WorkoutDayDetails.css';
 
 const FEELING_MICROCOPY = {
-    1: 'Sessão muito pesada hoje. Priorize recuperação e hidratação.',
-    2: 'Treino puxado. Amanhã vale reduzir carga e focar na técnica.',
-    3: 'Foi difícil, mas você manteve constância. Bom trabalho.',
-    4: 'Sessão exigente. Respeite o ritmo e ajuste o descanso.',
-    5: 'Treino moderado. Boa base para evoluir na próxima sessão.',
-    6: 'Boa intensidade. Você manteve consistência de execução.',
-    7: 'Treino forte e estável. Ótimo padrão de esforço.',
-    8: 'Sessão excelente. Ritmo e controle muito bons.',
-    9: 'Performance alta hoje. Grande execução.',
-    10: 'Dia de destaque total. Você voou no treino.'
+    1: '💀 Esmagado. Hoje foi sobrevivência.',
+    2: '🥵 Muito pesado. Amanhã pega leve.',
+    3: '😓 Difícil. Mas você não desistiu!',
+    4: '😐 Puxado. O esforço foi real.',
+    5: '🙂 Moderado. Bom pra manter o ritmo.',
+    6: '👍 Boa! Treino sólido e controlado.',
+    7: '💪 Mandou bem! Foco e técnica em dia.',
+    8: '🔥 Incrível! Você dominou a carga.',
+    9: '🚀 Voando! Energia de sobra.',
+    10: '👑 MÁQUINA! Ninguém te para hoje.'
 };
 
 const DIFFICULTY_MET = {
@@ -72,6 +72,7 @@ const WorkoutDayDetails = () => {
     const [feelingScore, setFeelingScore] = useState(6);
     const [finishingSession, setFinishingSession] = useState(false);
     const [lastFeelingLog, setLastFeelingLog] = useState(null);
+    const [isHeaderStuck, setIsHeaderStuck] = useState(false);
     const finishModalHistoryRef = useRef(false);
     const lastScrollY = useRef(0);
 
@@ -79,7 +80,6 @@ const WorkoutDayDetails = () => {
     useEffect(() => {
         const scrollContainer = document.querySelector('.layout-content');
         if (!scrollContainer) {
-            console.error('Scroll container .layout-content not found');
             return;
         }
 
@@ -91,12 +91,12 @@ const WorkoutDayDetails = () => {
             const header = document.querySelector('.layout-header');
             const footer = document.querySelector('.bottom-nav');
 
-            console.log('Scroll Y:', currentScrollY, 'Down:', scrollingDown, 'Up:', scrollingUp);
+            // Header stickiness
+            setIsHeaderStuck(currentScrollY > 8);
 
             // Only hide/show if scrolled more than 50px
             if (currentScrollY > 50) {
                 if (scrollingDown) {
-                    console.log('Hiding header and footer');
                     if (header && !header.classList.contains('header-hidden')) {
                         header.classList.add('header-hidden');
                     }
@@ -104,7 +104,6 @@ const WorkoutDayDetails = () => {
                         footer.classList.add('nav-hidden');
                     }
                 } else if (scrollingUp) {
-                    console.log('Showing header and footer');
                     if (header && header.classList.contains('header-hidden')) {
                         header.classList.remove('header-hidden');
                     }
@@ -128,7 +127,6 @@ const WorkoutDayDetails = () => {
         scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
         return () => {
             scrollContainer.removeEventListener('scroll', handleScroll);
-            // Clean up classes on unmount
             const header = document.querySelector('.layout-header');
             const footer = document.querySelector('.bottom-nav');
             if (header) header.classList.remove('header-hidden');
@@ -239,18 +237,17 @@ const WorkoutDayDetails = () => {
 
             if (currentUser?.id) {
                 await loadOpenSessionProgress(workoutData.id, dayData.id, currentUser.id);
-                const { data: lastSession, error: lastSessionError } = await supabase
+                // Load last finished feeling
+                const { data: lastSession } = await supabase
                     .from('b_workout_sessions')
                     .select('feeling, ended_at, calories_burned')
                     .eq('user_id', currentUser.id)
                     .eq('workout_id', workoutData.id)
                     .eq('workout_day_id', dayData.id)
-                    .not('ended_at', 'is', null)
+                    .not('ended_at', 'is', null) // Only finished sessions
                     .order('ended_at', { ascending: false })
                     .limit(1)
                     .maybeSingle();
-
-                if (lastSessionError) throw lastSessionError;
 
                 if (lastSession?.feeling) {
                     setLastFeelingLog({
@@ -317,7 +314,10 @@ const WorkoutDayDetails = () => {
         setShowRestTimer(true);
     };
 
-    const handleOpenFinishModal = () => {
+    const handleOpenFinishModal = (e) => {
+        // Prevent event bubbling so it doesn't accidentally trigger other elements
+        if (e && e.stopPropagation) e.stopPropagation();
+
         if (!currentSessionId) {
             window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Inicie o treino marcando ao menos um exercício.', type: 'warn' } }));
             return;
@@ -394,6 +394,12 @@ const WorkoutDayDetails = () => {
                     type: isFullyCompleted ? 'success' : 'warn'
                 }
             }));
+
+            // Navigate back to the plan overview after successful finish
+            setTimeout(() => {
+                navigate(`/treino/${id}`);
+            }, 500);
+
         } catch (error) {
             console.error('Erro ao finalizar sessão:', error);
             window.dispatchEvent(new CustomEvent('app-toast', {
@@ -417,9 +423,12 @@ const WorkoutDayDetails = () => {
         );
     }
 
+    // Determine feeling class for color
+    const feelingClass = feelingScore <= 4 ? 'feeling-low' : feelingScore <= 7 ? 'feeling-mid' : 'feeling-high';
+
     return (
-        <div className="workout-day-screen">
-            <div className="workout-day-top">
+        <div className={`workout-day-screen ${feelingClass}`}>
+            <div className={`workout-day-top ${isHeaderStuck ? 'stuck' : ''}`}>
                 <button
                     className="day-back-btn"
                     onClick={() => navigate(`/treino/${id}`)}
@@ -432,6 +441,7 @@ const WorkoutDayDetails = () => {
                     <p className="workout-day-subtitle">{workout.title}</p>
                 </div>
             </div>
+            {isHeaderStuck && <div style={{ height: '72px', flexShrink: 0 }} aria-hidden="true" />}
 
             <div className="workout-day-stats">
                 <span className="day-stat-badge">
@@ -509,7 +519,10 @@ const WorkoutDayDetails = () => {
 
             <button
                 className={`day-floating-timer-btn ${showRestTimer ? 'active' : ''}`}
-                onClick={() => setShowRestTimer((prev) => !prev)}
+                onClick={(e) => {
+                    e.stopPropagation(); // Prevent bubble
+                    setShowRestTimer((prev) => !prev);
+                }}
                 data-tooltip={showRestTimer ? 'Fechar cronômetro' : 'Abrir cronômetro'}
             >
                 <Timer size={24} />
@@ -539,7 +552,7 @@ const WorkoutDayDetails = () => {
                 title="Finalizar Sessão"
                 size="medium"
             >
-                <div className="finish-session-modal-content">
+                <div className={`finish-session-modal-content ${feelingClass}`}>
                     <div className="finish-session-summary">
                         <div className="finish-summary-item">
                             <Clock size={16} />

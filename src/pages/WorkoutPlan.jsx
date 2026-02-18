@@ -95,7 +95,7 @@ const WorkoutPlan = () => {
                 if (currentUser?.id) {
                     const { data: lastSession } = await supabase
                         .from('b_workout_sessions')
-                        .select('feeling, ended_at, calories_burned')
+                        .select('feeling, ended_at, calories_burned, workout_day_id')
                         .eq('user_id', currentUser.id)
                         .eq('workout_id', id)
                         .not('ended_at', 'is', null)
@@ -139,6 +139,13 @@ const WorkoutPlan = () => {
             day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
         })
         : null;
+
+    // Helper to find day name
+    const getLastSessionDayName = () => {
+        if (!lastFeeling?.workout_day_id) return 'Último treino';
+        const day = days.find(d => d.id === lastFeeling.workout_day_id);
+        return day ? (day.day_name || `Dia ${day.day_number}`) : 'Último treino';
+    };
 
     return (
         <div className="workout-plan-container">
@@ -190,7 +197,7 @@ const WorkoutPlan = () => {
                     <div className="plan-feeling-card">
                         <span className="plan-feeling-pill">{lastFeeling.feeling}/10</span>
                         <div className="plan-feeling-meta">
-                            <strong>{FEELING_LABEL[lastFeeling.feeling] || 'Feeling registrado'}</strong>
+                            <strong>{getLastSessionDayName()}</strong>
                             {lastFeelingLabel && <small>{lastFeelingLabel}</small>}
                             {lastFeeling.calories_burned > 0 && (
                                 <div className="plan-feeling-calories">

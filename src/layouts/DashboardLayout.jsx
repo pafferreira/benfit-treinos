@@ -188,7 +188,7 @@ const DashboardLayoutContent = () => {
 
                 {/* Bottom Navigation */}
                 <nav className="bottom-nav">
-                    <span className="app-version">v1.2.6</span>
+                    <span className="app-version">v{__APP_VERSION__}</span>
                     <button
                         className={`nav-btn ${isActive('/') ? 'active' : ''}`}
                         onClick={() => handleNav('/')}
