@@ -1,38 +1,157 @@
 /* MiniCalendar.css */
 
+/* ─── Wrapper ──────────────────────────────────────────────────────────────── */
 .mini-calendar-wrapper {
     background-color: #fff;
     border-radius: var(--radius-xl);
-    padding: 1.25rem 1rem;
+    padding: 1rem 1rem 1.1rem;
     box-shadow: var(--shadow-sm);
     border: 1px solid #e2e8f0;
+    touch-action: pan-y;
+    /* habilita swipe horizontal sem bloquear scroll vertical */
+    user-select: none;
 }
 
+/* ─── Animação de troca de semana ──────────────────────────────────────────── */
+@keyframes calFadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes calFadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.mini-calendar-wrapper.anim-right .calendar-days {
+    animation: calFadeInRight 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mini-calendar-wrapper.anim-left .calendar-days {
+    animation: calFadeInLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─── Header ───────────────────────────────────────────────────────────────── */
 .calendar-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.25rem;
-    padding: 0 0.25rem;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.calendar-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
 }
 
 .calendar-month {
-    font-size: 1.1rem;
-    font-weight: 800;
+    font-size: 0.9rem;
+    font-weight: 700;
     color: var(--color-text-main);
     text-transform: capitalize;
     margin: 0;
+    white-space: nowrap;
 }
 
 .week-badge {
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: 0.65rem;
+    font-weight: 600;
     color: var(--color-subtext-light);
     background-color: #f1f5f9;
-    padding: 0.35rem 0.75rem;
+    padding: 0.18rem 0.55rem;
     border-radius: var(--radius-full);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
 }
 
+/* Botão Hoje */
+.cal-today-btn {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    background: rgba(var(--color-primary-rgb), 0.07);
+    border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+    border-radius: var(--radius-full);
+    padding: 0.18rem 0.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    flex-shrink: 0;
+    animation: fadeInScale 0.2s ease;
+}
+
+.cal-today-btn:hover {
+    background: rgba(var(--color-primary-rgb), 0.14);
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ─── Linha dos dias com botões de navegação ────────────────────────────────── */
+.calendar-days-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.calendar-days-inner {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ─── Botões de navegação ──────────────────────────────────────────────────── */
+.cal-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-md, 8px);
+    color: var(--color-subtext-light);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.cal-nav-btn:hover {
+    background-color: #f1f5f9;
+    color: var(--color-primary);
+}
+
+.cal-nav-btn:active {
+    background-color: #e2e8f0;
+}
+
+/* ─── Grid de dias ─────────────────────────────────────────────────────────── */
 .calendar-days {
     display: flex;
     justify-content: space-between;
@@ -49,14 +168,116 @@
 }
 
 .day-label {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
     color: var(--color-subtext-light);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
 }
 
-/* --- Variant: Classic --- */
+/* ─── Variante: Cards (padrão) ─────────────────────────────────────────────── */
+.calendar-days.variant-cards {
+    gap: 0.3rem;
+}
+
+.day-card {
+    flex: 1;
+    height: 4rem;
+    background-color: #f8fafc;
+    border-radius: var(--radius-lg);
+    border: 1px solid #e8edf5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.day-card .day-label {
+    font-size: 0.6rem;
+    margin-bottom: 0.05rem;
+}
+
+.day-card .day-number {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #334155;
+    z-index: 1;
+    line-height: 1;
+}
+
+/* Ícone de concluído dentro do card */
+.day-card .day-check-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #059669;
+    margin-top: -0.1rem;
+    z-index: 1;
+}
+
+/* Barra de status inferior */
+.day-status-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: transparent;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    transition: background-color 0.18s ease;
+}
+
+/* Hoje */
+.day-card.today {
+    background-color: #fff;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.day-card.today .day-number {
+    color: var(--color-primary);
+}
+
+/* Concluído */
+.day-card.completed {
+    background-color: #f0fdf4;
+    border-color: #86efac;
+}
+
+.day-card.completed .day-number {
+    color: #15803d;
+}
+
+.day-card.completed .day-status-bar {
+    background-color: #22c55e;
+}
+
+/* Concluído + Hoje */
+.day-card.completed.today {
+    background-color: #f0fdf4;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
+}
+
+/* Incompleto */
+.day-card.incomplete {
+    background-color: #fff8f0;
+    border-color: #fcd396;
+}
+
+.day-card.incomplete .day-number {
+    color: #c2580d;
+}
+
+.day-card.incomplete .day-status-bar {
+    background-color: #f97316;
+}
+
+/* ─── Variante: Classic ────────────────────────────────────────────────────── */
 .calendar-days.variant-classic .day-circle {
     width: 2.1rem;
     height: auto;
@@ -131,12 +352,11 @@
 }
 
 
-/* --- Variant: Pills --- */
+/* ─── Variante: Pills ──────────────────────────────────────────────────────── */
 .calendar-days.variant-pills .day-pill {
     width: 2.2rem;
     height: 3.8rem;
     border-radius: 999px;
-    /* Capsule shape */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -194,7 +414,8 @@
     color: #f97316;
 }
 
-/* --- Variant: Timeline --- */
+
+/* ─── Variante: Timeline ───────────────────────────────────────────────────── */
 .calendar-days.variant-timeline {
     padding-top: 1rem;
 }
@@ -202,7 +423,6 @@
 .calendar-days.variant-timeline .timeline-line {
     position: absolute;
     top: 2.1rem;
-    /* Adjust based on label height + node center */
     left: 1rem;
     right: 1rem;
     height: 2px;
@@ -237,7 +457,6 @@
     box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb), 0.15);
     background-color: #fff;
     margin-top: -0.2rem;
-    /* Center vertically with line */
 }
 
 .day-node.completed {
@@ -252,69 +471,25 @@
     background-color: #fff;
 }
 
+/* ─── Responsivo ───────────────────────────────────────────────────────────── */
+@media (max-width: 400px) {
+    .mini-calendar-wrapper {
+        padding: 0.8rem 0.7rem 1rem;
+    }
 
-/* --- Variant: Cards --- */
-.calendar-days.variant-cards {
-    gap: 0.4rem;
-}
+    .calendar-month {
+        font-size: 0.85rem;
+    }
 
-.day-card {
-    flex: 1;
-    height: 4rem;
-    background-color: #f8fafc;
-    border-radius: var(--radius-lg);
-    border: 1px solid #e2e8f0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.2rem;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.2s;
-}
+    .day-card {
+        height: 3.5rem;
+    }
 
-.day-card .day-label {
-    font-size: 0.65rem;
-    margin-bottom: 0.1rem;
-}
+    .day-card .day-number {
+        font-size: 0.95rem;
+    }
 
-.day-card .day-number {
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: #334155;
-    z-index: 1;
-}
-
-.day-status-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background-color: transparent;
-}
-
-.day-card.today {
-    background-color: #fff;
-    border-color: var(--color-primary);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-.day-card.completed {
-    background-color: #f0fdf4;
-    border-color: #bbf7d0;
-}
-
-.day-card.completed .day-status-bar {
-    background-color: #22c55e;
-}
-
-.day-card.incomplete {
-    background-color: #fff7ed;
-    border-color: #fed7aa;
-}
-
-.day-card.incomplete .day-status-bar {
-    background-color: #f97316;
+    .day-card .day-label {
+        font-size: 0.55rem;
+    }
 }

@@ -64,7 +64,8 @@ const WorkoutDayDetails = () => {
     const [workoutExercises, setWorkoutExercises] = useState([]);
     const [completedExercises, setCompletedExercises] = useState([]);
     const [showRestTimer, setShowRestTimer] = useState(false);
-    const [restDuration, setRestDuration] = useState(60); // default 60s; atualizado pelo rest_seconds do exercício
+    const [restDuration, setRestDuration] = useState(60); // Timer principal sempre em 60s por padrão, como pedido pelo user
+    const [activeExerciseIndex, setActiveExerciseIndex] = useState(0); // Controle do Accordion
     const [currentSessionId, setCurrentSessionId] = useState(null);
     const [currentSessionStartedAt, setCurrentSessionStartedAt] = useState(null);
     const [userWeightKg, setUserWeightKg] = useState(70);
@@ -196,12 +197,14 @@ const WorkoutDayDetails = () => {
 
         const completedIds = [...new Set((sessionLogs || []).map((log) => log.exercise_id).filter(Boolean))];
         setCompletedExercises(completedIds);
+        return completedIds; // Retornado para uso imediato em loadDayDetails
     };
 
     const loadDayDetails = useCallback(async () => {
         try {
             setLoading(true);
 
+            // ... fetching workout, day, exercises ...
             const { data: workoutData, error: workoutError } = await supabase
                 .from('b_workouts')
                 .select('*')
@@ -228,7 +231,9 @@ const WorkoutDayDetails = () => {
                 .eq('workout_day_id', dayId)
                 .order('order_index');
             if (exercisesError) throw exercisesError;
-            setWorkoutExercises(exercisesData || []);
+
+            const fetchedExercises = exercisesData || [];
+            setWorkoutExercises(fetchedExercises);
 
             const currentUser = await supabaseHelpers.getCurrentUser();
             if (currentUser?.weight_kg) {
@@ -236,7 +241,18 @@ const WorkoutDayDetails = () => {
             }
 
             if (currentUser?.id) {
-                await loadOpenSessionProgress(workoutData.id, dayData.id, currentUser.id);
+                // Aguarda o load das sessões abertas e pega os IDs concluídos
+                const completedIds = await loadOpenSessionProgress(workoutData.id, dayData.id, currentUser.id) || [];
+
+                // Encontra o primeiro exercício não concluído para abrir o Acordeão
+                const firstIncompleteIndex = fetchedExercises.findIndex(item => !completedIds.includes(item.exercise_id));
+                if (firstIncompleteIndex !== -1) {
+                    setActiveExerciseIndex(firstIncompleteIndex);
+                } else {
+                    // Se todos concluídos, recolhe tudo
+                    setActiveExerciseIndex(-1);
+                }
+
                 // Load last finished feeling
                 const { data: lastSession } = await supabase
                     .from('b_workout_sessions')
@@ -314,6 +330,24 @@ const WorkoutDayDetails = () => {
         const duration = (Number(seconds) > 0) ? Number(seconds) : 60;
         setRestDuration(duration);
         setShowRestTimer(true);
+    };
+
+    const handleManualTimerOpen = (e) => {
+        e.stopPropagation();
+
+        // Timer global tenta abrir com o tempo recomendado do exercício ativo.
+        // Se caso não houver exercício ativo (ex: todos fechados ou não tem rest_seconds), fallback para 60s.
+        let defaultDuration = 60;
+        if (activeExerciseIndex >= 0 && activeExerciseIndex < workoutExercises.length) {
+            const activeExercise = workoutExercises[activeExerciseIndex].workout_exercise || workoutExercises[activeExerciseIndex];
+            const parsedRest = Number(activeExercise.rest_seconds);
+            if (parsedRest > 0) {
+                defaultDuration = parsedRest;
+            }
+        }
+
+        setRestDuration(defaultDuration);
+        setShowRestTimer((prev) => !prev);
     };
 
     const handleOpenFinishModal = (e) => {
@@ -496,6 +530,8 @@ const WorkoutDayDetails = () => {
                                     isCompleted={completedExercises.includes(item.exercise_id)}
                                     onToggleComplete={handleExerciseComplete}
                                     onStartRest={handleStartRest}
+                                    isActive={activeExerciseIndex === index}
+                                    onSelect={() => setActiveExerciseIndex(activeExerciseIndex === index ? -1 : index)}
                                     orderIndex={index + 1}
                                 />
                             </ErrorBoundary>
@@ -521,10 +557,7 @@ const WorkoutDayDetails = () => {
 
             <button
                 className={`day-floating-timer-btn ${showRestTimer ? 'active' : ''}`}
-                onClick={(e) => {
-                    e.stopPropagation(); // Prevent bubble
-                    setShowRestTimer((prev) => !prev);
-                }}
+                onClick={handleManualTimerOpen}
                 data-tooltip={showRestTimer ? 'Fechar cronômetro' : 'Abrir cronômetro'}
             >
                 <Timer size={24} />

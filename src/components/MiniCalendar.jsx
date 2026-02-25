@@ -1,18 +1,32 @@
-import { useState, useEffect } from 'react';
-import { Check, CircleDot } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Check, CircleDot, ChevronLeft, ChevronRight } from 'lucide-react';
 import './MiniCalendar.css';
 
-const MiniCalendar = ({ completedDates = [], incompleteDates = [], currentDate = new Date(), variant = 'cards' }) => {
-    const [weekStart, setWeekStart] = useState(getWeekStart(currentDate));
+const MiniCalendar = ({
+    completedDates = [],
+    incompleteDates = [],
+    currentDate = new Date(),
+    variant = 'cards'
+}) => {
+    const [weekOffset, setWeekOffset] = useState(0);
+    const [animDir, setAnimDir] = useState(null); // 'left' | 'right' | null
+    const touchStartX = useRef(null);
+
+    // Recalcula a weekStart base sempre que currentDate mudar
+    const baseWeekStart = getWeekStart(currentDate);
+
+    // Deriva a weekStart real somando weekOffset * 7 dias
+    const weekStart = new Date(baseWeekStart);
+    weekStart.setDate(baseWeekStart.getDate() + weekOffset * 7);
 
     useEffect(() => {
-        setWeekStart(getWeekStart(currentDate));
+        setWeekOffset(0);
     }, [currentDate]);
 
     function getWeekStart(date) {
         const d = new Date(date);
         const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajusta para segunda-feira
         return new Date(d.setDate(diff));
     }
 
@@ -57,10 +71,37 @@ const MiniCalendar = ({ completedDates = [], incompleteDates = [], currentDate =
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-    const monthName = weekStart.toLocaleDateString('pt-BR', { month: 'long' });
+    const monthName = weekStart.toLocaleDateString('pt-BR', { month: 'long' }).toLowerCase();
     const year = weekStart.getFullYear();
     const monthYear = `${capitalizeFirstLetter(monthName)} de ${year}`;
     const weekNumber = getWeekNumber(weekStart);
+    const isCurrentWeek = weekOffset === 0;
+
+    // Navegação com animação
+    const navigate = useCallback((dir) => {
+        setAnimDir(dir);
+        setWeekOffset(prev => prev + (dir === 'left' ? -1 : 1));
+        setTimeout(() => setAnimDir(null), 300);
+    }, []);
+
+    const handlePrevWeek = () => navigate('left');
+    const handleNextWeek = () => navigate('right');
+
+    // Swipe touch handlers
+    const handleTouchStart = (e) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+
+    const handleTouchEnd = (e) => {
+        if (touchStartX.current === null) return;
+        const delta = e.changedTouches[0].clientX - touchStartX.current;
+        touchStartX.current = null;
+        if (Math.abs(delta) < 50) return; // threshold mínimo
+        if (delta < 0) handleNextWeek(); // swipe para esquerda → próxima semana
+        else handlePrevWeek();           // swipe para direita → semana anterior
+    };
+
+    // ─── Variantes ────────────────────────────────────────────────────────────
 
     const renderPills = () => (
         <div className="calendar-days variant-pills">
@@ -122,6 +163,11 @@ const MiniCalendar = ({ completedDates = [], incompleteDates = [], currentDate =
                     <div key={day} className={`day-card ${isTodayDate ? 'today' : ''} ${isCompleted ? 'completed' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
                         <div className="day-label">{day}</div>
                         <div className="day-number">{dayNumber}</div>
+                        {isCompleted && (
+                            <div className="day-check-icon">
+                                <Check size={9} strokeWidth={3} />
+                            </div>
+                        )}
                         <div className="day-status-bar"></div>
                     </div>
                 );
@@ -158,16 +204,53 @@ const MiniCalendar = ({ completedDates = [], incompleteDates = [], currentDate =
     );
 
     return (
-        <div className={`mini-calendar-wrapper ${variant}`}>
+        <div
+            className={`mini-calendar-wrapper ${variant} ${animDir ? `anim-${animDir}` : ''}`}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+        >
             <div className="calendar-header">
-                <h3 className="calendar-month">{monthYear}</h3>
-                <div className="week-badge">Semana {weekNumber}</div>
+                <div className="calendar-header-left">
+                    <h3 className="calendar-month">{monthYear}</h3>
+                    <div className="week-badge">Semana {weekNumber}</div>
+                </div>
+
+                {!isCurrentWeek && (
+                    <button
+                        className="cal-today-btn"
+                        onClick={() => { setAnimDir('left'); setWeekOffset(0); setTimeout(() => setAnimDir(null), 300); }}
+                        aria-label="Ir para hoje"
+                    >
+                        Hoje
+                    </button>
+                )}
             </div>
 
-            {variant === 'pills' && renderPills()}
-            {variant === 'timeline' && renderTimeline()}
-            {variant === 'cards' && renderCards()}
-            {variant === 'classic' && renderClassic()}
+            <div className="calendar-days-row">
+
+                <button
+                    className="cal-nav-btn"
+                    onClick={handlePrevWeek}
+                    aria-label="Semana anterior"
+                >
+                    <ChevronLeft size={16} strokeWidth={2} />
+                </button>
+
+                <div className="calendar-days-inner">
+                    {variant === 'pills' && renderPills()}
+                    {variant === 'timeline' && renderTimeline()}
+                    {variant === 'cards' && renderCards()}
+                    {variant === 'classic' && renderClassic()}
+                </div>
+
+                <button
+                    className="cal-nav-btn"
+                    onClick={handleNextWeek}
+                    aria-label="Próxima semana"
+                >
+                    <ChevronRight size={16} strokeWidth={2} />
+                </button>
+            </div>
         </div>
     );
 };
