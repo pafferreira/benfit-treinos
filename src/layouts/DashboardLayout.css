@@ -170,18 +170,20 @@
 /* Main Content */
 .layout-content {
     flex: 1;
-    padding: 1.25rem;
-    /* Add padding to account for fixed header and footer */
-    padding-top: 6rem;
-    /* Accurate padding to clear the white header area in the screenshot */
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    padding-top: 0;
+    /* Ensure padding scrolls with content by applying it to the child, not the scroll container.
+       This allows sticky headers to stick to the true viewport top. */
     padding-bottom: 6rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
     overflow-y: auto;
     height: 100%;
-    /* Fill the container */
 }
+
+
 
 /* Bottom Nav */
 .bottom-nav {

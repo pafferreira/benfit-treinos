@@ -38,7 +38,7 @@ const Profile = () => {
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [selectedAvatar, setSelectedAvatar] = useState(null);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
-    const [showActivityHistory, setShowActivityHistory] = useState(false);
+
 
     // Edit form state
     const [formData, setFormData] = useState({});
@@ -336,7 +336,7 @@ const Profile = () => {
                         </div>
                         <ChevronRight size={20} color="var(--color-subtext-light)" />
                     </div>
-                    <div className="settings-item" onClick={() => setShowActivityHistory(true)}>
+                    <div className="settings-item" onClick={() => navigate('/historico')}>
                         <div className="item-left">
                             <Activity size={20} className="item-icon" />
                             <span>Histórico de Atividades</span>
@@ -709,14 +709,7 @@ const Profile = () => {
                 />
             )}
 
-            {/* MODAL: ACTIVITY HISTORY */}
-            {showActivityHistory && (
-                <ActivityHistory
-                    isOpen={showActivityHistory}
-                    onClose={() => setShowActivityHistory(false)}
-                    userId={user?.id}
-                />
-            )}
+
 
             {/* Confirmation Modal */}
             <ConfirmationModal

@@ -16,7 +16,8 @@ const formatDate = (dateStr) => {
     return date.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: 'short',
-        year: 'numeric'
+        year: '2-digit',
+        weekday: 'short'
     });
 };
 
@@ -348,29 +349,35 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }
     const hasItems = activeTab === 'sessoes' ? sessions.length > 0 : plans.length > 0;
 
     const Content = (
-        <div className="activity-history">
+        <div className={`activity-history ${isPage ? 'is-page-view' : ''}`}>
             {/* Stats Bar */}
             <div className="activity-stats-bar">
-                <div className="activity-stat-card">
-                    <div className="stat-icon">
-                        <Activity size={16} />
+                <div className="activity-stat-card stat-card-blue">
+                    <div className="stat-icon-wrapper">
+                        <Activity size={20} />
                     </div>
-                    <span className="stat-value">{totalSessions}</span>
-                    <span className="stat-label">Sessões</span>
+                    <div className="stat-info">
+                        <span className="stat-value">{totalSessions}</span>
+                        <span className="stat-label">Sessões</span>
+                    </div>
                 </div>
-                <div className="activity-stat-card">
-                    <div className="stat-icon">
-                        <TrendingUp size={16} />
+                <div className="activity-stat-card stat-card-green">
+                    <div className="stat-icon-wrapper">
+                        <TrendingUp size={20} />
                     </div>
-                    <span className="stat-value">{completedSessions}</span>
-                    <span className="stat-label">Concluídas</span>
+                    <div className="stat-info">
+                        <span className="stat-value">{completedSessions}</span>
+                        <span className="stat-label">Concluídas</span>
+                    </div>
                 </div>
-                <div className="activity-stat-card">
-                    <div className="stat-icon">
-                        <Flame size={16} />
+                <div className="activity-stat-card stat-card-orange">
+                    <div className="stat-icon-wrapper">
+                        <Flame size={20} />
                     </div>
-                    <span className="stat-value">{totalCalories}</span>
-                    <span className="stat-label">Calorias</span>
+                    <div className="stat-info">
+                        <span className="stat-value">{totalCalories}</span>
+                        <span className="stat-label">Calorias</span>
+                    </div>
                 </div>
             </div>
 

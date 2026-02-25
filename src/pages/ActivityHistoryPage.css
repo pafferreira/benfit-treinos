@@ -1,10 +1,96 @@
 .activity-history-page {
     width: 100%;
-    padding-bottom: 2rem;
-    height: 100%;
+    min-height: 100vh;
+    padding: 6rem 1rem 3rem 1rem;
+    position: relative;
+    max-width: 100%;
+    margin: 0;
+    overflow-x: hidden;
+    background-color: var(--color-background-light);
+    /* Ensure solid background */
 }
 
-/* Override or extend specific styles if needed when not in modal */
-.activity-history-page .activity-history {
-    gap: 1.5rem;
+/* Base Header */
+/* Base Header - Using Sticky Positioning */
+.page-header-container {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 2000;
+    padding: 0 0 0.5rem 0;
+    background-color: var(--color-background-light);
+    /* Default background to avoid transparency issue initially, or can be transparent if handled */
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Stuck Header State - Adds visual effects only (Sticky takes care of position) */
+.page-header-container.stuck {
+    padding: 1rem 1rem;
+
+    /* Glassmorphism */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode support */
+.dark .page-header-container {
+    background-color: var(--color-background-dark);
+}
+
+.dark .page-header-container.stuck {
+    background: rgba(17, 24, 39, 0.95);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* When stuck, container inner width should still be constrained if needed, or full if requested.
+   User asked to "aproveitar todo o espaço". */
+.page-header-container .flex {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+
+
+@keyframes slideInDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Ensure the inner component uses full width */
+.activity-page-content {
+    width: 100%;
+}
+
+/* Responsive Padding */
+@media (min-width: 768px) {
+    .activity-history-page {
+        padding: 6rem 2rem 4rem 2rem;
+    }
+
+    .page-header-container {
+        padding: 0;
+    }
+
+    .page-header-container.stuck {
+        padding: 0;
+    }
+
+    /* Ensure activity history grid takes full width */
+    .activity-history-page .activity-history {
+        width: 100%;
+        max-width: none;
+    }
 }

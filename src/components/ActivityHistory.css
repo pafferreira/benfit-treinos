@@ -6,64 +6,128 @@
 }
 
 /* ===== STATS SUMMARY BAR ===== */
+/* ===== STATS SUMMARY BAR ===== */
 .activity-stats-bar {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .activity-stat-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.75rem 0.5rem;
-    border-radius: var(--radius-default);
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(99, 102, 241, 0.05));
-    border: 1px solid rgba(59, 130, 246, 0.12);
-    transition: transform 0.2s, box-shadow 0.2s;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-xl);
+    background: white;
+    border: 1px solid transparent;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
 }
 
 .activity-stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
 }
 
-.activity-stat-card .stat-icon {
-    width: 32px;
-    height: 32px;
+/* Color Variants */
+.stat-card-blue {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(37, 99, 235, 0.02));
+    border-color: rgba(59, 130, 246, 0.15);
+}
+
+.stat-card-green {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(5, 150, 105, 0.02));
+    border-color: rgba(16, 185, 129, 0.15);
+}
+
+.stat-card-orange {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.06), rgba(234, 88, 12, 0.02));
+    border-color: rgba(249, 115, 22, 0.15);
+}
+
+/* Icon Wrapper */
+.stat-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--color-primary), #6366F1);
-    color: white;
+    margin-bottom: 0.25rem;
     flex-shrink: 0;
+    transition: transform 0.2s;
 }
 
-.activity-stat-card .stat-value {
-    font-size: 1.25rem;
+.activity-stat-card:hover .stat-icon-wrapper {
+    transform: scale(1.1);
+}
+
+.stat-card-blue .stat-icon-wrapper {
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563EB;
+}
+
+.stat-card-green .stat-icon-wrapper {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+}
+
+.stat-card-orange .stat-icon-wrapper {
+    background: rgba(249, 115, 22, 0.12);
+    color: #EA580C;
+}
+
+/* Info Text */
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
     font-weight: 800;
-    color: var(--color-text-light);
+    color: var(--color-text-main);
     line-height: 1;
 }
 
-.dark .activity-stat-card .stat-value {
+.dark .stat-value {
     color: var(--color-text-dark);
 }
 
-.activity-stat-card .stat-label {
-    font-size: 0.65rem;
+.stat-label {
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--color-subtext-light);
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.05em;
 }
 
 .dark .activity-stat-card {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(99, 102, 241, 0.08));
+    background: var(--color-card-dark);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Dark mode specific colors */
+.dark .stat-card-blue {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.05));
     border-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .stat-card-green {
+    background: linear-gradient(135deg, rgba(5, 150, 105, 0.15), rgba(5, 150, 105, 0.05));
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.dark .stat-card-orange {
+    background: linear-gradient(135deg, rgba(234, 88, 12, 0.15), rgba(234, 88, 12, 0.05));
+    border-color: rgba(249, 115, 22, 0.2);
 }
 
 /* ===== FILTER TABS ===== */
@@ -485,14 +549,25 @@
 }
 
 /* ===== RESPONSIVE ===== */
+/* ... (existing mobile styles) ... */
+
 @media (max-width: 480px) {
     .activity-stats-bar {
         grid-template-columns: repeat(3, 1fr);
         gap: 0.5rem;
     }
 
-    .activity-stat-card .stat-value {
-        font-size: 1rem;
+    .activity-stat-card {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .stat-icon-wrapper {
+        width: 32px;
+        height: 32px;
+    }
+
+    .stat-value {
+        font-size: 1.1rem;
     }
 
     .activity-timeline {
@@ -501,6 +576,104 @@
 
     .session-card-header {
         flex-wrap: wrap;
+    }
+}
+
+/* Desktop Optimization - Uses more horizontal space */
+@media (min-width: 768px) {
+    .is-page-view .activity-stats-bar {
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .is-page-view .activity-stat-card {
+        flex-direction: row;
+        gap: 1.25rem;
+        padding: 1.5rem;
+        align-items: center;
+        text-align: left;
+    }
+
+    .is-page-view .stat-info {
+        align-items: flex-start;
+    }
+
+    .is-page-view .stat-value {
+        font-size: 1.75rem;
+    }
+
+    .is-page-view .stat-label {
+        margin-top: 0;
+    }
+
+    /* Session Card Horizontal Layout */
+    .is-page-view .activity-session-card {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .is-page-view .session-card-rows {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto auto;
+        gap: 0.25rem 2rem;
+        align-items: start;
+    }
+
+    .is-page-view .session-row-plan {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .is-page-view .session-row-workout {
+        grid-column: 1;
+        grid-row: 2;
+        font-size: 1.25rem;
+    }
+
+    .is-page-view .session-row-details {
+        grid-column: 1;
+        grid-row: 3;
+        margin-top: 0.25rem;
+    }
+
+    .is-page-view .session-row-action {
+        grid-column: 2;
+        grid-row: 1 / span 3;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+        height: 100%;
+        gap: 0.75rem;
+    }
+
+    /* Plan Card Horizontal Layout */
+    .is-page-view .plan-card-column {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .is-page-view .plan-card-title {
+        grid-column: 1;
+        font-size: 1.2rem;
+    }
+
+    .is-page-view .plan-card-dates {
+        grid-column: 1;
+        flex-direction: row;
+        gap: 1.5rem;
+    }
+
+    .is-page-view .plan-card-status {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        margin-top: 0;
+        align-self: center;
     }
 }
 

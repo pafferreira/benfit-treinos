@@ -7,7 +7,7 @@ import { useUserRole } from '../hooks/useSupabase';
 import './DashboardLayout.css';
 
 const DashboardLayoutContent = () => {
-    const lastScrollY = useRef(0);
+
     const mainContentRef = useRef(null);
     const location = useLocation();
     const navigate = useNavigate();
@@ -138,6 +138,42 @@ const DashboardLayoutContent = () => {
         return false;
     };
 
+    const [showInterface, setShowInterface] = useState(true);
+    const lastScrollY = useRef(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (!mainContentRef.current) return;
+            const currentScrollY = mainContentRef.current.scrollTop;
+
+            // Threshold to avoid jitter
+            if (Math.abs(currentScrollY - lastScrollY.current) < 10) return;
+
+            // Logic: Hide when scrolling down away from top. Show ONLY when at the very top.
+            // This prevents "scroll up" jitter/conflict.
+            if (currentScrollY > 20) {
+                setShowInterface(false);
+            } else {
+                setShowInterface(true);
+            }
+            lastScrollY.current = currentScrollY;
+        };
+
+        const mainElement = mainContentRef.current;
+        if (mainElement) {
+            mainElement.addEventListener('scroll', handleScroll);
+        }
+
+        return () => {
+            if (mainElement) {
+                mainElement.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }, []);
+
+    const isHeaderHidden = !showInterface;
+    const isNavHidden = !showInterface;
+
     return (
         <div className="dashboard-layout">
             <div className="mobile-container">
@@ -145,7 +181,7 @@ const DashboardLayoutContent = () => {
                     Pular para o conteúdo principal
                 </a>
                 {/* Fixed Header */}
-                <header className="layout-header">
+                <header className={`layout-header ${isHeaderHidden ? 'header-hidden' : ''}`}>
                     <div style={{ flex: 1 }}> {/* Title takes available space */}
                         <h1 className="header-title">{title}</h1>
                         <p className="header-subtitle">{subtitle}</p>
@@ -182,12 +218,13 @@ const DashboardLayoutContent = () => {
                     className="layout-content hide-scrollbar"
                     ref={mainContentRef}
                     tabIndex={-1}
+                    style={{ paddingTop: (isHeaderHidden || location.pathname === '/perfil' || location.pathname.includes('/historico')) ? 0 : '6rem' }} /* dynamic padding top */
                 >
                     <Outlet />
                 </main>
 
                 {/* Bottom Navigation */}
-                <nav className="bottom-nav">
+                <nav className={`bottom-nav ${isNavHidden ? 'nav-hidden' : ''}`}>
                     <span className="app-version">v{__APP_VERSION__}</span>
                     <button
                         className={`nav-btn ${isActive('/') ? 'active' : ''}`}

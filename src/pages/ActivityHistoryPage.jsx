@@ -10,29 +10,60 @@ const ActivityHistoryPage = () => {
     const { userId } = useParams();
     const { isRealAdmin } = useUserRole();
     const navigate = useNavigate();
+    const [isHeaderStuck, setIsHeaderStuck] = React.useState(false);
 
-    // If no userId in params, try to get current user (handled inside ActivityHistory mostly, but let's be explicit if needed)
-    // Actually ActivityHistory takes userId prop. If params has it, use it. If not, maybe use current user from context?
-    // But this page is likely linked from somewhere with an ID, or for the logged-in user.
-    // Let's assume if no ID, it's for current user. But let's see how ActivityHistory handles it.
+    React.useEffect(() => {
+        const handleScroll = (e) => {
+            // 10px threshold for sticking, checking the target element's scrollTop
+            setIsHeaderStuck(e.target.scrollTop > 10);
+        };
+
+        const mainContent = document.querySelector('.layout-content');
+        if (mainContent) {
+            mainContent.addEventListener('scroll', handleScroll);
+        }
+
+        return () => {
+            if (mainContent) {
+                mainContent.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }, []);
+
+    // Helper to go back
+    const handleBack = () => {
+        if (window.history.length > 2) {
+            navigate(-1);
+        } else {
+            navigate('/');
+        }
+    };
 
     return (
         <div className="activity-history-page animate-in fade-in">
-            <div className="page-header mb-6">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                    <ChevronLeft size={20} />
-                    <span className="ml-1 font-medium">Voltar</span>
-                </button>
-                <h1 className="text-2xl font-bold text-gray-800 mt-2">Histórico de Atividades</h1>
+            {/* Absolute Fixed Header */}
+            <div className={`page-header-container ${isHeaderStuck ? 'stuck' : ''}`}>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={handleBack}
+                        className="p-2 -ml-2 text-gray-500 hover:text-[#034EA2] hover:bg-blue-50 rounded-full transition-all"
+                        title="Voltar"
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+                    <div>
+                        <h1 className="text-xl md:text-2xl font-bold text-[#034EA2]">Histórico de Atividades</h1>
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">Visão completa da sua jornada.</p>
+                    </div>
+                </div>
             </div>
 
-            <div className="mt-4">
+
+
+            <div className="activity-page-content mt-4 md:mt-6">
                 <ActivityHistory
                     isOpen={true}
-                    onClose={() => navigate(-1)}
+                    onClose={handleBack}
                     userId={userId}
                     isPage={true}
                 />
