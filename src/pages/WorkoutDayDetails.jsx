@@ -64,7 +64,7 @@ const WorkoutDayDetails = () => {
     const [workoutExercises, setWorkoutExercises] = useState([]);
     const [completedExercises, setCompletedExercises] = useState([]);
     const [showRestTimer, setShowRestTimer] = useState(false);
-    const [restDuration, setRestDuration] = useState(60);
+    const [restDuration, setRestDuration] = useState(60); // default 60s; atualizado pelo rest_seconds do exercício
     const [currentSessionId, setCurrentSessionId] = useState(null);
     const [currentSessionStartedAt, setCurrentSessionStartedAt] = useState(null);
     const [userWeightKg, setUserWeightKg] = useState(70);
@@ -310,7 +310,9 @@ const WorkoutDayDetails = () => {
     };
 
     const handleStartRest = (seconds) => {
-        setRestDuration(seconds);
+        // Usa o rest_seconds do exercício; fallback para 60s se nulo/zero
+        const duration = (Number(seconds) > 0) ? Number(seconds) : 60;
+        setRestDuration(duration);
         setShowRestTimer(true);
     };
 
@@ -539,7 +541,8 @@ const WorkoutDayDetails = () => {
                             ✕
                         </button>
                         <RestTimer
-                            suggestedRestSeconds={restDuration}
+                            key={restDuration}
+                            suggestedRestSeconds={restDuration ?? 60}
                             onComplete={() => { }}
                         />
                     </div>

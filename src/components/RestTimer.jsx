@@ -9,6 +9,14 @@ const RestTimer = ({ suggestedRestSeconds = 60, onComplete }) => {
 
     const presets = [30, 60, 90, 120];
 
+    // Sincroniza quando a prop muda (ex: timer overlay abre com exercício diferente)
+    useEffect(() => {
+        const safe = Number(suggestedRestSeconds) > 0 ? Number(suggestedRestSeconds) : 60;
+        setIsRunning(false);
+        setTimeLeft(safe);
+        setSelectedPreset(safe);
+    }, [suggestedRestSeconds]);
+
     useEffect(() => {
         let interval;
         if (isRunning && timeLeft > 0) {

@@ -12,11 +12,9 @@
     flex-direction: column;
     width: 100%;
     min-height: 320px;
+    margin-bottom: 2rem;
 }
 
-.session-exercise-item+.session-exercise-item {
-    margin-top: 0.9rem;
-}
 
 .session-exercise-item:hover {
     transform: translateY(-2px);
@@ -183,33 +181,108 @@
     cursor: pointer;
 }
 
+/* ── Stats Bar: Séries / Reps / Descanso ─────────────────── */
+/* ── Stats Cards: Séries / Reps / Descanso ─────────────────── */
+.session-stats-grid {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.session-stat-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.85rem 0.5rem;
+    gap: 0.1rem;
+    background: #ffffff;
+    border: 1.5px solid #94a3b8;
+    /* Borda mais escura sugerida */
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.session-stat-icon {
+    opacity: 0.8;
+    margin-bottom: 0.05rem;
+}
+
+.session-stat-sets .session-stat-icon {
+    color: var(--color-primary);
+}
+
+.session-stat-reps .session-stat-icon {
+    color: #059669;
+}
+
+.session-stat-rest .session-stat-icon {
+    color: #7c3aed;
+}
+
+.session-stat-number {
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
+.session-stat-sets {
+    background: #f0f7ff;
+}
+
+.session-stat-reps {
+    background: #f0fdf4;
+}
+
+.session-stat-rest {
+    background: #f5f3ff;
+}
+
+.session-stat-sets .session-stat-number {
+    color: var(--color-primary);
+}
+
+.session-stat-reps .session-stat-number {
+    color: #059669;
+}
+
+.session-stat-rest .session-stat-number {
+    color: #7c3aed;
+}
+
+.session-stat-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #475569;
+}
+
+
+/* ── Muscle / Equipment badges ──────────────────────────── */
 .session-exercise-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.45rem;
 }
 
 .session-meta-badge {
-    display: inline-block;
-    padding: 0.35rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.7rem;
     background: #e0f2fe;
     border: 1px solid #bae6fd;
     border-radius: var(--radius-md);
-    font-size: 1.05rem;
+    font-size: 0.82rem;
     font-weight: 600;
     color: #0369a1;
 }
 
-.session-meta-badge svg {
-    vertical-align: middle;
-    margin-right: 0.3rem;
-}
-
-/* ... */
-
-/* Adjusted detail section padding */
+/* ── Detail section ─────────────────────────────────────── */
 .session-exercise-details {
-    /* Increased left/right padding to match info section */
     padding: 0.85rem 1.5rem 1.1rem;
     background: #f8fbff;
     border-top: 1px solid #e8eef6;
@@ -242,28 +315,25 @@
 }
 
 .session-detail-tag {
-    display: inline-block;
-    padding: 0.35rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.7rem;
     background: #e0f2fe;
     border: 1px solid #bae6fd;
     border-radius: var(--radius-md);
-    font-size: 1.05rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: #0369a1;
 }
 
-/* ... */
-
 @media (max-width: 640px) {
-    /* ... */
-
     .session-exercise-name {
         font-size: 1.05rem;
     }
 
-    .session-meta-badge {
-        font-size: 0.82rem;
-        padding: 0.4rem 0.6rem;
+    .session-stat-number {
+        font-size: 1.75rem;
     }
 }
 
@@ -310,8 +380,8 @@
         font-size: 0.98rem;
     }
 
-    .session-meta-badge {
-        font-size: 0.72rem;
+    .session-stat-number {
+        font-size: 1.75rem;
     }
 }
 

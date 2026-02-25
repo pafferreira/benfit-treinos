@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Target, Repeat, Timer, Check } from 'lucide-react';
+import { Target, Timer, Check, Layers, Repeat } from 'lucide-react';
 import RestTimer from './RestTimer';
 import './ExerciseCard.css';
 
@@ -10,7 +10,6 @@ const ExerciseCard = ({
     onClick,
     isCompleted = false
 }) => {
-    const [selectedSet, setSelectedSet] = useState(1);
     const [showTimer, setShowTimer] = useState(false);
 
     const handleCheckboxChange = (e) => {
@@ -30,15 +29,26 @@ const ExerciseCard = ({
     const reps = workoutExercise?.reps || '10-12';
     const restSeconds = workoutExercise?.rest_seconds || 60;
 
+    const formatRest = (seconds) => {
+        if (!seconds) return '--';
+        if (seconds >= 60) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return s > 0 ? `${m}m${s}s` : `${m}min`;
+        }
+        return `${seconds}s`;
+    };
+
     return (
         <div className={`exercise-card-container ${isCompleted ? 'completed' : ''}`}>
+            {/* Top section: image + name + checkbox */}
             <div className="exercise-card-main" onClick={handleCardClick}>
                 <div className="exercise-card-image">
                     <img
                         src={exercise.image_url || exercise.video_url || 'https://via.placeholder.com/80'}
                         alt={exercise.name}
                         onError={(e) => {
-                            e.target.onerror = null; // prevent infinite loop
+                            e.target.onerror = null;
                             e.target.src = 'https://via.placeholder.com/80';
                         }}
                     />
@@ -49,7 +59,7 @@ const ExerciseCard = ({
                         <div>
                             <h3 className="exercise-card-name">{exercise.name}</h3>
                             <div className="exercise-card-muscle">
-                                <Target size={12} />
+                                <Target size={11} />
                                 {exercise.muscle_group}
                             </div>
                         </div>
@@ -64,51 +74,52 @@ const ExerciseCard = ({
                             </span>
                         </label>
                     </div>
-
-                    <div className="exercise-card-meta">
-                        <span className="meta-item">
-                            <Repeat size={14} />
-                            {sets} Séries • {reps} Reps
-                        </span>
-                    </div>
-
-                    <div className="set-selector">
-                        {Array.from({ length: sets }, (_, i) => i + 1).map(setNum => (
-                            <button
-                                key={setNum}
-                                className={`set-btn ${selectedSet === setNum ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedSet(setNum);
-                                }}
-                            >
-                                <div className="set-label">SÉRIE {setNum}</div>
-                                <div className="set-value">{reps.split('-')[0]} x</div>
-                                <div className="set-weight">15kg</div>
-                            </button>
-                        ))}
-                    </div>
-
-                    {showTimer ? (
-                        <div className="timer-section" onClick={(e) => e.stopPropagation()}>
-                            <RestTimer
-                                suggestedRestSeconds={restSeconds}
-                                onComplete={() => setShowTimer(false)}
-                            />
-                        </div>
-                    ) : (
-                        <button
-                            className="start-rest-btn"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowTimer(true);
-                            }}
-                        >
-                            <Timer size={16} />
-                            Iniciar Descanso ({restSeconds}s)
-                        </button>
-                    )}
                 </div>
+            </div>
+
+            {/* Stats Cards: Séries / Reps / Descanso — destaque máximo */}
+            <div className="exercise-stats-grid">
+                <div className="stat-card stat-sets">
+                    <Layers size={14} className="stat-icon" />
+                    <span className="stat-number">{sets}</span>
+                    <span className="stat-label">Séries</span>
+                </div>
+
+                <div className="stat-card stat-reps">
+                    <Repeat size={14} className="stat-icon" />
+                    <span className="stat-number">{reps}</span>
+                    <span className="stat-label">Reps</span>
+                </div>
+
+                <div className="stat-card stat-rest">
+                    <Timer size={14} className="stat-icon" />
+                    <span className="stat-number">{formatRest(restSeconds)}</span>
+                    <span className="stat-label">Descanso</span>
+                </div>
+            </div>
+
+            {/* Rest timer */}
+            <div className="exercise-card-footer" onClick={(e) => e.stopPropagation()}>
+                {showTimer ? (
+                    <div className="timer-section">
+                        <RestTimer
+                            suggestedRestSeconds={restSeconds}
+                            onComplete={() => setShowTimer(false)}
+                        />
+                    </div>
+                ) : (
+                    <button
+                        className="start-rest-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowTimer(true);
+                        }}
+                    >
+                        <Timer size={15} />
+                        Iniciar Descanso
+                        <span className="rest-badge">{formatRest(restSeconds)}</span>
+                    </button>
+                )}
             </div>
         </div>
     );

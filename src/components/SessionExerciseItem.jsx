@@ -46,9 +46,9 @@ const SessionExerciseItem = ({
             if (onToggleComplete) onToggleComplete(exercise.id, true);
             setShowUndo(true);
             setUndoTimeLeft(10);
-            // Iniciar cronômetro de descanso se houver tempo especificado
-            if (workoutExercise.rest_seconds && onStartRest) {
-                onStartRest(workoutExercise.rest_seconds);
+            // Iniciar cronômetro de descanso — usa rest_seconds do exercício ou 60s como fallback
+            if (onStartRest) {
+                onStartRest(workoutExercise.rest_seconds || 60);
             }
         } else if (showUndo) {
             // Desfazer dentro dos 10s
@@ -131,36 +131,45 @@ const SessionExerciseItem = ({
                         </div>
                     </div>
 
+                    {/* ── Stats Cards: Séries / Reps / Descanso ── */}
+                    <div className="session-stats-grid">
+                        <div className="session-stat-card session-stat-sets">
+                            <Layers size={14} className="session-stat-icon" />
+                            <span className="session-stat-number">{workoutExercise.sets || '--'}</span>
+                            <span className="session-stat-label">Séries</span>
+                        </div>
+
+                        <div className="session-stat-card session-stat-reps">
+                            <Repeat size={14} className="session-stat-icon" />
+                            <span className="session-stat-number">{workoutExercise.reps || '--'}</span>
+                            <span className="session-stat-label">Reps</span>
+                        </div>
+
+                        <div className="session-stat-card session-stat-rest">
+                            <Timer size={14} className="session-stat-icon" />
+                            <span className="session-stat-number">{formatRestTime(workoutExercise.rest_seconds)}</span>
+                            <span className="session-stat-label">Descanso</span>
+                        </div>
+                    </div>
+
+                    {/* ── Muscle / Equipment badges ── */}
                     <div className="session-exercise-meta">
-                        <span className="session-meta-badge">
-                            <Layers size={14} />
-                            {workoutExercise.sets || '-'} séries
-                        </span>
-                        <span className="session-meta-badge">
-                            <Repeat size={14} />
-                            {workoutExercise.reps || '-'} reps
-                        </span>
-                        {workoutExercise.weight && (
+                        {safeMuscle && (
                             <span className="session-meta-badge">
-                                <Dumbbell size={14} />
-                                {workoutExercise.weight}
+                                <Target size={13} />
+                                {safeMuscle}
                             </span>
                         )}
-                        <span className="session-meta-badge">
-                            <Timer size={14} />
-                            {(() => {
-                                const time = formatRestTime(workoutExercise.rest_seconds);
-                                return time === '-' ? '-' : `${time} descanso`;
-                            })()}
-                        </span>
-                        <span className="session-meta-badge">
-                            <Target size={14} />
-                            {safeMuscle}
-                        </span>
                         {safeEquipment && (
                             <span className="session-meta-badge">
-                                <Dumbbell size={14} />
+                                <Dumbbell size={13} />
                                 {safeEquipment}
+                            </span>
+                        )}
+                        {workoutExercise.weight && (
+                            <span className="session-meta-badge">
+                                <Dumbbell size={13} />
+                                {workoutExercise.weight}
                             </span>
                         )}
                     </div>
