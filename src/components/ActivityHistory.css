@@ -134,12 +134,19 @@
 .activity-filter-tabs {
     display: flex;
     gap: 0.5rem;
+    padding: 0.5rem 0;
     border-bottom: 1px solid #E5E7EB;
-    padding-bottom: 0.5rem;
+    /* Sticky logo abaixo do page-header (~72px) */
+    position: sticky;
+    top: 72px;
+    z-index: 1500;
+    background-color: var(--color-background-light);
+    transition: box-shadow 0.2s;
 }
 
 .dark .activity-filter-tabs {
     border-color: #374151;
+    background-color: var(--color-background-dark);
 }
 
 .activity-filter-tab {
@@ -246,11 +253,6 @@
     z-index: 1;
 }
 
-.dark .activity-session-card::before {
-    border-color: var(--color-card-dark);
-    background: #4B5563;
-}
-
 .dark .activity-session-card {
     background: var(--color-card-dark);
     border-color: #374151;
@@ -274,6 +276,145 @@
     justify-content: space-between;
     gap: 0.75rem;
 }
+
+.activity-exercise-card {
+    background: var(--color-card-light);
+    border-radius: var(--radius-default);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid transparent;
+    /* Edgeless aesthetic */
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: visible;
+    /* Allowing the dot to appear outside if needed, though hidden is fine if dot is positioned right */
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.activity-exercise-card::before {
+    content: '';
+    position: absolute;
+    left: -1.65rem;
+    top: 1.25rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: 2px solid white;
+    z-index: 1;
+    box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.dark .activity-exercise-card::before {
+    border-color: var(--color-card-dark);
+}
+
+.activity-exercise-card:hover {
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.08);
+    /* Minimalistic hover shadow */
+    transform: translateX(4px);
+}
+
+.exercise-card-grid {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 0.875rem;
+    align-items: center;
+}
+
+.exercise-col-photo {
+    flex-shrink: 0;
+}
+
+.exercise-card-img {
+    width: 48px;
+    height: 48px;
+    border-radius: calc(var(--radius-md) - 2px);
+    object-fit: cover;
+    background: #F3F4F6;
+}
+
+.dark .exercise-card-img {
+    background: #374151;
+}
+
+.exercise-card-icon-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: calc(var(--radius-md) - 2px);
+    background: rgba(59, 130, 246, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exercise-col-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.exercise-card-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    margin: 0;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dark .exercise-card-name {
+    color: var(--color-text-dark);
+}
+
+.exercise-card-session-text {
+    font-size: 0.8rem;
+    color: var(--color-subtext-light);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.exercise-col-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.exercise-detail-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.4rem;
+    background: rgba(59, 130, 246, 0.08);
+    border-radius: var(--radius-sm);
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+
+
+
+.exercise-card-time {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--color-subtext-light);
+    font-weight: 500;
+}
+
+/* Session Header */
 
 .session-card-info {
     flex: 1;

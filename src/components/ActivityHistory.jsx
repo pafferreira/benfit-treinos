@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Activity, Clock, Flame, Dumbbell, Calendar, ChevronDown,
     Check, Timer, TrendingUp, Zap, Play, CircleDot
@@ -74,35 +74,8 @@ const STATUS_ICONS = {
 // ==========================================
 // Sub-componente: Exercícios da sessão
 // ==========================================
-const SessionExercises = ({ sessionId }) => {
-    const [exercises, setExercises] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchExercises = async () => {
-            try {
-                setLoading(true);
-                const data = await supabaseHelpers.getSessionExercises(sessionId);
-                setExercises(data);
-            } catch (error) {
-                console.error('Error fetching session exercises:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchExercises();
-    }, [sessionId]);
-
-    if (loading) {
-        return (
-            <div className="exercises-loading">
-                <div className="spinner-small" />
-                <span>Carregando exercícios...</span>
-            </div>
-        );
-    }
-
-    if (exercises.length === 0) {
+const SessionExercises = ({ exercises }) => {
+    if (!exercises || exercises.length === 0) {
         return (
             <div className="exercises-loading">
                 <span>Nenhum exercício registrado nesta sessão.</span>
@@ -117,10 +90,15 @@ const SessionExercises = ({ sessionId }) => {
         if (!grouped[key]) {
             grouped[key] = {
                 exercise: ex.b_exercises,
-                sets: []
+                sets: [],
+                last_created_at: ex.created_at
             };
         }
         grouped[key].sets.push(ex);
+        // Pega sempre a data/hora do log mais recente desse exercício
+        if (new Date(ex.created_at) > new Date(grouped[key].last_created_at)) {
+            grouped[key].last_created_at = ex.created_at;
+        }
     });
 
     return (
@@ -148,6 +126,12 @@ const SessionExercises = ({ sessionId }) => {
                     <div className="exercise-log-info">
                         <div className="exercise-log-name">
                             {group.exercise?.name || 'Exercício'}
+                            {group.last_created_at && (
+                                <span className="exercise-log-time" style={{ display: 'block', fontSize: '0.7rem', color: 'var(--color-subtext-light)', marginTop: '0.25rem' }}>
+                                    <Clock size={10} style={{ display: 'inline', marginRight: '4px' }} />
+                                    {formatDate(group.last_created_at)} às {formatTime(group.last_created_at)}
+                                </span>
+                            )}
                         </div>
                         <div className="exercise-log-details">
                             {group.exercise?.muscle_group && (
@@ -212,94 +196,114 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }
         }
     }, [isOpen, isPage, currentUserId, fetchHistory]);
 
-    // Stats computados
+    // Extrair e achatar todos os exercícios de todas as sessões
+    const processedExercises = useMemo(() => {
+        const allLogs = [];
+        sessions.forEach(session => {
+            const logs = session.b_session_logs || [];
+            if (logs.length === 0) return;
+
+            // Agrupar os logs da mesma sessão por exercício para não repetir 1 registro pra cada série
+            const groupedByEx = {};
+            logs.forEach(log => {
+                const exId = log.exercise_id;
+                if (!groupedByEx[exId]) {
+                    groupedByEx[exId] = {
+                        ...log,
+                        sets_count: 1,
+                        session_ref: {
+                            id: session.id,
+                            workout_title: session.b_workouts?.title || 'Treino sem título',
+                        }
+                    };
+                } else {
+                    groupedByEx[exId].sets_count += 1;
+                    // Retém a data do log mais recente para o exercício
+                    if (new Date(log.created_at) > new Date(groupedByEx[exId].created_at)) {
+                        groupedByEx[exId].created_at = log.created_at;
+                    }
+                }
+            });
+            allLogs.push(...Object.values(groupedByEx));
+        });
+
+        // Ordenar do mais recente pro mais antigo
+        return allLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }, [sessions]);
+
+    // Stats computados mantêm compatibilidade para a base da dashboard
     const totalSessions = sessions.length;
     const completedSessions = sessions.filter(s => s.ended_at).length;
     const totalCalories = sessions.reduce((sum, s) => sum + (s.calories_burned || 0), 0);
 
-    // Agrupar sessões por data
-    const groupByDate = (items, dateField) => {
+    // Agrupar logs/planos por data
+    const groupByDate = (items, type = 'plan') => {
         const groups = {};
         items.forEach(item => {
-            const key = getRelativeDate(item[dateField]);
+            let key;
+            if (type === 'exercise') {
+                key = getRelativeDate(item.created_at);
+            } else {
+                key = getRelativeDate(item.created_at); // For plans
+            }
             if (!groups[key]) groups[key] = [];
             groups[key].push(item);
         });
         return groups;
     };
 
-    const sessionGroups = groupByDate(sessions, 'started_at');
-    const planGroups = groupByDate(plans, 'created_at');
+    // Agrupar a nova lista achatada de exercícios
+    const exerciseGroups = groupByDate(processedExercises, 'exercise');
+    const planGroups = groupByDate(plans, 'plan');
 
     const toggleExpand = (id) => {
         setExpandedSession(prev => prev === id ? null : id);
     };
 
-    const renderSessionCard = (session) => {
-        const isExpanded = expandedSession === session.id;
-        const workout = session.b_workouts;
-        const day = session.b_workout_days;
-        const duration = formatDuration(session.started_at, session.ended_at);
-        const isActive = !session.ended_at;
+    const renderExerciseCard = (log) => {
+        const exercise = log.b_exercises;
 
         return (
-            <div
-                key={session.id}
-                className={`activity-session-card ${isExpanded ? 'expanded' : ''}`}
-            >
-                <div className="session-card-rows">
-                    {/* Linha 1: Nome do Plano */}
-                    <div className="session-row-plan">
-                        {session.plans?.b_workouts?.title ? `Plano: ${session.plans.b_workouts.title}` : 'Treino Avulso'}
-                    </div>
-
-                    {/* Linha 2: Nome do Treino */}
-                    <div className="session-row-workout">
-                        {workout?.title || 'Treino sem título'}
-                    </div>
-
-                    {/* Linha 3: Detalhes */}
-                    <div className="session-row-details">
-                        <span className="detail-item">
-                            <Calendar size={11} />
-                            {formatDate(session.started_at)}
-                        </span>
-                        {duration && (
-                            <span className="detail-item">
-                                <Clock size={11} />
-                                {duration}
-                            </span>
-                        )}
-                        {session.calories_burned > 0 && (
-                            <span className="detail-item">
-                                <Flame size={11} />
-                                {session.calories_burned} kcal
-                            </span>
+            <div key={log.id} className="activity-exercise-card">
+                <div className="exercise-card-grid">
+                    <div className="exercise-col-photo">
+                        {exercise?.image_url ? (
+                            <img
+                                src={exercise.image_url}
+                                alt={exercise?.name}
+                                className="exercise-card-img"
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = '';
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                        ) : (
+                            <div className="exercise-card-icon-placeholder">
+                                <Dumbbell size={20} color="var(--color-primary)" />
+                            </div>
                         )}
                     </div>
 
-                    {/* Linha 4: Botão de Status e Ação */}
-                    <div className="session-row-action">
-                        <span className={`session-status-badge ${isActive ? 'status-em_andamento' : 'status-concluido'}`}>
-                            {isActive ? 'Em Andamento' : 'Concluído'}
-                        </span>
+                    <div className="exercise-col-details">
+                        <h4 className="exercise-card-name">{exercise?.name || 'Exercício'}</h4>
+                        <div className="exercise-card-session-text">
+                            {log.session_ref ? log.session_ref.workout_title : 'Treino Avulso'}
+                        </div>
+                    </div>
 
-                        <button
-                            className="session-view-exercises-btn"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                toggleExpand(session.id);
-                            }}
-                        >
-                            Exercícios
-                            <ChevronDown size={14} className={`chevron-icon ${isExpanded ? 'rotated' : ''}`} />
-                        </button>
+                    <div className="exercise-col-meta">
+                        {exercise?.muscle_group && (
+                            <span className="exercise-detail-tag">
+                                {exercise.muscle_group}
+                            </span>
+                        )}
+                        <span className="exercise-card-time">
+                            <Clock size={12} style={{ color: "var(--color-primary)" }} />
+                            {formatTime(log.created_at)}
+                        </span>
                     </div>
                 </div>
-
-                {isExpanded && (
-                    <SessionExercises sessionId={session.id} />
-                )}
             </div>
         );
     };
@@ -345,8 +349,8 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }
         );
     };
 
-    const currentItems = activeTab === 'sessoes' ? sessionGroups : planGroups;
-    const hasItems = activeTab === 'sessoes' ? sessions.length > 0 : plans.length > 0;
+    const currentItems = activeTab === 'sessoes' ? exerciseGroups : planGroups;
+    const hasItems = activeTab === 'sessoes' ? processedExercises.length > 0 : plans.length > 0;
 
     const Content = (
         <div className={`activity-history ${isPage ? 'is-page-view' : ''}`}>
@@ -388,7 +392,7 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }
                     onClick={() => setActiveTab('sessoes')}
                 >
                     <Activity size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-                    Sessões ({sessions.length})
+                    Exercícios ({processedExercises.length})
                 </button>
                 <button
                     className={`activity-filter-tab ${activeTab === 'planos' ? 'active' : ''}`}
@@ -430,7 +434,7 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }
                             <div className="activity-date-label">{dateLabel}</div>
                             {items.map(item =>
                                 activeTab === 'sessoes'
-                                    ? renderSessionCard(item)
+                                    ? renderExerciseCard(item)
                                     : renderPlanCard(item)
                             )}
                         </div>

@@ -1119,7 +1119,11 @@ export const supabaseHelpers = {
                 id, user_id, workout_id, workout_day_id,
                 started_at, ended_at, calories_burned, feeling,
                 b_workouts (id, title, difficulty, estimated_duration, cover_image),
-                b_workout_days (id, day_name, day_number)
+                b_workout_days (id, day_name, day_number),
+                b_session_logs (
+                    id, exercise_id, set_number, weight_kg, reps_completed, created_at,
+                    b_exercises (id, name, muscle_group, equipment, image_url)
+                )
             `)
             .eq('user_id', userId)
             .order('started_at', { ascending: false });

@@ -1,61 +1,126 @@
 .activity-history-page {
     width: 100%;
     min-height: 100vh;
-    padding: 6rem 1rem 3rem 1rem;
+    padding: 0 0 3rem 0;
     position: relative;
     max-width: 100%;
     margin: 0;
     overflow-x: hidden;
     background-color: var(--color-background-light);
-    /* Ensure solid background */
 }
 
-/* Base Header */
-/* Base Header - Using Sticky Positioning */
+/* ===== PAGE HEADER - ESTILO PAF ===== */
 .page-header-container {
     position: sticky;
     top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
+    width: calc(100% + 2.5rem);
     z-index: 2000;
-    padding: 0 0 0.5rem 0;
     background-color: var(--color-background-light);
-    /* Default background to avoid transparency issue initially, or can be transparent if handled */
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Barra de acento PAF no topo */
+    border-top: 3px solid #034EA2;
 }
 
-/* Stuck Header State - Adds visual effects only (Sticky takes care of position) */
+.page-header-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    /* Adicionando padding extra para compensar vazamento do .page-header-container */
+    padding-left: calc(1.25rem + 1.25rem);
+    padding-right: calc(1.25rem + 1.25rem);
+}
+
+.page-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #4B5563;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+
+.page-back-btn:hover {
+    background: rgba(3, 78, 162, 0.08);
+    color: #034EA2;
+}
+
+.page-header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.page-header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #034EA2;
+    /* Azul SP Principal */
+    line-height: 1.2;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.page-header-subtitle {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #4B5563;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===== ESTADO COLADO (STUCK) ===== */
 .page-header-container.stuck {
-    padding: 1rem 1rem;
-
-    /* Glassmorphism */
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(3, 78, 162, 0.08);
+    border-bottom: 1px solid rgba(3, 78, 162, 0.1);
 }
 
-/* Dark mode support */
+/* Dark mode */
 .dark .page-header-container {
     background-color: var(--color-background-dark);
+    border-top-color: #008ACF;
 }
 
 .dark .page-header-container.stuck {
-    background: rgba(17, 24, 39, 0.95);
-    border-bottom-color: rgba(255, 255, 255, 0.1);
+    background: rgba(17, 24, 39, 0.97);
+    border-bottom-color: rgba(0, 138, 207, 0.2);
 }
 
-/* When stuck, container inner width should still be constrained if needed, or full if requested.
-   User asked to "aproveitar todo o espaço". */
-.page-header-container .flex {
-    max-width: 100%;
-    margin: 0 auto;
+.dark .page-header-title {
+    color: #60A5FA;
 }
 
+.dark .page-back-btn {
+    color: #9CA3AF;
+}
 
+.dark .page-back-btn:hover {
+    background: rgba(96, 165, 250, 0.1);
+    color: #60A5FA;
+}
+
+/* ===== CONTENT AREA ===== */
+.activity-page-content {
+    width: 100%;
+    padding: 1.25rem 1rem 3rem;
+}
 
 @keyframes slideInDown {
     from {
@@ -69,28 +134,16 @@
     }
 }
 
-/* Ensure the inner component uses full width */
-.activity-page-content {
-    width: 100%;
-}
-
-/* Responsive Padding */
 @media (min-width: 768px) {
-    .activity-history-page {
-        padding: 6rem 2rem 4rem 2rem;
+    .page-header-inner {
+        padding: 1rem 2rem;
     }
 
-    .page-header-container {
-        padding: 0;
+    .page-header-title {
+        font-size: 1.5rem;
     }
 
-    .page-header-container.stuck {
-        padding: 0;
-    }
-
-    /* Ensure activity history grid takes full width */
-    .activity-history-page .activity-history {
-        width: 100%;
-        max-width: none;
+    .activity-page-content {
+        padding: 1.5rem 2rem 4rem;
     }
 }

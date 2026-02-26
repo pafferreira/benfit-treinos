@@ -75,63 +75,19 @@ const WorkoutDayDetails = () => {
     const [lastFeelingLog, setLastFeelingLog] = useState(null);
     const [isHeaderStuck, setIsHeaderStuck] = useState(false);
     const finishModalHistoryRef = useRef(false);
-    const lastScrollY = useRef(0);
 
-    // Auto-hide header and footer on scroll
+    // Detecta scroll para ativar o header interno "stuck" (apenas para o cabeçalho interno da tela)
     useEffect(() => {
         const scrollContainer = document.querySelector('.layout-content');
-        if (!scrollContainer) {
-            return;
-        }
+        if (!scrollContainer) return;
 
         const handleScroll = () => {
-            const currentScrollY = scrollContainer.scrollTop;
-            const scrollingDown = currentScrollY > lastScrollY.current;
-            const scrollingUp = currentScrollY < lastScrollY.current;
-
-            const header = document.querySelector('.layout-header');
-            const footer = document.querySelector('.bottom-nav');
-
-            // Header stickiness
-            setIsHeaderStuck(currentScrollY > 8);
-
-            // Only hide/show if scrolled more than 50px
-            if (currentScrollY > 50) {
-                if (scrollingDown) {
-                    if (header && !header.classList.contains('header-hidden')) {
-                        header.classList.add('header-hidden');
-                    }
-                    if (footer && !footer.classList.contains('nav-hidden')) {
-                        footer.classList.add('nav-hidden');
-                    }
-                } else if (scrollingUp) {
-                    if (header && header.classList.contains('header-hidden')) {
-                        header.classList.remove('header-hidden');
-                    }
-                    if (footer && footer.classList.contains('nav-hidden')) {
-                        footer.classList.remove('nav-hidden');
-                    }
-                }
-            } else {
-                // Always show when near top
-                if (header && header.classList.contains('header-hidden')) {
-                    header.classList.remove('header-hidden');
-                }
-                if (footer && footer.classList.contains('nav-hidden')) {
-                    footer.classList.remove('nav-hidden');
-                }
-            }
-
-            lastScrollY.current = currentScrollY;
+            setIsHeaderStuck(scrollContainer.scrollTop > 8);
         };
 
         scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
         return () => {
             scrollContainer.removeEventListener('scroll', handleScroll);
-            const header = document.querySelector('.layout-header');
-            const footer = document.querySelector('.bottom-nav');
-            if (header) header.classList.remove('header-hidden');
-            if (footer) footer.classList.remove('nav-hidden');
         };
     }, []);
 
@@ -477,7 +433,7 @@ const WorkoutDayDetails = () => {
                     <p className="workout-day-subtitle">{workout.title}</p>
                 </div>
             </div>
-            {isHeaderStuck && <div style={{ height: '72px', flexShrink: 0 }} aria-hidden="true" />}
+
 
             <div className="workout-day-stats">
                 <span className="day-stat-badge">

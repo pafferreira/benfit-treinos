@@ -146,22 +146,25 @@ const DashboardLayoutContent = () => {
             if (!mainContentRef.current) return;
             const currentScrollY = mainContentRef.current.scrollTop;
 
-            // Threshold to avoid jitter
-            if (Math.abs(currentScrollY - lastScrollY.current) < 10) return;
-
-            // Logic: Hide when scrolling down away from top. Show ONLY when at the very top.
-            // This prevents "scroll up" jitter/conflict.
-            if (currentScrollY > 20) {
-                setShowInterface(false);
-            } else {
+            // Sempre mostra quando está no topo
+            if (currentScrollY <= 10) {
                 setShowInterface(true);
+                lastScrollY.current = currentScrollY;
+                return;
             }
+
+            // Threshold para evitar jitter em pequenos movimentos
+            if (Math.abs(currentScrollY - lastScrollY.current) < 8) return;
+
+            // Esconde ao rolar para baixo, mostra ao rolar para cima
+            const scrollingDown = currentScrollY > lastScrollY.current;
+            setShowInterface(!scrollingDown);
             lastScrollY.current = currentScrollY;
         };
 
         const mainElement = mainContentRef.current;
         if (mainElement) {
-            mainElement.addEventListener('scroll', handleScroll);
+            mainElement.addEventListener('scroll', handleScroll, { passive: true });
         }
 
         return () => {
@@ -171,8 +174,23 @@ const DashboardLayoutContent = () => {
         };
     }, []);
 
-    const isHeaderHidden = !showInterface;
-    const isNavHidden = !showInterface;
+    // Rotas que não usam padding superior do layout (para que seu fundo cole no topo)
+    const isZeroPaddingRoute = (
+        location.pathname === '/perfil' ||
+        location.pathname.includes('/historico') ||
+        (location.pathname.startsWith('/treino/') && location.pathname.includes('/dia/'))
+    );
+    const mainPaddingTop = isZeroPaddingRoute ? '0' : '6rem';
+
+    // Rota de treino (execução do dia) e detalhes/histórico têm header customizados que conflitam com o global.
+    const isCustomHeaderRoute = (
+        (location.pathname.startsWith('/treino/') && location.pathname.includes('/dia/')) ||
+        location.pathname.includes('/historico')
+    );
+
+    // Em rotas customizadas (workout-day, historico), esconde o layout global sempre; nas outras, segue scroll.
+    const isHeaderHidden = isCustomHeaderRoute ? true : !showInterface;
+    const isNavHidden = isCustomHeaderRoute ? true : !showInterface;
 
     return (
         <div className="dashboard-layout">
@@ -218,7 +236,7 @@ const DashboardLayoutContent = () => {
                     className="layout-content hide-scrollbar"
                     ref={mainContentRef}
                     tabIndex={-1}
-                    style={{ paddingTop: (isHeaderHidden || location.pathname === '/perfil' || location.pathname.includes('/historico')) ? 0 : '6rem' }} /* dynamic padding top */
+                    style={{ paddingTop: mainPaddingTop }}
                 >
                     <Outlet />
                 </main>

@@ -41,19 +41,20 @@ const ActivityHistoryPage = () => {
 
     return (
         <div className="activity-history-page animate-in fade-in">
-            {/* Absolute Fixed Header */}
+            {/* Sticky Header - Estilo PAF */}
             <div className={`page-header-container ${isHeaderStuck ? 'stuck' : ''}`}>
-                <div className="flex items-center gap-4">
+                <div className="page-header-inner">
                     <button
                         onClick={handleBack}
-                        className="p-2 -ml-2 text-gray-500 hover:text-[#034EA2] hover:bg-blue-50 rounded-full transition-all"
+                        className="page-back-btn"
                         title="Voltar"
                     >
-                        <ChevronLeft size={24} />
+                        <ChevronLeft size={22} />
                     </button>
-                    <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-[#034EA2]">Histórico de Atividades</h1>
-                        <p className="text-xs text-gray-500 font-medium mt-0.5">Visão completa da sua jornada.</p>
+
+                    <div className="page-header-titles">
+                        <h1 className="page-header-title">Histórico de Atividades</h1>
+                        <p className="page-header-subtitle">Visão completa da sua jornada.</p>
                     </div>
                 </div>
             </div>
