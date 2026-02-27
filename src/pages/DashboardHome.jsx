@@ -23,6 +23,12 @@ const STATUS_CONFIG = {
     'concluido': { label: 'Concluído', className: 'status-concluido' }
 };
 
+const FEELING_MICROCOPY = {
+    1: 'Exausto', 2: 'Muito Cansado', 3: 'Cansado', 4: 'Levemente Cansado',
+    5: 'Normal', 6: 'Bem', 7: 'Muito Bem',
+    8: 'Motivado', 9: 'Incrível', 10: 'Imparável'
+};
+
 // Difficulty icons / colors
 const DIFFICULTY_COLORS = {
     'Iniciante': '#10B981',
@@ -87,6 +93,46 @@ const DashboardHome = () => {
         || user?.email?.split('@')[0]
         || 'Atleta';
 
+    const getDynamicSubtitle = () => {
+        if (plans.length === 0) {
+            return (
+                <>
+                    Comece atribuindo um plano de treino — <a onClick={() => navigate('/treinos')} className="link-choose-plan" style={{ cursor: 'pointer' }}>Escolher um plano</a>
+                </>
+            );
+        }
+
+        if (stats.lastSession?.ended_at) {
+            const lastDate = new Date(stats.lastSession.ended_at);
+            const today = new Date();
+            const lastDateZeroed = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+            const todayZeroed = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const diffTime = todayZeroed.getTime() - lastDateZeroed.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            const feelingScore = stats.lastSession.feeling;
+            const feelingText = feelingScore ? (FEELING_MICROCOPY[feelingScore] || `nota ${feelingScore}`).toString().toLowerCase() : '';
+            const feelingSuffix = feelingText ? ` Seu último treino vc estava se sentindo ${feelingText}.` : '';
+
+            if (diffDays === 0) return "Ótimo trabalho hoje! Descanse e recupere-se bem. 🔋";
+            if (diffDays === 1) return `Pronto para o treino de hoje? 🔥${feelingSuffix}`;
+            if (diffDays === 2) return `Já descansou? Bora voltar pro treino! 💪${feelingSuffix}`;
+
+            if (feelingText) {
+                return `Seu último treino vc estava se sentindo ${feelingText}. Bora voltar à ativa? ⚡`;
+            } else {
+                return `Faz ${diffDays} dias desde seu último treino. Vamos voltar à ativa? 💪`;
+            }
+        }
+
+        const dayOfWeek = new Date().getDay();
+        if (dayOfWeek === 1) return "Segunda-feira é dia de começar com tudo. Vamos lá? 🚀";
+        if (dayOfWeek === 5) return "Que tal um treino para fechar bem a semana? 🎯";
+        if (dayOfWeek === 0 || dayOfWeek === 6) return "Fim de semana também é dia de movimento! 🏃‍♂️";
+
+        return Object.keys(plans).length > 0 ? "O momento perfeito para treinar é agora. ⚡" : '';
+    };
+
     return (
         <div className="dashboard-home">
             {/* Welcome Banner */}
@@ -95,13 +141,7 @@ const DashboardHome = () => {
                     <div className="welcome-greeting">
                         <h2 className="welcome-title">{getGreeting()}, {firstName}!</h2>
                         <p className="welcome-subtitle">
-                            {plans.length > 0 ? (
-                                `Você tem ${plans.length} plano${plans.length > 1 ? 's' : ''} ativo${plans.length > 1 ? 's' : ''}`
-                            ) : (
-                                <>
-                                    Comece atribuindo um plano de treino — <a onClick={() => navigate('/treinos')} className="link-choose-plan">Escolher um plano</a>
-                                </>
-                            )}
+                            {getDynamicSubtitle()}
                         </p>
                     </div>
                     <button

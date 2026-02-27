@@ -14,7 +14,7 @@ const DashboardLayoutContent = () => {
     const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
     const { isImpersonating, role } = useUserRole();
 
-    const [avatarUrl, setAvatarUrl] = useState('/Elifit_Coach.png');
+    const [avatarUrl, setAvatarUrl] = useState('/avatar_skeleton.png');
     const [userName, setUserName] = useState('Usuário');
 
     const getRoleLabel = (roleValue) => {
@@ -43,7 +43,7 @@ const DashboardLayoutContent = () => {
                 const userData = await supabaseHelpers.getCurrentUser();
                 console.log('🔄 Dashboard Refreshed User:', userData);
                 if (userData) {
-                    setAvatarUrl(userData.avatar_url || '/Elifit_Coach.png');
+                    setAvatarUrl(userData.avatar_url || '/avatar_skeleton.png');
                     const resolvedName = userData.name
                         || userData.full_name
                         || userData.display_name
@@ -224,7 +224,7 @@ const DashboardLayoutContent = () => {
                                 alt="User Profile Avatar"
                                 className="user-avatar"
                                 src={avatarUrl}
-                                onError={(e) => e.target.src = '/Elifit_Coach.png'}
+                                onError={(e) => e.target.src = '/avatar_skeleton.png'}
                             />
                         </div>
                     </div>

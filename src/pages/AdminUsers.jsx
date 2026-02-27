@@ -233,10 +233,10 @@ const AdminUsers = () => {
                                             <div className="flex items-center gap-4">
                                                 <div className="relative shrink-0">
                                                     <img
-                                                        src={user.avatar_url || '/Elifit_Coach.png'}
+                                                        src={user.avatar_url || '/avatar_skeleton.png'}
                                                         alt=""
                                                         className={`w-12 h-12 rounded-full object-cover border-2 shadow-sm transition-all ${user.active !== false ? 'border-green-500' : 'border-red-500 grayscale'}`}
-                                                        onError={(e) => e.target.src = '/Elifit_Coach.png'}
+                                                        onError={(e) => e.target.src = '/avatar_skeleton.png'}
                                                     />
 
                                                     {/* Status Toggle Button overlay */}
@@ -295,10 +295,10 @@ const AdminUsers = () => {
                             <div key={user.id} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4">
                                 <div className="flex items-center gap-3">
                                     <img
-                                        src={user.avatar_url || '/Elifit_Coach.png'}
+                                        src={user.avatar_url || '/avatar_skeleton.png'}
                                         alt=""
                                         className="w-12 h-12 rounded-full bg-gray-100 object-cover border border-gray-100"
-                                        onError={(e) => e.target.src = '/Elifit_Coach.png'}
+                                        onError={(e) => e.target.src = '/avatar_skeleton.png'}
                                     />
                                     <div className="flex flex-col min-w-0">
                                         <span className="font-bold text-gray-900 text-lg leading-tight truncate">{user.name || 'Sem nome'}</span>

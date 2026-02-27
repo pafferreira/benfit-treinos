@@ -10,17 +10,31 @@ import { supabase, supabaseHelpers } from '../lib/supabase';
 import './WorkoutDayDetails.css';
 
 const FEELING_MICROCOPY = {
-    1: '💀 Esmagado. Hoje foi sobrevivência.',
-    2: '🥵 Muito pesado. Amanhã pega leve.',
-    3: '😓 Difícil. Mas você não desistiu!',
-    4: '😐 Puxado. O esforço foi real.',
-    5: '🙂 Moderado. Bom pra manter o ritmo.',
-    6: '👍 Boa! Treino sólido e controlado.',
-    7: '💪 Mandou bem! Foco e técnica em dia.',
-    8: '🔥 Incrível! Você dominou a carga.',
-    9: '🚀 Voando! Energia de sobra.',
-    10: '👑 MÁQUINA! Ninguém te para hoje.'
+    1: 'Esmagado. Hoje foi sobrevivência.',
+    2: 'Muito pesado. Amanhã pega leve.',
+    3: 'Difícil. Mas você não desistiu!',
+    4: 'Puxado. O esforço foi real.',
+    5: 'Moderado. Bom pra manter o ritmo.',
+    6: 'Boa! Treino sólido e controlado.',
+    7: 'Mandou bem! Foco e técnica em dia.',
+    8: 'Incrível! Você dominou a carga.',
+    9: 'Voando! Energia de sobra.',
+    10: 'MÁQUINA! Ninguém te para hoje.'
 };
+
+const FEELING_IMAGES = {
+    1: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f480.svg', // Skull
+    2: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f975.svg', // Hot Face
+    3: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f613.svg', // Downcast Face with Sweat
+    4: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f635.svg', // Dizzy Face
+    5: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f642.svg', // Slightly Smiling Face
+    6: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f44d.svg', // Thumbs Up
+    7: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f4aa.svg', // Flexed Biceps
+    8: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f525.svg', // Fire
+    9: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f680.svg', // Rocket
+    10: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f451.svg' // Crown
+};
+
 
 const DIFFICULTY_MET = {
     iniciante: 4.5,
@@ -37,15 +51,17 @@ const normalizeDifficulty = (value) => {
         .replace(/[\u0300-\u036f]/g, '');
 };
 
-const getSessionDurationMinutes = (startedAt) => {
+const getSessionDurationMinutes = (startedAt, lastDoneAt) => {
     if (!startedAt) return 0;
-    const elapsedMs = Date.now() - new Date(startedAt).getTime();
+    const start = new Date(startedAt).getTime();
+    const end = lastDoneAt ? new Date(lastDoneAt).getTime() : start;
+    const elapsedMs = Math.max(0, end - start);
     const elapsedMinutes = Math.round(elapsedMs / 60000);
     return Math.max(1, elapsedMinutes);
 };
 
-const estimateCalories = ({ startedAt, userWeightKg, difficulty }) => {
-    const durationMinutes = getSessionDurationMinutes(startedAt);
+const estimateCalories = ({ startedAt, lastDoneAt, userWeightKg, difficulty }) => {
+    const durationMinutes = getSessionDurationMinutes(startedAt, lastDoneAt);
     const safeWeight = Number.isFinite(Number(userWeightKg)) && Number(userWeightKg) > 0
         ? Number(userWeightKg)
         : 70;
@@ -68,6 +84,7 @@ const WorkoutDayDetails = () => {
     const [activeExerciseIndex, setActiveExerciseIndex] = useState(0); // Controle do Accordion
     const [currentSessionId, setCurrentSessionId] = useState(null);
     const [currentSessionStartedAt, setCurrentSessionStartedAt] = useState(null);
+    const [lastExerciseDoneAt, setLastExerciseDoneAt] = useState(null);
     const [userWeightKg, setUserWeightKg] = useState(70);
     const [showFinishModal, setShowFinishModal] = useState(false);
     const [feelingScore, setFeelingScore] = useState(6);
@@ -136,6 +153,7 @@ const WorkoutDayDetails = () => {
         if (!openSession) {
             setCurrentSessionId(null);
             setCurrentSessionStartedAt(null);
+            setLastExerciseDoneAt(null);
             setCompletedExercises([]);
             return;
         }
@@ -145,11 +163,20 @@ const WorkoutDayDetails = () => {
 
         const { data: sessionLogs, error: logsError } = await supabase
             .from('b_session_logs')
-            .select('exercise_id')
+            .select('exercise_id, created_at')
             .eq('session_id', openSession.id)
             .eq('user_id', userId);
 
         if (logsError) throw logsError;
+
+        if (sessionLogs && sessionLogs.length > 0) {
+            const timestamps = sessionLogs.map(l => new Date(l.created_at).getTime()).filter(t => !isNaN(t));
+            if (timestamps.length > 0) {
+                setLastExerciseDoneAt(new Date(Math.max(...timestamps)).toISOString());
+            }
+        } else {
+            setLastExerciseDoneAt(null);
+        }
 
         const completedIds = [...new Set((sessionLogs || []).map((log) => log.exercise_id).filter(Boolean))];
         setCompletedExercises(completedIds);
@@ -234,6 +261,7 @@ const WorkoutDayDetails = () => {
                 setCompletedExercises([]);
                 setCurrentSessionId(null);
                 setCurrentSessionStartedAt(null);
+                setLastExerciseDoneAt(null);
                 setLastFeelingLog(null);
             }
         } catch (error) {
@@ -261,12 +289,16 @@ const WorkoutDayDetails = () => {
                 if (!user || !workout || !day) return;
 
                 if (isComplete) {
+                    const now = new Date().toISOString();
+                    setLastExerciseDoneAt(now);
+
                     let sessionId = currentSessionId;
                     if (!sessionId) {
                         const session = await supabaseHelpers.startWorkoutSession(user.id, workout.id, day.id);
                         sessionId = session.id;
                         setCurrentSessionId(sessionId);
-                        setCurrentSessionStartedAt(session.started_at || new Date().toISOString());
+                        setCurrentSessionStartedAt(session.started_at || now);
+                        setLastExerciseDoneAt(session.started_at || now);
                     }
 
                     await supabaseHelpers.logExerciseComplete(sessionId, user.id, exerciseId);
@@ -322,17 +354,18 @@ const WorkoutDayDetails = () => {
     const isFullyCompleted = totalExercises > 0 && completedCount >= totalExercises;
 
     const sessionDurationMinutes = useMemo(
-        () => getSessionDurationMinutes(currentSessionStartedAt),
-        [currentSessionStartedAt]
+        () => getSessionDurationMinutes(currentSessionStartedAt, lastExerciseDoneAt),
+        [currentSessionStartedAt, lastExerciseDoneAt]
     );
 
     const estimatedSessionCalories = useMemo(
         () => estimateCalories({
             startedAt: currentSessionStartedAt,
+            lastDoneAt: lastExerciseDoneAt,
             userWeightKg,
             difficulty: workout?.difficulty
         }),
-        [currentSessionStartedAt, userWeightKg, workout?.difficulty]
+        [currentSessionStartedAt, lastExerciseDoneAt, userWeightKg, workout?.difficulty]
     );
 
     const lastFeelingLabel = useMemo(() => {
@@ -376,6 +409,7 @@ const WorkoutDayDetails = () => {
             closeFinishModal();
             setCurrentSessionId(null);
             setCurrentSessionStartedAt(null);
+            setLastExerciseDoneAt(null);
             setShowRestTimer(false);
 
             window.dispatchEvent(new CustomEvent('app-toast', {
@@ -556,11 +590,24 @@ const WorkoutDayDetails = () => {
                         </div>
                     </div>
 
-                    <div className="feeling-field">
-                        <label htmlFor="feeling-slider">
-                            <Activity size={16} />
-                            Como você se sentiu hoje? ({feelingScore}/10)
+                    <div className="feeling-field flex flex-col items-center">
+                        <label htmlFor="feeling-slider" className="text-center font-semibold text-lg mb-4 text-gray-800">
+                            Como você se sentiu hoje?
                         </label>
+
+                        <div className="flex justify-center my-6">
+                            <img
+                                src={FEELING_IMAGES[feelingScore]}
+                                alt={FEELING_MICROCOPY[feelingScore]}
+                                className="animate-bounce"
+                                style={{
+                                    width: '120px',
+                                    height: '120px',
+                                    filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.15))'
+                                }}
+                            />
+                        </div>
+
                         <input
                             id="feeling-slider"
                             type="range"
@@ -568,12 +615,25 @@ const WorkoutDayDetails = () => {
                             max="10"
                             value={feelingScore}
                             onChange={(event) => setFeelingScore(Number(event.target.value))}
+                            style={{ width: '90%', zoom: '1.2' }}
                         />
-                        <div className="feeling-scale-labels">
-                            <span>1</span>
-                            <span>10</span>
+                        <div className="feeling-scale-labels" style={{ width: '90%', marginTop: '5px', display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                                <div key={num} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '10px' }}>
+                                    <div style={{ width: '2px', height: '6px', backgroundColor: '#cbd5e1', marginBottom: '4px', borderRadius: '2px' }}></div>
+                                    <span style={{
+                                        fontSize: '0.75rem',
+                                        fontWeight: feelingScore === num ? 'bold' : 'normal',
+                                        color: feelingScore === num ? 'var(--color-primary)' : 'var(--color-subtext-light)'
+                                    }}>
+                                        {num}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
-                        <p className="feeling-microcopy">{FEELING_MICROCOPY[feelingScore]}</p>
+                        <p className="feeling-microcopy text-xl font-bold mt-4" style={{ minHeight: '32px' }}>
+                            {FEELING_MICROCOPY[feelingScore]}
+                        </p>
                     </div>
 
                     <div className="finish-session-actions">

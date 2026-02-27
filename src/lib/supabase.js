@@ -863,7 +863,7 @@ export const supabaseHelpers = {
             // Fallback list
             return [
                 // User Avatars (category='Avatar')
-                { id: '1', public_url: '/Elifit_Coach.png', name: 'Coach 1', category: 'Avatar' },
+                { id: '1', public_url: '/avatar_skeleton.png', name: 'Coach 1', category: 'Avatar' },
                 { id: '2', public_url: '/avatar-female.png', name: 'Female 1', category: 'Avatar' },
                 { id: '3', public_url: '/avatar-male.png', name: 'Male 1', category: 'Avatar' },
                 { id: '4', public_url: '/benfit_fem.png', name: 'Female 2', category: 'Avatar' },
@@ -884,7 +884,7 @@ export const supabaseHelpers = {
         if (!data || data.length === 0) {
             return [
                 // User Avatars
-                { id: '1', public_url: '/Elifit_Coach.png', name: 'Coach 1', category: 'Avatar' },
+                { id: '1', public_url: '/avatar_skeleton.png', name: 'Coach 1', category: 'Avatar' },
                 { id: '2', public_url: '/avatar-female.png', name: 'Female 1', category: 'Avatar' },
                 { id: '3', public_url: '/avatar-male.png', name: 'Male 1', category: 'Avatar' },
                 { id: '4', public_url: '/benfit_fem.png', name: 'Female 2', category: 'Avatar' },
@@ -1172,16 +1172,26 @@ export const supabaseHelpers = {
         // Sessões da semana
         const { data: weeklySessions, error: sessionsErr } = await supabase
             .from('b_workout_sessions')
-            .select('id, started_at, ended_at, calories_burned')
+            .select('id, started_at, ended_at, calories_burned, feeling')
             .eq('user_id', userId)
             .gte('started_at', weekAgo.toISOString())
             .order('started_at', { ascending: false });
 
         if (sessionsErr) throw sessionsErr;
 
+        // Última sessão absoluta (ignorando a semana)
+        const { data: absoluteLastSession } = await supabase
+            .from('b_workout_sessions')
+            .select('id, started_at, ended_at, calories_burned, feeling')
+            .eq('user_id', userId)
+            .not('ended_at', 'is', null)
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .single();
+
         const completedThisWeek = (weeklySessions || []).filter(s => s.ended_at).length;
         const caloriesThisWeek = (weeklySessions || []).reduce((sum, s) => sum + (s.calories_burned || 0), 0);
-        const lastSession = (weeklySessions || [])[0] || null;
+        const lastSession = absoluteLastSession || null;
 
         return {
             sessionsThisWeek: (weeklySessions || []).length,
