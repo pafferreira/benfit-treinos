@@ -7,6 +7,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import Modal from '../components/Modal';
 import { supabase, supabaseHelpers } from '../lib/supabase';
+import { saveToMemory } from '../services/memory';
 import './WorkoutDayDetails.css';
 
 const FEELING_MICROCOPY = {
@@ -400,6 +401,32 @@ const WorkoutDayDetails = () => {
                 feeling: feelingScore,
                 isFullyCompleted
             });
+
+            // --- BENFIT COACH: Salva o treino na memória vetorial (fire-and-forget) ---
+            try {
+                const exerciseNames = workoutExercises.map(e => e.b_exercises?.name || 'Exercício').join(', ');
+                const feelingLabel = FEELING_MICROCOPY[feelingScore] || `Feeling ${feelingScore}/10`;
+                const completionStatus = isFullyCompleted ? 'Treino completo' : 'Treino parcialmente completo';
+                const contentSummary = `${completionStatus}: ${workout.title} - ${day.day_name || `Dia ${day.day_number}`}. Exercícios: ${exerciseNames}. Feeling: "${feelingLabel}" (${feelingScore}/10). Duração: ${sessionDurationMinutes} min. Calorias: ${estimatedSessionCalories} kcal.`;
+                const metadata = {
+                    type: 'workout',
+                    workout_id: workout.id,
+                    workout_day_id: day.id,
+                    workout_title: workout.title,
+                    day_name: day.day_name || `Dia ${day.day_number}`,
+                    feeling_score: feelingScore,
+                    calories: estimatedSessionCalories,
+                    duration_min: sessionDurationMinutes,
+                    is_fully_completed: isFullyCompleted,
+                    date: new Date().toISOString()
+                };
+                saveToMemory(user.id, contentSummary, metadata).catch(err =>
+                    console.warn('[Benfit Coach] Não foi possível salvar memória do treino:', err?.message)
+                );
+            } catch (memErr) {
+                console.warn('[Benfit Coach] Erro ao montar resumo do treino para memória:', memErr);
+            }
+            // ---------------------------------------------------------------------------
 
             setLastFeelingLog({
                 score: feelingScore,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Settings, Bell, Moon, Sun, CircleHelp, LogOut, ChevronRight, Award, Activity, Plus, Trash2, X, Check, Camera, Image, Search, Filter, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, supabaseHelpers } from '../lib/supabase';
+import { saveToMemory } from '../services/memory';
 import { useAvatars, useUserRole } from '../hooks/useSupabase';
 import Modal from '../components/Modal';
 import EditProfileModal from '../components/EditProfileModal';
@@ -175,6 +176,26 @@ const Profile = () => {
                 setGoals([added, ...goals]);
                 setNewGoal({ title: '', description: '', deadline: '' });
                 setIsAddingGoal(false);
+
+                // --- BENFIT COACH: Salva a meta na memória vetorial (fire-and-forget) ---
+                try {
+                    const deadlineText = newGoal.deadline ? ` Prazo: ${new Date(newGoal.deadline).toLocaleDateString('pt-BR')}.` : '';
+                    const descText = newGoal.description ? ` Descrição: ${newGoal.description}.` : '';
+                    const contentSummary = `Nova meta definida: "${newGoal.title}".${descText}${deadlineText}`;
+                    const metadata = {
+                        type: 'goal',
+                        goal_id: added.id,
+                        goal_title: newGoal.title,
+                        deadline: newGoal.deadline || null,
+                        date: new Date().toISOString()
+                    };
+                    saveToMemory(user.id, contentSummary, metadata).catch(err =>
+                        console.warn('[Benfit Coach] Não foi possível salvar memória da meta:', err?.message)
+                    );
+                } catch (memErr) {
+                    console.warn('[Benfit Coach] Erro ao montar resumo da meta para memória:', memErr);
+                }
+                // ---------------------------------------------------------------------------
             }
         } catch (error) {
             console.error('Error adding goal:', error);

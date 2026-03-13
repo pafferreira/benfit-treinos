@@ -111,7 +111,7 @@ const DashboardLayoutContent = () => {
             case '/exercicios':
                 return { title: 'Exercícios', subtitle: 'Biblioteca completa' };
             case '/coach':
-                return { title: 'Coach IA', subtitle: 'Seu assistente pessoal' };
+                return { title: 'Benfit Coach', subtitle: 'Memória vetorial ativa • powered by Gemini' };
             case '/perfil':
                 return { title: 'Perfil', subtitle: 'Suas configurações' };
             case '/diagnostic':
@@ -167,34 +167,50 @@ const DashboardLayoutContent = () => {
             mainElement.addEventListener('scroll', handleScroll, { passive: true });
         }
 
+        // Escuta eventos de scroll interno (ex: messages-area do AICoach)
+        const handleInnerScroll = (e) => {
+            const { scrollTop, direction } = e.detail || {};
+            if (scrollTop <= 10) {
+                setShowInterface(true);
+                lastScrollY.current = scrollTop;
+                return;
+            }
+            if (Math.abs(scrollTop - lastScrollY.current) < 8) return;
+            setShowInterface(direction !== 'down');
+            lastScrollY.current = scrollTop;
+        };
+        window.addEventListener('app-inner-scroll', handleInnerScroll, { passive: true });
+
         return () => {
             if (mainElement) {
                 mainElement.removeEventListener('scroll', handleScroll);
             }
+            window.removeEventListener('app-inner-scroll', handleInnerScroll);
         };
     }, []);
 
     // Rotas que não usam padding superior do layout (para que seu fundo cole no topo)
     const isZeroPaddingRoute = (
         location.pathname === '/perfil' ||
+        location.pathname === '/coach' ||
         location.pathname.includes('/historico') ||
         (location.pathname.startsWith('/treino/') && location.pathname.includes('/dia/'))
     );
     const mainPaddingTop = isZeroPaddingRoute ? '0' : '6rem';
 
-    // Rota de treino (execução do dia) e detalhes/histórico têm header customizados que conflitam com o global.
+    // Em rotas customizadas (workout-day, historico), esconde o layout global SEMPRE.
+    // A rota /coach usa scroll interno próprio - controlado via evento customizado.
     const isCustomHeaderRoute = (
         (location.pathname.startsWith('/treino/') && location.pathname.includes('/dia/')) ||
         location.pathname.includes('/historico')
     );
 
-    // Em rotas customizadas (workout-day, historico), esconde o layout global sempre; nas outras, segue scroll.
     const isHeaderHidden = isCustomHeaderRoute ? true : !showInterface;
     const isNavHidden = isCustomHeaderRoute ? true : !showInterface;
 
     return (
         <div className="dashboard-layout">
-            <div className="mobile-container">
+            <div className={`mobile-container ${(!showInterface && !isCustomHeaderRoute) ? 'ui-hidden' : ''}`}>
                 <a href="#main-content" className="skip-link">
                     Pular para o conteúdo principal
                 </a>
@@ -236,7 +252,10 @@ const DashboardLayoutContent = () => {
                     className="layout-content hide-scrollbar"
                     ref={mainContentRef}
                     tabIndex={-1}
-                    style={{ paddingTop: mainPaddingTop }}
+                    style={location.pathname === '/coach'
+                        ? { padding: 0, gap: 0 }
+                        : { paddingTop: mainPaddingTop }
+                    }
                 >
                     <Outlet />
                 </main>
@@ -270,7 +289,7 @@ const DashboardLayoutContent = () => {
                                 handleNav('/coach');
                             }
                         }}
-                        data-tooltip={action?.label || "Coach IA"}
+                        data-tooltip={action?.label || "Benfit Coach"}
                         style={{ display: (location.pathname === '/' || action?.visible) ? 'flex' : 'none' }}
                     >
                         {action?.icon ? action.icon : <Play size={28} fill="currentColor" />}
