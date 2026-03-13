@@ -1,11 +1,11 @@
 ---
-name: Estilo-PAF
-description: Sistema de Design baseado na identidade visual do Detran SP / Governo do Estado de São Paulo.
+name: estilo_paf
+description: Sistema de Design baseado na identidade visual do Paulo Affonso.
 ---
 
 # Estilo-PAF
 
-Este skill define as diretrizes visuais para aplicar o "Estilo-PAF" (baseado no Detran SP) ao projeto Benfit Treinos.
+Este skill define as diretrizes visuais para aplicar o "estilo_paf" ao projeto Benfit Treinos.
 
 ## 1. Paleta de Cores
 
