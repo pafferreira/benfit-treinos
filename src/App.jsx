@@ -14,6 +14,7 @@ import ResetPassword from './pages/ResetPassword'
 import SupabaseDiagnostic from './pages/SupabaseDiagnostic'
 import AdminUsers from './pages/AdminUsers'
 import ActivityHistoryPage from './pages/ActivityHistoryPage'
+import SharedKnowledge from './pages/SharedKnowledge'
 import './App.css'
 import ToastContainer from './components/ToastContainer'
 
@@ -40,6 +41,7 @@ function App() {
           <Route path="coach" element={<AICoach />} />
           <Route path="diagnostic" element={<SupabaseDiagnostic />} />
           <Route path="admin/users" element={<AdminUsers />} />
+          <Route path="conhecimento" element={<SharedKnowledge />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

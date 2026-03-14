@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Settings, Bell, Moon, Sun, CircleHelp, LogOut, ChevronRight, Award, Activity, Plus, Trash2, X, Check, Camera, Image, Search, Filter, ChevronDown } from 'lucide-react';
+import { User, Settings, Bell, Moon, Sun, CircleHelp, LogOut, ChevronRight, Award, Activity, Plus, Trash2, X, Check, Camera, Image, Search, Filter, ChevronDown, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { saveToMemory } from '../services/memory';
@@ -28,7 +28,7 @@ const Profile = () => {
 
     // Custom Hooks
     const { avatars, loading: loadingAvatars, reload: reloadAvatars } = useAvatars();
-    const { isAdmin, isRealAdmin } = useUserRole();
+    const { isAdmin, isRealAdmin, isPersonal } = useUserRole();
     const navigate = useNavigate();
 
     // Modals state
@@ -376,6 +376,15 @@ const Profile = () => {
                             <div className="item-left">
                                 <User size={20} className="item-icon" />
                                 <span>Gerenciar Usuários</span>
+                            </div>
+                            <ChevronRight size={20} color="var(--color-subtext-light)" />
+                        </div>
+                    )}
+                    {(isAdmin || isPersonal) && (
+                        <div className="settings-item" onClick={() => navigate('/conhecimento')}>
+                            <div className="item-left">
+                                <BookOpen size={20} className="item-icon" />
+                                <span>Base de Conhecimento</span>
                             </div>
                             <ChevronRight size={20} color="var(--color-subtext-light)" />
                         </div>

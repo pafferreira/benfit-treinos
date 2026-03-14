@@ -1,0 +1,522 @@
+/* SharedKnowledge.css — Base de Conhecimento Compartilhada */
+
+/* ── Layout raiz ─────────────────────────────────────────────── */
+/* Rota usa zero-padding no DashboardLayout, então gerencia o próprio topo */
+.sk-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--color-background-light);
+    padding-top: 5rem; /* empurra sk-header abaixo do global header (position:absolute) */
+    box-sizing: border-box;
+    transition: padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.sk-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.5rem;
+    background-color: var(--color-card-light);
+    border-bottom: 1px solid #E2E8F0;
+    flex-shrink: 0;
+    gap: 0.5rem;
+}
+
+.dark .sk-header {
+    background-color: var(--color-card-dark);
+    border-bottom-color: #1F2937;
+}
+
+.sk-back-btn,
+.sk-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--color-primary);
+    transition: background-color 0.15s;
+    flex-shrink: 0;
+}
+
+.sk-back-btn:hover,
+.sk-add-btn:hover {
+    background-color: #F1F5F9;
+}
+
+.dark .sk-back-btn:hover,
+.dark .sk-add-btn:hover {
+    background-color: #374151;
+}
+
+.sk-header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    flex: 1;
+    justify-content: center;
+}
+
+/* ── Formulário de adição ─────────────────────────────────────── */
+.sk-add-form {
+    background-color: var(--color-card-light);
+    border-bottom: 1px solid #E2E8F0;
+    padding: 0.75rem 0.5rem;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dark .sk-add-form {
+    background-color: var(--color-card-dark);
+    border-bottom-color: #1F2937;
+}
+
+.sk-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sk-form-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-subtext-light);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.dark .sk-form-label {
+    color: var(--color-subtext-dark);
+}
+
+.sk-select-wrapper {
+    position: relative;
+}
+
+.sk-select,
+.sk-textarea {
+    width: 100%;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.5rem;
+    border: 1px solid #E2E8F0;
+    background-color: #F8FAFC;
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sk-select {
+    appearance: none;
+    padding-right: 2rem;
+    cursor: pointer;
+}
+
+.sk-select-icon {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94A3B8;
+    pointer-events: none;
+}
+
+.sk-textarea {
+    resize: vertical;
+    min-height: 5rem;
+}
+
+.sk-select:focus,
+.sk-textarea:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.dark .sk-select,
+.dark .sk-textarea {
+    background-color: #1F2937;
+    border-color: #374151;
+    color: var(--color-text-dark);
+}
+
+.sk-form-hint {
+    font-size: 0.68rem;
+    color: var(--color-subtext-light);
+    font-style: italic;
+}
+
+.sk-form-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.sk-cancel-btn,
+.sk-submit-btn {
+    padding: 0.4rem 0.9rem;
+    border-radius: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+}
+
+.sk-cancel-btn {
+    background: #F1F5F9;
+    color: var(--color-subtext-light);
+    border-color: #E2E8F0;
+}
+
+.sk-cancel-btn:hover {
+    background: #E2E8F0;
+}
+
+.sk-submit-btn {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.sk-submit-btn:hover:not(:disabled) {
+    background-color: #2563EB;
+}
+
+.sk-submit-btn:disabled {
+    background-color: #CBD5E1;
+    cursor: not-allowed;
+}
+
+/* ── Filtros ──────────────────────────────────────────────────── */
+.sk-filters {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid #F3F4F6;
+    flex-shrink: 0;
+    background-color: var(--color-background-light);
+}
+
+.dark .sk-filters {
+    border-bottom-color: #1F2937;
+    background-color: var(--color-background-dark);
+}
+
+.sk-search-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+.sk-search-icon {
+    position: absolute;
+    left: 0.55rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94A3B8;
+    pointer-events: none;
+}
+
+.sk-search-input {
+    width: 100%;
+    padding: 0.4rem 1.8rem 0.4rem 1.9rem;
+    border-radius: 0.5rem;
+    border: 1px solid #E2E8F0;
+    background-color: #F8FAFC;
+    font-size: 0.77rem;
+    color: var(--color-text-light);
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.sk-search-input:focus {
+    border-color: var(--color-primary);
+}
+
+.dark .sk-search-input {
+    background-color: #1F2937;
+    border-color: #374151;
+    color: var(--color-text-dark);
+}
+
+.sk-search-clear {
+    position: absolute;
+    right: 0.4rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94A3B8;
+    display: flex;
+    align-items: center;
+    padding: 0.1rem;
+}
+
+.sk-type-filter-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.sk-filter-icon {
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94A3B8;
+    pointer-events: none;
+}
+
+.sk-type-filter {
+    padding: 0.4rem 0.5rem 0.4rem 1.7rem;
+    border-radius: 0.5rem;
+    border: 1px solid #E2E8F0;
+    background-color: #F8FAFC;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-subtext-light);
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+    outline: none;
+}
+
+.sk-type-filter:focus {
+    border-color: var(--color-primary);
+}
+
+.dark .sk-type-filter {
+    background-color: #1F2937;
+    border-color: #374151;
+    color: var(--color-text-dark);
+}
+
+/* ── Contagem ─────────────────────────────────────────────────── */
+.sk-count {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-subtext-light);
+    padding: 0.3rem 0.5rem;
+    flex-shrink: 0;
+}
+
+/* ── Lista ───────────────────────────────────────────────────── */
+.sk-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.sk-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 3rem 1rem;
+    color: var(--color-subtext-light);
+    text-align: center;
+}
+
+.sk-empty p {
+    font-size: 0.82rem;
+    margin: 0;
+}
+
+.sk-item {
+    background-color: var(--color-card-light);
+    border: 1px solid #F1F5F9;
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    transition: border-color 0.15s;
+}
+
+.sk-item:hover {
+    border-color: #BFDBFE;
+}
+
+.dark .sk-item {
+    background-color: var(--color-card-dark);
+    border-color: #1F2937;
+}
+
+.dark .sk-item:hover {
+    border-color: #2563EB;
+}
+
+.sk-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.sk-type-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+.sk-item-date {
+    font-size: 0.65rem;
+    color: var(--color-subtext-light);
+    margin-left: auto;
+}
+
+.sk-delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.375rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #CBD5E1;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.sk-delete-btn:hover:not(:disabled) {
+    background-color: #FEE2E2;
+    color: #DC2626;
+}
+
+.sk-delete-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.sk-item-content {
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+    line-height: 1.5;
+    margin: 0;
+    max-height: 7rem;   /* ~4-5 linhas */
+    overflow: hidden;
+    position: relative;
+}
+
+/* Gradiente de fade no fundo quando clipado */
+.sk-item-content::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1.5rem;
+    background: linear-gradient(transparent, var(--color-card-light));
+    pointer-events: none;
+}
+
+.dark .sk-item-content {
+    color: var(--color-text-dark);
+}
+
+.dark .sk-item-content::after {
+    background: linear-gradient(transparent, var(--color-card-dark));
+}
+
+.sk-item-meta {
+    font-size: 0.65rem;
+    color: var(--color-subtext-light);
+}
+
+/* ── Botão editar ─────────────────────────────────────────────── */
+.sk-edit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.375rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #CBD5E1;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.sk-edit-btn:hover {
+    background-color: #DBEAFE;
+    color: var(--color-primary);
+}
+
+.sk-edit-save-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.375rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #16A34A;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.sk-edit-save-btn:hover:not(:disabled) {
+    background-color: #F0FDF4;
+}
+
+.sk-edit-save-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ── Item em edição ───────────────────────────────────────────── */
+.sk-item.editing {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.sk-select-inline {
+    font-size: 0.72rem;
+    padding: 0.2rem 1.5rem 0.2rem 0.5rem;
+    height: 1.75rem;
+}
+
+.sk-edit-textarea {
+    margin-top: 0.15rem;
+    resize: none;
+    min-height: 6rem;
+    overflow: hidden; /* auto-expand via JS scrollHeight */
+}
+
+/* Quando está em modo de edição, não clipa o texto */
+.sk-item.editing .sk-item-content {
+    max-height: none;
+    overflow: visible;
+}
+
+.sk-item.editing .sk-item-content::after {
+    display: none;
+}

@@ -197,3 +197,67 @@ export const searchUserMemory = async (userId, queryText, matchThreshold = 0.5, 
         throw error;
     }
 };
+
+/**
+ * Busca combinada: memórias privadas do usuário + conhecimento compartilhado Benfit.
+ * Usa dois RPCs separados para maior confiabilidade e debugging independente.
+ *
+ * @param {string}   userId           UUID do usuário autenticado
+ * @param {string}   queryText        Pergunta / mensagem do usuário
+ * @param {number}   matchThreshold   Similaridade mínima (padrão: 0.25)
+ * @param {number}   matchCount       Máximo de resultados por fonte (padrão: 8)
+ * @param {string[]} knowledgeTypes   Filtro de tipos (null = todos)
+ * @returns {Promise<{ userMemories: Array, sharedResults: Array }>}
+ */
+export const searchHybridMemory = async (
+    userId,
+    queryText,
+    matchThreshold = 0.25,
+    matchCount = 8,
+    knowledgeTypes = null
+) => {
+    let queryEmbedding;
+    try {
+        queryEmbedding = await generateEmbedding(queryText);
+    } catch (e) {
+        console.error('[Memory] Falha ao gerar embedding:', e?.message);
+        return { userMemories: [], sharedResults: [] };
+    }
+
+    // ── Memórias privadas do usuário ──────────────────────────────
+    let userMemories = [];
+    try {
+        const { data, error } = await supabase.rpc('match_embeddings', {
+            query_embedding: queryEmbedding,
+            match_threshold: matchThreshold,
+            match_count: matchCount,
+            p_user_id: userId,
+        });
+        if (error) console.error('[Memory] Erro em match_embeddings:', error.message);
+        else userMemories = data || [];
+    } catch (e) {
+        console.error('[Memory] match_embeddings falhou:', e?.message);
+    }
+
+    // ── Conhecimento compartilhado ────────────────────────────────
+    let sharedResults = [];
+    try {
+        const { data, error } = await supabase.rpc('match_shared_knowledge', {
+            query_embedding: queryEmbedding,
+            match_threshold: matchThreshold,
+            match_count: matchCount,
+            p_knowledge_types: knowledgeTypes,
+        });
+        if (error) console.error('[Memory] Erro em match_shared_knowledge:', error.message);
+        else {
+            sharedResults = data || [];
+            if (sharedResults.length > 0) {
+                console.log(`[Memory] Shared knowledge: ${sharedResults.length} resultado(s) encontrado(s).`);
+            }
+        }
+    } catch (e) {
+        console.error('[Memory] match_shared_knowledge falhou:', e?.message);
+    }
+
+    return { userMemories, sharedResults };
+};

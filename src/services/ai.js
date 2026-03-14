@@ -24,6 +24,19 @@ export const generateEmbedding = async (text) => {
     }
 };
 
+export const generateConversationTitle = async (firstMessage) => {
+    try {
+        const genAI = getGenerativeAI();
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `Crie um título curto (máximo 35 caracteres) em português para uma conversa de fitness que começou com a seguinte pergunta do usuário:\n\n"${firstMessage}"\n\nResponda APENAS com o título, sem aspas, sem pontuação no final, sem explicações.`;
+        const result = await model.generateContent(prompt);
+        const title = result.response.text().trim().slice(0, 40);
+        return title || 'Nova conversa';
+    } catch {
+        return 'Nova conversa';
+    }
+};
+
 export const chatWithBenfit = async (userMessage, context) => {
     try {
         const genAI = getGenerativeAI();

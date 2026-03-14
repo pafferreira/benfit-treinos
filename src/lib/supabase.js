@@ -615,14 +615,65 @@ export const supabaseHelpers = {
         return data.reduce((sum, log) => sum + (log.weight_kg * log.reps_completed), 0)
     },
 
-    // AI Chat History
-    async saveChatMessage(userId, role, content) {
+    // ── Conversations ──────────────────────────────────────────────
+    async getConversations(userId) {
+        const { data, error } = await supabase
+            .from('b_ai_conversations')
+            .select('*')
+            .eq('user_id', userId)
+            .order('last_message_at', { ascending: false })
+
+        if (error) throw error
+        return data
+    },
+
+    async createConversation(userId, title = 'Nova conversa') {
+        const { data, error } = await supabase
+            .from('b_ai_conversations')
+            .insert({ user_id: userId, title })
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    },
+
+    async updateConversationTitle(conversationId, title) {
+        const { error } = await supabase
+            .from('b_ai_conversations')
+            .update({ title })
+            .eq('id', conversationId)
+
+        if (error) throw error
+    },
+
+    async touchConversation(conversationId) {
+        const { error } = await supabase
+            .from('b_ai_conversations')
+            .update({ last_message_at: new Date().toISOString() })
+            .eq('id', conversationId)
+
+        if (error) throw error
+    },
+
+    async deleteConversation(conversationId) {
+        const { error } = await supabase
+            .from('b_ai_conversations')
+            .delete()
+            .eq('id', conversationId)
+
+        if (error) throw error
+    },
+
+    // ── AI Chat History ────────────────────────────────────────────
+    async saveChatMessage(userId, role, content, conversationId = null) {
         const { data, error } = await supabase
             .from('b_ai_chat_history')
             .insert({
                 user_id: userId,
                 role: role,
-                content: content
+                content: content,
+                ...(conversationId ? { conversation_id: conversationId } : {})
             })
             .select()
             .single()
@@ -641,6 +692,64 @@ export const supabaseHelpers = {
 
         if (error) throw error
         return data
+    },
+
+    async getConversationMessages(conversationId) {
+        const { data, error } = await supabase
+            .from('b_ai_chat_history')
+            .select('*')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: true })
+
+        if (error) throw error
+        return data
+    },
+
+    // ── Shared Knowledge ───────────────────────────────────────────
+    async listSharedKnowledge(filters = {}) {
+        let query = supabase
+            .from('b_shared_knowledge')
+            .select('id, knowledge_type, content, metadata, created_at')
+            .order('created_at', { ascending: false })
+
+        if (filters.type) query = query.eq('knowledge_type', filters.type)
+        if (filters.search) query = query.ilike('content', `%${filters.search}%`)
+
+        const { data, error } = await query.limit(100)
+        if (error) throw error
+        return data
+    },
+
+    async addSharedKnowledge(entry) {
+        const { data, error } = await supabase
+            .from('b_shared_knowledge')
+            .insert(entry)
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    },
+
+    async updateSharedKnowledge(id, updates) {
+        const { data, error } = await supabase
+            .from('b_shared_knowledge')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    },
+
+    async deleteSharedKnowledge(id) {
+        const { error } = await supabase
+            .from('b_shared_knowledge')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
     },
 
     // User Profile

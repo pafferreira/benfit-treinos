@@ -148,7 +148,7 @@ export const buildUserContext = async (userId) => {
     try {
         const { data: exercises } = await supabase
             .from('b_exercises')
-            .select('name, muscle_group, equipment, difficulty')
+            .select('name, muscle_group, equipment')
             .order('muscle_group')
             .limit(600);
 

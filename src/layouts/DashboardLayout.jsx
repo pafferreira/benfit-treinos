@@ -111,7 +111,7 @@ const DashboardLayoutContent = () => {
             case '/exercicios':
                 return { title: 'Exercícios', subtitle: 'Biblioteca completa' };
             case '/coach':
-                return { title: 'Benfit Coach', subtitle: 'Memória vetorial ativa • powered by Gemini' };
+                return { title: 'Benfit Coach', subtitle: 'IA a serviço da sua saúde' };
             case '/perfil':
                 return { title: 'Perfil', subtitle: 'Suas configurações' };
             case '/diagnostic':
@@ -193,6 +193,7 @@ const DashboardLayoutContent = () => {
     const isZeroPaddingRoute = (
         location.pathname === '/perfil' ||
         location.pathname === '/coach' ||
+        location.pathname === '/conhecimento' ||
         location.pathname.includes('/historico') ||
         (location.pathname.startsWith('/treino/') && location.pathname.includes('/dia/'))
     );
