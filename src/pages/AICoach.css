@@ -4,24 +4,12 @@
 .page-container {
     display: flex;
     flex-direction: column;
-    box-sizing: border-box;   /* height:100% inclui o padding */
+    box-sizing: border-box;
     height: 100%;
     width: 100%;
-    overflow: hidden;
-    /* Empurra o coach-header abaixo do global header (position:absolute, ~5rem) */
+    /* Sem overflow:hidden — coach-header pode transladar para fora dos bounds
+       do page-container sem ser cortado (mobile-container já tem overflow:hidden) */
     padding-top: 5rem;
-    /* Anima suavemente: quando header global some, padding-top → 0
-       e o coach-header sobe até o topo da tela */
-    transition: padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    /* SEM position: relative — o sidebar (position:absolute) ancora no
-       mobile-container (position:relative) e não é cortado pelo overflow:hidden */
-}
-
-/* Quando o nav some (scroll ↓), DashboardLayout adiciona ui-hidden ao mobile-container.
-   padding-top vai a 0: coach-header desliza para o topo suavemente.
-   Um único estado (showInterface) controla toda a animação — sem conflito. */
-.mobile-container.ui-hidden .page-container {
-    padding-top: 0;
 }
 
 /* ── Header bar do coach ─────────────────────────────────────── */
@@ -36,8 +24,13 @@
     gap: 0.5rem;
     min-height: 2.75rem;
     z-index: 10;
-    /* O efeito de "subir até o topo" é feito pelo padding-top
-       animado no .page-container — sem necessidade de transform aqui */
+    /* Transform sem reflow: desliza para o topo quando o global header some */
+    transition: transform 0.3s ease-in-out;
+}
+
+/* Quando o global header some, coach-header sobe para o topo da tela */
+.mobile-container.ui-hidden .coach-header {
+    transform: translateY(-5rem);
 }
 
 .dark .coach-header {
@@ -521,19 +514,15 @@
     flex-shrink: 0;
     background-color: var(--color-card-light);
     border-top: 1px solid #F0F4F8;
-    /* Reserva espaço para o nav (position:absolute, ~3.8rem altura) */
+    /* Espaço fixo acima do nav (position:absolute) */
     padding-bottom: 3.8rem;
-    transition: padding-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Transform sem reflow: desliza para o bottom quando o nav some */
+    transition: transform 0.3s ease-in-out;
 }
 
-/*
- * Quando nav some, DashboardLayout adiciona ui-hidden ao mobile-container.
- * Reduzir padding-bottom faz o flex messages-area crescer e
- * o chat-bottom desce naturalmente ao fundo — sem transform
- * (que seria cortado pelo overflow:hidden do page-container).
- */
+/* Quando o nav some, chat-bottom desce para o fundo da tela */
 .mobile-container.ui-hidden .chat-bottom {
-    padding-bottom: 0.375rem;
+    transform: translateY(3.8rem);
 }
 
 .dark .chat-bottom {
