@@ -24,6 +24,7 @@ const Profile = () => {
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ workouts: 0, hours: 0, weight: 0 });
     const [loading, setLoading] = useState(true);
+    const [loadingStats, setLoadingStats] = useState(true);
     const [goals, setGoals] = useState([]);
 
     // Custom Hooks
@@ -56,64 +57,56 @@ const Profile = () => {
     const [filterActive, setFilterActive] = useState(true);
 
     useEffect(() => {
-        console.log('Profile: Avatars loading:', loadingAvatars, 'Count:', avatars.length);
         fetchUserData();
-    }, [avatars.length]); // Re-run if avatars update (maybe not needed loop, but safe to check)
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchUserData = async () => {
         try {
-            console.log('Profile: Starting fetchUserData');
             setLoading(true);
+
+            // Phase 1: user profile — unblocks render ASAP
             const currentUser = await supabaseHelpers.getCurrentUser();
-            console.log('Profile: Fetched user:', currentUser);
+            if (!currentUser) return;
 
-            if (currentUser) {
-                setUser(currentUser);
-                setFormData({
-                    name: currentUser.name || '',
-                    phone: currentUser.phone || '',
-                    birth_date: currentUser.birth_date || '',
-                    gender: currentUser.gender || '',
-                    height_cm: currentUser.height_cm || '',
-                    weight_kg: currentUser.weight_kg || '',
-                    avatar_url: currentUser.avatar_url
-                });
+            setUser(currentUser);
+            setFormData({
+                name: currentUser.name || '',
+                phone: currentUser.phone || '',
+                birth_date: currentUser.birth_date || '',
+                gender: currentUser.gender || '',
+                height_cm: currentUser.height_cm || '',
+                weight_kg: currentUser.weight_kg || '',
+                avatar_url: currentUser.avatar_url
+            });
+            setLoading(false); // Show profile immediately
 
-                // Fetch Stats
-                const totalWorkouts = await supabaseHelpers.getUserFrequency(currentUser.id, 365); // Last year
-                const totalCalories = await supabaseHelpers.getUserTotalCalories(currentUser.id);
-                // Simplify hours estimate (avg 45 min per workout)
-                const totalHours = Math.round(totalWorkouts * 0.75);
-
-                // Fetch weight from progress
-                const { data: progress } = await supabase
-                    .from('b_user_progress')
-                    .select('weight_kg')
-                    .eq('user_id', currentUser.id)
-                    .order('created_at', { ascending: false })
-                    .limit(1);
+            // Phase 2: stats + goals in parallel — don't block the render
+            try {
+                const [totalWorkouts, , progress, userGoals] = await Promise.all([
+                    supabaseHelpers.getUserFrequency(currentUser.id, 365),
+                    supabaseHelpers.getUserTotalCalories(currentUser.id),
+                    supabase
+                        .from('b_user_progress')
+                        .select('weight_kg')
+                        .eq('user_id', currentUser.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1),
+                    supabaseHelpers.getUserGoals(currentUser.id),
+                ]);
 
                 setStats({
                     workouts: totalWorkouts,
-                    hours: totalHours,
-                    weight: progress && progress.length > 0 ? progress[0].weight_kg : 0
+                    hours: Math.round(totalWorkouts * 0.75),
+                    weight: progress?.data?.length > 0 ? progress.data[0].weight_kg : 0,
                 });
-                console.log('Profile: Stats set', totalWorkouts, totalHours);
-
-                // Fetch Goals
-                if (currentUser) {
-                    const userGoals = await supabaseHelpers.getUserGoals(currentUser.id);
-                    console.log('Profile: Goals set', userGoals);
-                    setGoals(userGoals || []);
-                }
-            } else {
-                console.warn('Profile: No current user found');
+                setGoals(userGoals || []);
+            } finally {
+                setLoadingStats(false);
             }
         } catch (error) {
             console.error('Error loading profile:', error);
-        } finally {
-            console.log('Profile: Finished loading, setting loading=false');
             setLoading(false);
+            setLoadingStats(false);
         }
     };
 
@@ -325,15 +318,21 @@ const Profile = () => {
 
                 <div className="profile-stats">
                     <div className="p-stat">
-                        <span className="p-stat-value">{stats.workouts}</span>
+                        {loadingStats
+                            ? <span className="block w-8 h-5 rounded shimmer mx-auto" />
+                            : <span className="p-stat-value">{stats.workouts}</span>}
                         <span className="p-stat-label">Treinos</span>
                     </div>
                     <div className="p-stat">
-                        <span className="p-stat-value">{stats.hours}</span>
+                        {loadingStats
+                            ? <span className="block w-8 h-5 rounded shimmer mx-auto" />
+                            : <span className="p-stat-value">{stats.hours}</span>}
                         <span className="p-stat-label">Horas</span>
                     </div>
                     <div className="p-stat">
-                        <span className="p-stat-value">{displayWeight}kg</span>
+                        {loadingStats
+                            ? <span className="block w-12 h-5 rounded shimmer mx-auto" />
+                            : <span className="p-stat-value">{displayWeight}kg</span>}
                         <span className="p-stat-label">Peso</span>
                     </div>
                 </div>

@@ -1,0 +1,93 @@
+
+
+Vamos planejar o uso comum da tabela vetorial usando Embeddings no Supabase.
+Quero identificar a melhor forma de armazenar e compartilhar informações em comum para os usuários do App, disponibilizando para o Benfit uma resposta que atende diversos usuários, como quais os melhores exercícios para fortalecer o bíceps ? ou como quantos tipos de exercícios de bíceps temos no app ?
+
+Podemos coletar algumas infromações e armazenar na base de dados de forma a otimizar tokens e tornar aproximar mais do aplicativo, mostrando que existem alternativas diretas. Com o avanço o Benfit pode até gerar treinos e armazenar para consultas futuras. 
+Minha dúvida é se criamos outra tabela vetorial ou utilizamos a mesma com algum atributo para identificar se é publico / comum a todos ou se é particular do usuário.
+
+
+
+Temos que adicionar ao plano formas de armazenar um conteúdo para ser compartilhado (shared knowledge), pode ser uma tela para CRUD da tabela b_shared_knowledge e/ou um botão no chat com o coach Benfit para armazenar, talvez com um texto "Gostei! Compartilhar" , mas tem que ser restrito para perfil Admin ou Personal.
+
+=============================
+Plano: Base de Conhecimento Compartilhada (Shared Embeddings)
+
+Contexto
+O Benfit Coach atualmente usa b_benfit_embeddings exclusivamente para memórias privadas de cada usuário. Perguntas factuais como "quais exercícios de bíceps temos?" ou "como fortalecer quadríceps?" são respondidas via Gemini (custo de tokens) ou pelo tryLocalResponse() com texto plano do catálogo.
+
+Objetivo: criar uma base de conhecimento compartilhada (embeddings vetoriais) que atende a todos os usuários, otimiza tokens e abre caminho para templates de treino gerados pela IA.
+
+Decisão Arquitetural: Tabela Separada
+Usar b_shared_knowledge (nova tabela), não modificar b_benfit_embeddings.
+
+Razões:
+
+user_id NOT NULL em b_benfit_embeddings exigiria migration breaking para admitir linhas públicas
+RLS atual (WHERE user_id = auth.uid()) ficaria ambíguo com escopo público
+Índices HNSW separados → scan do catálogo não polui busca de memórias pessoais
+Escrita admin-only isolada (service_role) sem risco de conflito com dados de usuário
+
+Arquivos a Criar/Modificar
+Arquivo	Ação
+supabase/migrations/add_shared_knowledge.sql	CRIAR — tabela + RLS + RPC functions
+src/services/memory.js	MODIFICAR — adicionar searchHybridMemory()
+src/pages/AICoach.jsx	MODIFICAR — integrar busca híbrida em sendMessage()
+scripts/seed_shared_knowledge.js	CRIAR — script de seed dos exercícios
+
+Passo 1 — SQL: supabase/migrations/add_shared_knowledge.sql
+Tabela b_shared_knowledge
+CREATE TABLE IF NOT EXISTS public.b_shared_knowledge (
+    id             uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    knowledge_type text NOT NULL DEFAULT 'exercise',
+    -- Valores: 'exercise' | 'workout_template' | 'fitness_tip' | 'faq'
+    source_id      uuid,          -- FK opcional para b_exercises.id, b_workouts.id
+    content        text NOT NULL, -- texto descritivo para busca semântica
+    metadata       jsonb,         -- { muscle_group, equipment, difficulty, name... }
+    embedding      vector(3072) NOT NULL,
+    created_at     timestamptz DEFAULT now() NOT NULL,
+    updated_at     timestamptz DEFAULT now() NOT NULL
+);
+
+Passo 2 — src/services/memory.js
+Adicionar ao final do arquivo (sem tocar nas funções existentes):
+
+/**
+ * Busca combinada: memórias do usuário + conhecimento compartilhado Benfit.
+ * Retorna { userMemories: [], sharedResults: [] }
+ */
+export const searchHybridMemory = async (
+    userId, queryText, matchThreshold = 0.35, matchCount = 8,
+    knowledgeTypes = null
+
+Passo 3 — src/pages/AICoach.jsx
+
+Passo 4 — scripts/seed_shared_knowledge.js
+Script Node.js (seguir padrão de scripts/migrate_images.js):
+Usa SUPABASE_SERVICE_ROLE_KEY (bypassa RLS para escrita)
+Busca todos os 600 exercícios de b_exercises
+
+Fluxo Final
+Pergunta do usuário
+    ↓
+tryLocalResponse()           ← JS puro, zero rede
+    hit? → retorna imediatamente
+    miss? ↓
+isSharedKnowledgeQuery()     ← regex, zero rede
+    → define filtro de tipo
+    ↓
+generateEmbedding(text)      ← 1 chamada Gemini Embedding
+    ↓
+match_embeddings_hybrid()    ← 1 RPC Supabase (UNION das 2 tabelas)
+    → userMemories + sharedResults
+    ↓
+chatWithBenfit(fullContext)  ← Gemini Flash (com contexto enriquecido)
+
+Futuro: Templates de Treino
+Coluna knowledge_type = 'workout_template' já prevista
+Ao Benfit gerar um treino aprovado por admin → salvar em b_shared_knowledge via seeding ou admin panel
+Metadata: { workout_id, title, difficulty, days_per_week, muscle_focus[] }
+Padrões de detecção: "me sugira um programa", "treino para hipertrofia 4 dias"
+
+
+=============================

@@ -87,7 +87,7 @@ const SharedKnowledge = () => {
                 } else if (showAddForm) {
                     setShowAddForm(false);
                 } else {
-                    navigate('/perfil');
+                    navigate(-1);
                 }
             }
         };
@@ -215,7 +215,7 @@ const SharedKnowledge = () => {
         <div className="sk-page">
             {/* Header */}
             <div className="sk-header">
-                <button className="sk-back-btn" onClick={() => navigate('/perfil')} aria-label="Voltar">
+                <button className="sk-back-btn" onClick={() => navigate(-1)} aria-label="Voltar">
                     <ArrowLeft size={20} />
                 </button>
                 <div className="sk-header-title-group">

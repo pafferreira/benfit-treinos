@@ -7,9 +7,20 @@
     box-sizing: border-box;
     height: 100%;
     width: 100%;
-    /* Sem overflow:hidden — coach-header pode transladar para fora dos bounds
-       do page-container sem ser cortado (mobile-container já tem overflow:hidden) */
+    overflow: hidden;
     padding-top: 5rem;
+    background-color: var(--color-background-light);
+    /* Transição suave para expandir a área de mensagens quando o header some */
+    transition: padding-top 0.3s ease-in-out;
+}
+
+/* Quando o global header some, removemos o padding para expandir o conteúdo */
+.mobile-container.ui-hidden .page-container {
+    padding-top: 0;
+}
+
+.dark .page-container {
+    background-color: var(--color-background-dark);
 }
 
 /* ── Header bar do coach ─────────────────────────────────────── */
@@ -28,9 +39,10 @@
     transition: transform 0.3s ease-in-out;
 }
 
-/* Quando o global header some, coach-header sobe para o topo da tela */
+/* Quando o global header some, o padding-top: 0 da page-container já move o header para o topo.
+   Mantemos o transform em none para evitar que ele suba além do topo da tela. */
 .mobile-container.ui-hidden .coach-header {
-    transform: translateY(-5rem);
+    transform: none;
 }
 
 .dark .coach-header {
@@ -104,8 +116,15 @@
 }
 
 @keyframes tooltipFadeInDown {
-    from { opacity: 0; transform: translateX(-50%) translateY(-5px); }
-    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 /* ── Overlay escuro — cobre o mobile-container, não o viewport ── */
@@ -119,21 +138,31 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* ── Sidebar drawer — posicionado dentro do mobile-container ─── */
 .conversations-sidebar {
-    position: absolute;   /* relativo ao mobile-container (position: relative) */
-    top: 0;               /* cobre a tela toda incluindo o global header */
+    position: absolute;
+    /* relativo ao mobile-container (position: relative) */
+    top: 0;
+    /* cobre a tela toda incluindo o global header */
     left: 0;
     bottom: 0;
-    width: 80%;           /* 80% do mobile-container, nunca extrapola */
-    max-width: 17rem;     /* teto em telas maiores */
+    width: 80%;
+    /* 80% do mobile-container, nunca extrapola */
+    max-width: 17rem;
+    /* teto em telas maiores */
     background-color: var(--color-card-light);
     border-right: 1px solid #E2E8F0;
-    z-index: 110;         /* acima do global header (z-index: 100) */
+    z-index: 110;
+    /* acima do global header (z-index: 100) */
     display: flex;
     flex-direction: column;
     transform: translateX(-100%);
@@ -155,7 +184,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 5.25rem 0.875rem 0.75rem; /* padding-top empurra abaixo do global header */
+    padding: 5.25rem 0.875rem 0.75rem;
+    /* padding-top empurra abaixo do global header */
     border-bottom: 1px solid #E2E8F0;
     flex-shrink: 0;
 }
@@ -376,7 +406,8 @@
     color: var(--color-subtext-light);
 }
 
-/* ── Botão deletar conversa ──────────────────────────────────── */
+/* ── Botões de ação do sidebar-item (editar / deletar) ──────── */
+.sidebar-edit-btn,
 .sidebar-delete-btn {
     background: none;
     border: none;
@@ -393,13 +424,41 @@
     transition: opacity 0.15s, background-color 0.15s, color 0.15s;
 }
 
+.sidebar-item:hover .sidebar-edit-btn,
 .sidebar-item:hover .sidebar-delete-btn {
     opacity: 1;
+}
+
+.sidebar-edit-btn:hover {
+    background-color: #EFF6FF;
+    color: var(--color-primary);
 }
 
 .sidebar-delete-btn:hover {
     background-color: #FEE2E2;
     color: #EF4444;
+}
+
+/* Input inline para renomear conversa */
+.sidebar-item-edit-input {
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid var(--color-primary);
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.3rem;
+    background: white;
+    color: var(--color-text-light);
+    outline: none;
+    width: 100%;
+    font-family: inherit;
+    min-width: 0;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.dark .sidebar-item-edit-input {
+    background: #1F2937;
+    color: var(--color-text-dark);
+    border-color: #60A5FA;
 }
 
 /* ── Área de mensagens — ÚNICO scroll da tela ────────────────── */
@@ -514,15 +573,15 @@
     flex-shrink: 0;
     background-color: var(--color-card-light);
     border-top: 1px solid #F0F4F8;
-    /* Espaço fixo acima do nav (position:absolute) */
+    /* Espaço reservado para o nav (position:absolute no bottom) */
     padding-bottom: 3.8rem;
-    /* Transform sem reflow: desliza para o bottom quando o nav some */
-    transition: transform 0.3s ease-in-out;
+    /* Anima padding para expandir o conteúdo quando o nav some */
+    transition: padding-bottom 0.3s ease-in-out;
 }
 
-/* Quando o nav some, chat-bottom desce para o fundo da tela */
+/* Quando o nav some, remove o padding — messages-area expande para ocupar o espaço */
 .mobile-container.ui-hidden .chat-bottom {
-    transform: translateY(3.8rem);
+    padding-bottom: 0;
 }
 
 .dark .chat-bottom {
@@ -533,10 +592,11 @@
 /* ── Chips area (quick-actions + suggestions) — colapsa ao digitar ── */
 .chat-chips-area {
     overflow: hidden;
-    max-height: 8rem;  /* espaço suficiente para quick-actions + suggestions */
+    max-height: 8rem;
+    /* espaço suficiente para quick-actions + suggestions */
     opacity: 1;
     transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.2s ease;
+        opacity 0.2s ease;
 }
 
 .chat-bottom.input-active .chat-chips-area {
@@ -553,7 +613,9 @@
     scrollbar-width: none;
 }
 
-.quick-actions::-webkit-scrollbar { display: none; }
+.quick-actions::-webkit-scrollbar {
+    display: none;
+}
 
 .quick-action-btn {
     display: flex;
@@ -605,11 +667,20 @@
     animation: slideDown 0.18s ease-out;
 }
 
-.muscle-picker::-webkit-scrollbar { display: none; }
+.muscle-picker::-webkit-scrollbar {
+    display: none;
+}
 
 @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-6px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .muscle-chip {
@@ -817,6 +888,7 @@
         opacity: 0;
         transform: translateY(6px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);

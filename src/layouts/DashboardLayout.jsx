@@ -254,7 +254,7 @@ const DashboardLayoutContent = () => {
                     ref={mainContentRef}
                     tabIndex={-1}
                     style={location.pathname === '/coach'
-                        ? { padding: 0, gap: 0 }
+                        ? { padding: 0, gap: 0, overflow: 'hidden' }
                         : { paddingTop: mainPaddingTop }
                     }
                 >

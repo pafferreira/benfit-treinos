@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Bot, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
 import { chatWithBenfit, generateConversationTitle, generateEmbedding } from '../services/ai';
@@ -165,6 +165,8 @@ const AICoach = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isFirstMessage, setIsFirstMessage] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingConvId, setEditingConvId] = useState(null);
+    const [editingTitle, setEditingTitle] = useState('');
 
     // Quick actions
     const [showMusclePicker, setShowMusclePicker] = useState(false);
@@ -335,6 +337,23 @@ const AICoach = () => {
         }
     };
 
+    // ── Edita título da conversa ──────────────────────────────────
+    const handleStartEdit = (e, conv) => {
+        e.stopPropagation();
+        setEditingConvId(conv.id);
+        setEditingTitle(conv.title);
+    };
+
+    const handleSaveEdit = async (convId) => {
+        const title = editingTitle.trim();
+        const original = conversations.find(c => c.id === convId)?.title;
+        setEditingConvId(null);
+        if (title && title !== original) {
+            setConversations(prev => prev.map(c => c.id === convId ? { ...c, title } : c));
+            supabaseHelpers.updateConversationTitle(convId, title).catch(() => {});
+        }
+    };
+
     // ── Quick actions ─────────────────────────────────────────────
     const handleQuickAction = async (action) => {
         if (action.type === 'navigate') {
@@ -493,8 +512,17 @@ const AICoach = () => {
                 }
             }
 
-            // Gera título em background na primeira mensagem
+            // Título imediato (palavras-chave da mensagem) + refinamento via Gemini
             if (wasFirst && convId && uid) {
+                const quickTitle = text
+                    .split(' ')
+                    .filter(w => w.length > 2)
+                    .slice(0, 5)
+                    .join(' ')
+                    .trim() || text.slice(0, 30);
+                setConversations(prev => prev.map(c => c.id === convId ? { ...c, title: quickTitle } : c));
+                supabaseHelpers.updateConversationTitle(convId, quickTitle).catch(() => {});
+
                 generateConversationTitle(text).then(title => {
                     supabaseHelpers.updateConversationTitle(convId, title).catch(() => {});
                     setConversations(prev => prev.map(c => c.id === convId ? { ...c, title } : c));
@@ -643,17 +671,41 @@ const AICoach = () => {
                             <div
                                 key={conv.id}
                                 className={`sidebar-item ${conv.id === currentConvId ? 'active' : ''}`}
-                                onClick={() => loadConversation(conv.id)}
+                                onClick={() => editingConvId !== conv.id && loadConversation(conv.id)}
                             >
                                 <MessageSquare size={14} className="sidebar-item-icon" />
                                 <div className="sidebar-item-info">
-                                    <span className="sidebar-item-title">{conv.title}</span>
+                                    {editingConvId === conv.id ? (
+                                        <input
+                                            className="sidebar-item-edit-input"
+                                            value={editingTitle}
+                                            onChange={e => setEditingTitle(e.target.value)}
+                                            onBlur={() => handleSaveEdit(conv.id)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') { e.preventDefault(); handleSaveEdit(conv.id); }
+                                                if (e.key === 'Escape') setEditingConvId(null);
+                                            }}
+                                            onClick={e => e.stopPropagation()}
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        <span className="sidebar-item-title">{conv.title}</span>
+                                    )}
                                     <span className="sidebar-item-date">{formatRelativeDate(conv.last_message_at)}</span>
                                 </div>
+                                <button
+                                    className="sidebar-edit-btn"
+                                    onClick={(e) => handleStartEdit(e, conv)}
+                                    aria-label="Renomear conversa"
+                                    data-tooltip="Renomear"
+                                >
+                                    <Pencil size={12} />
+                                </button>
                                 <button
                                     className="sidebar-delete-btn"
                                     onClick={(e) => handleDeleteConversation(e, conv.id)}
                                     aria-label="Excluir conversa"
+                                    data-tooltip="Excluir"
                                 >
                                     <Trash2 size={13} />
                                 </button>

@@ -4,6 +4,43 @@ import { useUserRole } from '../hooks/useSupabase';
 import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, User, Shield, ClipboardList, ChevronDown, ArrowLeft, Edit2, CheckCircle, XCircle } from 'lucide-react';
 import EditProfileModal from '../components/EditProfileModal';
+import '../components/SkeletonLoader.css';
+
+const AdminUsersSkeleton = () => (
+    <div className="flex flex-col gap-4" aria-hidden="true">
+        {/* Search bar skeleton */}
+        <div className="h-12 rounded-lg shimmer" />
+        {/* Table/cards skeleton */}
+        <div className="hidden md:flex flex-col gap-0 rounded-lg overflow-hidden border border-gray-200">
+            <div className="h-12 shimmer border-b border-gray-100" />
+            {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-6 py-4 bg-white border-b border-gray-100">
+                    <div className="w-12 h-12 rounded-full shimmer shrink-0" />
+                    <div className="flex flex-col gap-2 flex-1">
+                        <div className="h-4 w-40 rounded shimmer" />
+                        <div className="h-3 w-52 rounded shimmer" />
+                    </div>
+                    <div className="h-5 w-20 rounded shimmer" />
+                    <div className="h-8 w-8 rounded-lg shimmer ml-auto" />
+                </div>
+            ))}
+        </div>
+        <div className="md:hidden flex flex-col gap-4">
+            {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-lg border border-gray-200 p-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full shimmer shrink-0" />
+                        <div className="flex flex-col gap-2 flex-1">
+                            <div className="h-4 w-32 rounded shimmer" />
+                            <div className="h-3 w-44 rounded shimmer" />
+                        </div>
+                    </div>
+                    <div className="h-10 w-full rounded-lg shimmer" />
+                </div>
+            ))}
+        </div>
+    </div>
+);
 
 const AdminUsers = () => {
     const { isRealAdmin, impersonate, restoreRole, isImpersonating, role, loading: roleLoading } = useUserRole();
@@ -158,38 +195,31 @@ const AdminUsers = () => {
                 </div>
             </div>
 
-            {/* Impersonation Control - Estilo PAF (Blue) */}
-            <div className="mb-6 bg-[#F3F4F6] border border-gray-200 rounded-lg p-4 sm:p-5 shadow-sm">
-                <div className="grid grid-cols-[84px_minmax(0,1fr)] sm:grid-cols-[96px_minmax(0,1fr)] items-stretch gap-4">
-                    <div className="flex items-center justify-center rounded-lg bg-blue-100 text-[#034EA2]">
-                        <User size={32} className="shrink-0" />
+            {/* Impersonation Control */}
+            <div className="mb-6 bg-[#F3F4F6] border border-gray-200 rounded-lg px-3 py-2.5 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-[#034EA2] shrink-0">
+                        <User size={16} />
                     </div>
-
-                    <div className="min-w-0 flex flex-col justify-center gap-2">
-                        <div>
-                            <h3 className="text-sm font-bold text-gray-800">Visualizar como ...</h3>
-                            <p className="text-xs text-gray-600">Explore o app com diferentes permissões.</p>
-                        </div>
-
-                        <div className="relative w-full max-w-xs">
-                            <select
-                                value={isImpersonating ? role : 'admin'}
-                                onChange={(e) => {
-                                    const selected = e.target.value;
-                                    if (selected === 'admin') {
-                                        restoreRole();
-                                    } else {
-                                        impersonate(selected);
-                                    }
-                                }}
-                                className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-2.5 pl-3 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#008ACF] focus:border-[#008ACF] shadow-sm font-medium"
-                            >
-                                <option value="admin">Admin (Original)</option>
-                                <option value="personal">Personal Trainer</option>
-                                <option value="user">Aluno / Usuário</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
-                        </div>
+                    <span className="text-sm font-semibold text-gray-700 shrink-0">Visualizar como</span>
+                    <div className="relative flex-1 max-w-xs ml-auto">
+                        <select
+                            value={isImpersonating ? role : 'admin'}
+                            onChange={(e) => {
+                                const selected = e.target.value;
+                                if (selected === 'admin') {
+                                    restoreRole();
+                                } else {
+                                    impersonate(selected);
+                                }
+                            }}
+                            className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-1.5 pl-3 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#008ACF] focus:border-[#008ACF] shadow-sm font-medium"
+                        >
+                            <option value="admin">Admin (Original)</option>
+                            <option value="personal">Personal Trainer</option>
+                            <option value="user">Aluno / Usuário</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
                     </div>
                 </div>
             </div>
@@ -205,7 +235,7 @@ const AdminUsers = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             </div>
             {loading ? (
-                <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[#034EA2] w-8 h-8" /></div>
+                <AdminUsersSkeleton />
             ) : (
                 <div className="bg-transparent md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 md:overflow-hidden">
 
