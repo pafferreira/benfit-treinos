@@ -141,8 +141,8 @@
 
 .input-wrapper input:focus {
     outline: none;
-    border-color: #3B82F6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px rgba(var(--color-secondary-rgb), 0.1);
 }
 
 .password-toggle {
@@ -160,7 +160,7 @@
 
 .text-btn {
     font-size: 0.85rem;
-    color: #3B82F6;
+    color: var(--color-primary);
     font-weight: 600;
     cursor: pointer;
     padding: 0;
@@ -200,7 +200,7 @@
 .submit-btn {
     width: 100%;
     padding: 16px;
-    background-color: #3B82F6;
+    background-color: var(--color-primary);
     color: #fff;
     border-radius: 16px;
     font-weight: 600;
@@ -210,15 +210,15 @@
     justify-content: center;
     gap: 8px;
     transition: background-color 0.2s;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
 }
 
 .submit-btn:hover {
-    background-color: #2563EB;
+    background-color: #023d82;
 }
 
 .submit-btn:disabled {
-    background-color: #93C5FD;
+    background-color: rgba(var(--color-primary-rgb), 0.4);
     cursor: not-allowed;
 }
 

@@ -10,14 +10,14 @@ export default {
         extend: {
             colors: {
                 primary: {
-                    light: '#60A5FA', // Blue 400
-                    DEFAULT: '#3B82F6', // Blue 500
-                    dark: '#2563EB', // Blue 600
+                    light: '#008ACF', // PAF secondary (light primary)
+                    DEFAULT: '#034EA2', // PAF primary
+                    dark: '#023d82', // PAF primary hover
                 },
                 secondary: {
-                    light: '#34D399', // Emerald 400
-                    DEFAULT: '#10B981', // Emerald 500
-                    dark: '#059669', // Emerald 600
+                    light: '#33AADF', // secondary light
+                    DEFAULT: '#008ACF', // PAF secondary
+                    dark: '#006FA8', // secondary dark
                 },
                 background: {
                     light: '#F3F4F6', // Gray 100

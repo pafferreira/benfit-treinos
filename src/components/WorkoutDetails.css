@@ -112,7 +112,7 @@
     border-radius: 8px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 4px 6px -1px rgba(var(--color-primary-rgb), 0.5);
 }
 
 .day-title {
@@ -153,7 +153,7 @@
 
 .exercise-card.open {
     border-color: var(--primary, #3b82f6);
-    box-shadow: 0 12px 24px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 12px 24px rgba(var(--color-primary-rgb), 0.1);
 }
 
 /* Exercise Header */

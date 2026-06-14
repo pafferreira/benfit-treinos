@@ -242,7 +242,7 @@
 }
 
 .sidebar-new-btn:hover {
-    background-color: #2563EB;
+    background-color: var(--color-primary);
     transform: translateY(-1px);
 }
 
@@ -282,7 +282,7 @@
 
 .sidebar-search-input:focus {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
 }
 
 .dark .sidebar-search-input {
@@ -452,13 +452,13 @@
     width: 100%;
     font-family: inherit;
     min-width: 0;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 2px rgba(var(--color-secondary-rgb), 0.15);
 }
 
 .dark .sidebar-item-edit-input {
     background: #1F2937;
     color: var(--color-text-dark);
-    border-color: #60A5FA;
+    border-color: var(--color-secondary);
 }
 
 /* ── Área de mensagens — ÚNICO scroll da tela ────────────────── */
@@ -527,7 +527,7 @@
 }
 
 .message.ai .message-avatar {
-    background: linear-gradient(135deg, var(--color-primary), #60A5FA);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
     color: white;
 }
 
@@ -636,7 +636,7 @@
 
 .dark .quick-action-btn {
     background-color: #1E3A5F;
-    border-color: #2563EB;
+    border-color: var(--color-primary);
     color: #93C5FD;
 }
 
@@ -779,7 +779,7 @@
 
 .input-wrapper:focus-within {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
 }
 
 .chat-input {
@@ -823,7 +823,7 @@
 }
 
 .send-btn:hover:not(:disabled) {
-    background-color: #2563EB;
+    background-color: var(--color-primary);
     transform: scale(1.04);
 }
 
@@ -871,7 +871,7 @@
 
 .dark .share-to-kb-btn {
     background: #1E3A5F;
-    border-color: #2563EB;
+    border-color: var(--color-primary);
     color: #93C5FD;
 }
 

@@ -141,8 +141,8 @@ const ResetPassword = () => {
                         <div style={{
                             width: '48px',
                             height: '48px',
-                            backgroundColor: '#EFF6FF',
-                            color: '#3B82F6',
+                            backgroundColor: 'rgba(3, 78, 162, 0.08)',
+                            color: 'var(--color-primary)',
                             borderRadius: '12px',
                             display: 'flex',
                             alignItems: 'center',
@@ -161,7 +161,7 @@ const ResetPassword = () => {
 
                     {loading ? (
                         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-                            <div className="spinner-border" style={{ borderColor: '#3B82F6', borderTopColor: 'transparent' }}></div>
+                            <div className="spinner-border" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }}></div>
                         </div>
                     ) : error && !user ? (
                         <div style={{ textAlign: 'center' }}>

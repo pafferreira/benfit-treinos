@@ -44,10 +44,10 @@ const TYPE_LABELS = {
 };
 
 const TYPE_COLORS = {
-    exercise:         { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' },
+    exercise:         { bg: 'rgba(3, 78, 162, 0.08)', color: 'var(--color-primary)', border: 'rgba(3, 78, 162, 0.2)' },
     fitness_tip:      { bg: '#F0FDF4', color: '#16A34A', border: '#86EFAC' },
     workout_template: { bg: '#FFF7ED', color: '#EA580C', border: '#FED7AA' },
-    faq:              { bg: '#FAF5FF', color: '#7C3AED', border: '#DDD6FE' },
+    faq:              { bg: 'rgba(0, 138, 207, 0.08)', color: 'var(--color-secondary)', border: 'rgba(0, 138, 207, 0.2)' },
 };
 
 const SharedKnowledge = () => {

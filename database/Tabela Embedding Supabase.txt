@@ -1,11 +1,10 @@
 
 
 Vamos planejar o uso comum da tabela vetorial usando Embeddings no Supabase.
-Quero identificar a melhor forma de armazenar e compartilhar informações em comum para os usuários do App, disponibilizando para o Benfit uma resposta que atende diversos usuários, como quais os melhores exercícios para fortalecer o bíceps ? ou como quantos tipos de exercícios de bíceps temos no app ?
+Quero identificar a melhor forma de armazenar e compartilhar informações em comum para os usuários do App, disponibilizando para o Benfit uma resposta que atende diversos usuários, como, quais os melhores exercícios para fortalecer o bíceps ? ou quantos tipos de exercícios de bíceps temos no app ?
 
-Podemos coletar algumas infromações e armazenar na base de dados de forma a otimizar tokens e tornar aproximar mais do aplicativo, mostrando que existem alternativas diretas. Com o avanço o Benfit pode até gerar treinos e armazenar para consultas futuras. 
+Podemos coletar algumas informações e armazenar na base de dados de forma a otimizar tokens e aproximar mais o usuário do aplicativo, mostrando que existem alternativas direto no app. Com o avanço o Benfit pode até gerar treinos e armazenar para consultas futuras. 
 Minha dúvida é se criamos outra tabela vetorial ou utilizamos a mesma com algum atributo para identificar se é publico / comum a todos ou se é particular do usuário.
-
 
 
 Temos que adicionar ao plano formas de armazenar um conteúdo para ser compartilhado (shared knowledge), pode ser uma tela para CRUD da tabela b_shared_knowledge e/ou um botão no chat com o coach Benfit para armazenar, talvez com um texto "Gostei! Compartilhar" , mas tem que ser restrito para perfil Admin ou Personal.

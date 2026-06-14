@@ -143,7 +143,7 @@
 .sk-select:focus,
 .sk-textarea:focus {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
 }
 
 .dark .sk-select,
@@ -192,7 +192,7 @@
 }
 
 .sk-submit-btn:hover:not(:disabled) {
-    background-color: #2563EB;
+    background-color: var(--color-primary);
 }
 
 .sk-submit-btn:disabled {
@@ -361,7 +361,7 @@
 }
 
 .dark .sk-item:hover {
-    border-color: #2563EB;
+    border-color: var(--color-primary);
 }
 
 .sk-item-header {
@@ -495,7 +495,7 @@
 /* ── Item em edição ───────────────────────────────────────────── */
 .sk-item.editing {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
 }
 
 .sk-select-inline {
