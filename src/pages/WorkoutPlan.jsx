@@ -147,7 +147,9 @@ const WorkoutPlan = () => {
                         const latestByDay = await supabaseHelpers.getLatestCompletedDatePerDay(currentUser.id, id, dayIds);
                         enrichedDays = enrichedDays.map(d => ({
                             ...d,
-                            last_completed_date: latestByDay[d.id] || d.last_session_date,
+                            // Apenas datas REALMENTE finalizadas+completas (sem fallback p/ last_session_date,
+                            // senão todo dia com sessão ficaria marcado como finalizado/verde).
+                            last_completed_date: latestByDay[d.id] || null,
                             per_exercise_done_dates: {},
                         }));
                         
@@ -166,7 +168,7 @@ const WorkoutPlan = () => {
                         }
                     } catch (err) {
                         console.warn('Could not fetch latest completed date per day:', err);
-                        enrichedDays = enrichedDays.map(d => ({ ...d, last_completed_date: d.last_session_date }));
+                        enrichedDays = enrichedDays.map(d => ({ ...d, last_completed_date: null }));
                     }
                 }
             } catch (err) {
@@ -305,7 +307,15 @@ const WorkoutPlan = () => {
                     <p className="empty-message">Nenhum dia de treino configurado neste plano.</p>
                 ) : (
                     <div className="day-buttons-list">
-                        {days.map((day) => (
+                        {days.map((day) => {
+                            const dateValue = day.last_done_date || day.last_completed_date || day.last_session_date;
+                            // Reflete a SESSÃO MAIS RECENTE do dia (mesma semântica do minicalendário):
+                            // última sessão finalizada (ended_at) → verde "Finalizado";
+                            // sessão em andamento / apenas exercícios "Feito" → azul.
+                            // Não usar last_completed_date aqui: ele guarda uma finalização ANTIGA e
+                            // marcaria como verde um dia que hoje só tem exercícios parciais.
+                            const isFinalized = Boolean(day.finalized);
+                            return (
                             <button
                                 key={day.id}
                                 className="day-open-btn"
@@ -315,28 +325,22 @@ const WorkoutPlan = () => {
                                     <h3 className="day-open-title">{day.day_name || `Dia ${day.day_number}`}</h3>
                                     <div className="day-open-meta-row">
                                         <p className="day-open-meta">{(day.exercises_done ?? 0)}/{day.exercise_count || 0} exercícios</p>
-                                        {(() => {
-                                            const dateValue = day.last_done_date || day.last_completed_date || day.last_session_date;
-                                            if (!dateValue) return null;
-                                            // Mesma semântica de cor do minicalendário:
-                                            // finalizado (sessão com ended_at) → verde; apenas "Feito" → azul.
-                                            const isFinalized = day.finalized || Boolean(day.last_completed_date);
-                                            return (
-                                                <small className={isFinalized ? 'day-last-completed' : 'day-last-session'}>
-                                                    {formatDateWithWeekday(dateValue)}
-                                                </small>
-                                            );
-                                        })()}
+                                        {dateValue && (
+                                            <small className={isFinalized ? 'day-last-completed' : 'day-last-session'}>
+                                                {formatDateWithWeekday(dateValue)}
+                                            </small>
+                                        )}
                                     </div>
                                 </div>
-                                {day.completed && (
-                                    <span className="day-status-badge">Feito</span>
+                                {isFinalized && (
+                                    <span className="day-status-badge">Finalizado</span>
                                 )}
                                 <span className="day-open-arrow">
                                     <ChevronRight size={18} />
                                 </span>
                             </button>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

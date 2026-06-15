@@ -579,8 +579,8 @@ const WorkoutDayDetails = () => {
                 <button
                     className="btn-primary finish-session-btn"
                     onClick={handleOpenFinishModal}
-                    disabled={!currentSessionId || finishingSession}
-                    data-tooltip="Finalizar sessão"
+                    disabled={!currentSessionId || finishingSession || !isFullyCompleted}
+                    data-tooltip={isFullyCompleted ? 'Finalizar sessão' : 'Marque todos os exercícios como "Feito" para finalizar'}
                 >
                     Finalizar Treino
                 </button>

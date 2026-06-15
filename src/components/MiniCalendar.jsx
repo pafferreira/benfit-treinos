@@ -54,9 +54,20 @@ const MiniCalendar = ({
         return `${year}-${month}-${day}`;
     }
 
+    // Normaliza qualquer valor para a chave de data local 'YYYY-MM-DD'.
+    // IMPORTANTE: se já vier como 'YYYY-MM-DD', usa direto — não passa por new Date(),
+    // que interpretaria como UTC e deslocaria 1 dia em fusos negativos (ex.: UTC-3).
+    function toDateKey(value) {
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+        if (!value) return '';
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return '';
+        return formatDate(d);
+    }
+
     function matchesAny(date, list) {
         const dateStr = formatDate(date);
-        return (list || []).some((d) => formatDate(new Date(d)) === dateStr);
+        return (list || []).some((d) => toDateKey(d) === dateStr);
     }
 
     // Treino finalizado (ended_at) — inclui o prop legado completedDates e o map por dia
@@ -66,7 +77,7 @@ const MiniCalendar = ({
             const vals = Object.values(completedByDayMap || {});
             for (let i = 0; i < vals.length; i++) {
                 if (!vals[i]) continue;
-                if (formatDate(new Date(vals[i])) === dateStr) return true;
+                if (toDateKey(vals[i]) === dateStr) return true;
             }
         }
         return matchesAny(date, finalizedDates) || matchesAny(date, completedDates);
