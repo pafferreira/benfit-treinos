@@ -3,8 +3,11 @@ import { Check, CircleDot, ChevronLeft, ChevronRight } from 'lucide-react';
 import './MiniCalendar.css';
 
 const MiniCalendar = ({
-    completedDates = [],
+    finalizedDates = [],   // Treino finalizado (sessão com ended_at) → verde
+    doneDates = [],        // Apenas exercícios "Feito" (sem finalizar) → azul
+    completedDates = [],   // (legado) equivalente a finalizadas
     incompleteDates = [],
+    completedByDayMap = {},
     currentDate = new Date(),
     variant = 'cards'
 }) => {
@@ -13,7 +16,10 @@ const MiniCalendar = ({
     const touchStartX = useRef(null);
 
     // Recalcula a weekStart base sempre que currentDate mudar
-    const baseWeekStart = getWeekStart(currentDate);
+    // Normaliza currentDate para meia-noite local para evitar off-by-one em timezones
+    const normalizedCurrent = new Date(currentDate);
+    normalizedCurrent.setHours(0, 0, 0, 0);
+    const baseWeekStart = getWeekStart(normalizedCurrent);
 
     // Deriva a weekStart real somando weekOffset * 7 dias
     const weekStart = new Date(baseWeekStart);
@@ -39,20 +45,40 @@ const MiniCalendar = ({
     }
 
     function formatDate(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
+        // Normalize to local date string at midnight to avoid timezone shifts
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
 
-    function isDateCompleted(date) {
+    function matchesAny(date, list) {
         const dateStr = formatDate(date);
-        return completedDates.some((d) => formatDate(new Date(d)) === dateStr);
+        return (list || []).some((d) => formatDate(new Date(d)) === dateStr);
+    }
+
+    // Treino finalizado (ended_at) — inclui o prop legado completedDates e o map por dia
+    function isDateFinalized(date) {
+        const dateStr = formatDate(date);
+        if (completedByDayMap && Object.keys(completedByDayMap).length > 0) {
+            const vals = Object.values(completedByDayMap || {});
+            for (let i = 0; i < vals.length; i++) {
+                if (!vals[i]) continue;
+                if (formatDate(new Date(vals[i])) === dateStr) return true;
+            }
+        }
+        return matchesAny(date, finalizedDates) || matchesAny(date, completedDates);
+    }
+
+    // Apenas exercícios "Feito" naquele dia (sem sessão finalizada)
+    function isDateDone(date) {
+        return matchesAny(date, doneDates);
     }
 
     function isDateIncomplete(date) {
-        const dateStr = formatDate(date);
-        return incompleteDates.some((d) => formatDate(new Date(d)) === dateStr);
+        return matchesAny(date, incompleteDates);
     }
 
     function isToday(date) {
@@ -107,18 +133,20 @@ const MiniCalendar = ({
         <div className="calendar-days variant-pills">
             {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
                 const date = weekDays[idx];
-                const isCompleted = isDateCompleted(date);
-                const isIncomplete = !isCompleted && isDateIncomplete(date);
+                const isFinalized = isDateFinalized(date);
+                const isDone = !isFinalized && isDateDone(date);
+                const isIncomplete = !isFinalized && !isDone && isDateIncomplete(date);
                 const isTodayDate = isToday(date);
                 const dayNumber = date.getDate();
 
                 return (
                     <div key={day} className="day-column">
                         <div className="day-label">{day}</div>
-                        <div className={`day-pill ${isTodayDate ? 'today' : ''} ${isCompleted ? 'completed' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
+                        <div className={`day-pill ${isTodayDate ? 'today' : ''} ${isFinalized ? 'completed' : ''} ${isDone ? 'done' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
                             <span className="day-number">{dayNumber}</span>
                             <div className="day-status-dot">
-                                {isCompleted && <Check size={12} strokeWidth={4} />}
+                                {isFinalized && <Check size={12} strokeWidth={4} />}
+                                {isDone && <CircleDot size={10} strokeWidth={3} />}
                                 {isIncomplete && <CircleDot size={10} strokeWidth={3} />}
                             </div>
                         </div>
@@ -133,16 +161,17 @@ const MiniCalendar = ({
             <div className="timeline-line"></div>
             {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
                 const date = weekDays[idx];
-                const isCompleted = isDateCompleted(date);
-                const isIncomplete = !isCompleted && isDateIncomplete(date);
+                const isFinalized = isDateFinalized(date);
+                const isDone = !isFinalized && isDateDone(date);
+                const isIncomplete = !isFinalized && !isDone && isDateIncomplete(date);
                 const isTodayDate = isToday(date);
                 const dayNumber = date.getDate();
 
                 return (
                     <div key={day} className="day-column">
                         <div className="day-label">{day}</div>
-                        <div className={`day-node ${isTodayDate ? 'today' : ''} ${isCompleted ? 'completed' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
-                            {isCompleted ? <Check size={14} strokeWidth={3} /> : <span className="day-number">{dayNumber}</span>}
+                        <div className={`day-node ${isTodayDate ? 'today' : ''} ${isFinalized ? 'completed' : ''} ${isDone ? 'done' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
+                            {isFinalized ? <Check size={14} strokeWidth={3} /> : <span className="day-number">{dayNumber}</span>}
                         </div>
                     </div>
                 );
@@ -154,18 +183,24 @@ const MiniCalendar = ({
         <div className="calendar-days variant-cards">
             {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
                 const date = weekDays[idx];
-                const isCompleted = isDateCompleted(date);
-                const isIncomplete = !isCompleted && isDateIncomplete(date);
+                const isFinalized = isDateFinalized(date);
+                const isDone = !isFinalized && isDateDone(date);
+                const isIncomplete = !isFinalized && !isDone && isDateIncomplete(date);
                 const isTodayDate = isToday(date);
                 const dayNumber = date.getDate();
 
                 return (
-                    <div key={day} className={`day-card ${isTodayDate ? 'today' : ''} ${isCompleted ? 'completed' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
+                    <div key={day} className={`day-card ${isTodayDate ? 'today' : ''} ${isFinalized ? 'completed' : ''} ${isDone ? 'done' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
                         <div className="day-label">{day}</div>
                         <div className="day-number">{dayNumber}</div>
-                        {isCompleted && (
+                        {isFinalized && (
                             <div className="day-check-icon">
                                 <Check size={9} strokeWidth={3} />
+                            </div>
+                        )}
+                        {isDone && (
+                            <div className="day-dot-icon">
+                                <CircleDot size={9} strokeWidth={3} />
                             </div>
                         )}
                         <div className="day-status-bar"></div>
@@ -179,20 +214,21 @@ const MiniCalendar = ({
         <div className="calendar-days variant-classic">
             {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
                 const date = weekDays[idx];
-                const isCompleted = isDateCompleted(date);
-                const isIncomplete = !isCompleted && isDateIncomplete(date);
+                const isFinalized = isDateFinalized(date);
+                const isDone = !isFinalized && isDateDone(date);
+                const isIncomplete = !isFinalized && !isDone && isDateIncomplete(date);
                 const isTodayDate = isToday(date);
                 const dayNumber = date.getDate();
 
                 return (
                     <div key={day} className="day-column">
                         <div className="day-label">{day}</div>
-                        <div className={`day-circle ${isTodayDate ? 'today' : ''} ${isCompleted ? 'completed' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
+                        <div className={`day-circle ${isTodayDate ? 'today' : ''} ${isFinalized ? 'completed' : ''} ${isDone ? 'done' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
                             <span className="day-number">{dayNumber}</span>
                             <div className="day-status-icon">
-                                {isCompleted ? (
+                                {isFinalized ? (
                                     <Check size={12} strokeWidth={3} />
-                                ) : isIncomplete ? (
+                                ) : (isDone || isIncomplete) ? (
                                     <CircleDot size={10} strokeWidth={3} />
                                 ) : null}
                             </div>
@@ -250,6 +286,17 @@ const MiniCalendar = ({
                 >
                     <ChevronRight size={16} strokeWidth={2} />
                 </button>
+            </div>
+
+            <div className="calendar-legend">
+                <span className="calendar-legend-item">
+                    <span className="legend-dot legend-finalized" />
+                    Treino finalizado
+                </span>
+                <span className="calendar-legend-item">
+                    <span className="legend-dot legend-done" />
+                    Exercícios feitos
+                </span>
             </div>
         </div>
     );

@@ -80,6 +80,8 @@ const WorkoutDayDetails = () => {
     const [day, setDay] = useState(null);
     const [workoutExercises, setWorkoutExercises] = useState([]);
     const [completedExercises, setCompletedExercises] = useState([]);
+    // Última data em que cada exercício foi marcado como "Feito" — { [exercise_id]: 'YYYY-MM-DD' }
+    const [exerciseDoneDates, setExerciseDoneDates] = useState({});
     const [showRestTimer, setShowRestTimer] = useState(false);
     const [restDuration, setRestDuration] = useState(60); // Timer principal sempre em 60s por padrão, como pedido pelo user
     const [activeExerciseIndex, setActiveExerciseIndex] = useState(0); // Controle do Accordion
@@ -258,12 +260,23 @@ const WorkoutDayDetails = () => {
                 } else {
                     setLastFeelingLog(null);
                 }
+
+                // Última data em que cada exercício foi marcado como "Feito"
+                // (mesma origem de logs usada na tela "Histórico de Atividades")
+                try {
+                    const exDates = await supabaseHelpers.getUserExerciseDoneDates(currentUser.id, 365);
+                    setExerciseDoneDates(exDates.perExerciseLatest?.[dayData.id] || {});
+                } catch (err) {
+                    console.warn('Não foi possível carregar datas dos exercícios:', err);
+                    setExerciseDoneDates({});
+                }
             } else {
                 setCompletedExercises([]);
                 setCurrentSessionId(null);
                 setCurrentSessionStartedAt(null);
                 setLastExerciseDoneAt(null);
                 setLastFeelingLog(null);
+                setExerciseDoneDates({});
             }
         } catch (error) {
             console.error('Erro ao carregar detalhes do dia:', error);
@@ -545,6 +558,7 @@ const WorkoutDayDetails = () => {
                                     exercise={item.b_exercises}
                                     workoutExercise={item}
                                     isCompleted={completedExercises.includes(item.exercise_id)}
+                                    doneDate={exerciseDoneDates[item.exercise_id]}
                                     onToggleComplete={handleExerciseComplete}
                                     onStartRest={handleStartRest}
                                     isActive={activeExerciseIndex === index}

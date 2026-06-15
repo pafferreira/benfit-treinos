@@ -18,6 +18,24 @@ const FEELING_LABEL = {
     8: 'Excelente', 9: 'Alta performance', 10: 'Dia de destaque'
 };
 
+const WEEKDAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MONTHS_SHORT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+// Formata "Seg, 09 Jun" (dia da semana + data). Aceita tanto chave 'YYYY-MM-DD'
+// (parse local, evitando off-by-one por fuso) quanto timestamps ISO completos.
+const formatDateWithWeekday = (value) => {
+    if (!value) return '';
+    let d;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const [y, m, day] = value.split('-').map(Number);
+        d = new Date(y, m - 1, day);
+    } else {
+        d = new Date(value);
+    }
+    if (isNaN(d.getTime())) return '';
+    return `${WEEKDAYS_SHORT[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${MONTHS_SHORT[d.getMonth()]}`;
+};
+
 const WorkoutPlan = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -62,32 +80,100 @@ const WorkoutPlan = () => {
             if (workoutError) throw workoutError;
             setWorkout(workoutData);
 
+            // Fetch days and include exercises inline to avoid a second query for counts
             const { data: daysData, error: daysError } = await supabase
                 .from('b_workout_days')
-                .select('*')
+                .select('*, b_workout_exercises ( id, exercise_id )')
                 .eq('workout_id', id)
                 .order('day_number');
 
             if (daysError) throw daysError;
 
             const dayIds = (daysData || []).map((d) => d.id);
-            const exerciseCountByDay = {};
 
-            if (dayIds.length > 0) {
-                const { data: workoutExercises } = await supabase
-                    .from('b_workout_exercises')
-                    .select('workout_day_id')
-                    .in('workout_day_id', dayIds);
+            // Enrich days with user-specific progress: last session date, exercises done in last session and completed flag
+            let enrichedDays = (daysData || []).map((day) => ({
+                ...day,
+                // use nested b_workout_exercises length if available
+                exercise_count: (day.b_workout_exercises && day.b_workout_exercises.length) || 0,
+                last_session_date: null,
+                exercises_done: 0,
+                completed: false
+            }));
 
-                (workoutExercises || []).forEach((item) => {
-                    exerciseCountByDay[item.workout_day_id] = (exerciseCountByDay[item.workout_day_id] || 0) + 1;
-                });
+            try {
+                const currentUser = await supabaseHelpers.getCurrentUser();
+                if (currentUser?.id) {
+                    // Fetch recent sessions for all days in a single query
+                    // Limitar número de sessões buscadas para reduzir payload e latência.
+                    // Buscamos as sessões mais recentes do usuário para esse treino, limitando a um múltiplo do número de dias.
+                    const fetchLimit = Math.max(10, dayIds.length * 2);
+
+                    // Single batched query: sessions with nested logs (b_session_logs)
+                    const { data: sessionsWithLogs } = await supabase
+                        .from('b_workout_sessions')
+                        .select('id, workout_day_id, started_at, ended_at, b_session_logs (exercise_id)')
+                        .eq('user_id', currentUser.id)
+                        .eq('workout_id', id)
+                        .in('workout_day_id', dayIds)
+                        .order('started_at', { ascending: false })
+                        .limit(fetchLimit);
+
+                    if (sessionsWithLogs && sessionsWithLogs.length > 0) {
+                        // Pick the latest session per day (by started_at desc)
+                        const latestSessionByDay = {};
+                        for (const s of sessionsWithLogs) {
+                            if (!latestSessionByDay[s.workout_day_id]) {
+                                latestSessionByDay[s.workout_day_id] = s;
+                            }
+                        }
+
+                        // Assign counts to days using nested logs
+                        enrichedDays = enrichedDays.map(d => {
+                            const s = latestSessionByDay[d.id];
+                            if (!s) return d;
+                            d.last_session_date = s.ended_at || s.started_at || null;
+                            d.finalized = Boolean(s.ended_at); // sessão finalizada (mesmo critério do minicalendário)
+                            const logs = s.b_session_logs || [];
+                            const distinctExerciseIds = new Set((logs || []).map(l => l.exercise_id).filter(Boolean));
+                            d.exercises_done = distinctExerciseIds.size;
+                            d.completed = d.exercise_count > 0 ? (d.exercises_done >= d.exercise_count) : false;
+                            return d;
+                        });
+                    }
+
+                    // Additionally fetch latest completed date per day (Feito) to show most recent completion
+                    try {
+                        const latestByDay = await supabaseHelpers.getLatestCompletedDatePerDay(currentUser.id, id, dayIds);
+                        enrichedDays = enrichedDays.map(d => ({
+                            ...d,
+                            last_completed_date: latestByDay[d.id] || d.last_session_date,
+                            per_exercise_done_dates: {},
+                        }));
+                        
+                        // Also fetch per-exercise latest done dates + per-day last "Feito" date
+                        try {
+                            const exDates = await supabaseHelpers.getUserExerciseDoneDates(currentUser.id, 365);
+                            // exDates.perExerciseLatest: { dayId: { exerciseId: 'YYYY-MM-DD' } }
+                            // exDates.perDayLastDone: { dayId: 'YYYY-MM-DD' } (data do último exercício feito)
+                            enrichedDays = enrichedDays.map(d => ({
+                                ...d,
+                                per_exercise_done_dates: exDates.perExerciseLatest[d.id] || {},
+                                last_done_date: exDates.perDayLastDone?.[d.id] || null,
+                            }));
+                        } catch (err) {
+                            console.warn('Could not fetch per-exercise done dates:', err);
+                        }
+                    } catch (err) {
+                        console.warn('Could not fetch latest completed date per day:', err);
+                        enrichedDays = enrichedDays.map(d => ({ ...d, last_completed_date: d.last_session_date }));
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not load per-day session info:', err);
             }
 
-            setDays((daysData || []).map((day) => ({
-                ...day,
-                exercise_count: exerciseCountByDay[day.id] || 0
-            })));
+            setDays(enrichedDays);
 
             // Load last feeling for this workout plan
             try {
@@ -108,7 +194,7 @@ const WorkoutPlan = () => {
                         setLastFeeling(lastSession);
                     }
                 }
-            } catch (_) { /* feeling is optional */ }
+            } catch { /* feeling is optional */ }
 
         } catch (error) {
             console.error('Erro ao carregar dados do treino:', error);
@@ -227,8 +313,25 @@ const WorkoutPlan = () => {
                             >
                                 <div className="day-open-main">
                                     <h3 className="day-open-title">{day.day_name || `Dia ${day.day_number}`}</h3>
-                                    <p className="day-open-meta">{day.exercise_count || 0} exercícios</p>
+                                    <div className="day-open-meta-row">
+                                        <p className="day-open-meta">{(day.exercises_done ?? 0)}/{day.exercise_count || 0} exercícios</p>
+                                        {(() => {
+                                            const dateValue = day.last_done_date || day.last_completed_date || day.last_session_date;
+                                            if (!dateValue) return null;
+                                            // Mesma semântica de cor do minicalendário:
+                                            // finalizado (sessão com ended_at) → verde; apenas "Feito" → azul.
+                                            const isFinalized = day.finalized || Boolean(day.last_completed_date);
+                                            return (
+                                                <small className={isFinalized ? 'day-last-completed' : 'day-last-session'}>
+                                                    {formatDateWithWeekday(dateValue)}
+                                                </small>
+                                            );
+                                        })()}
+                                    </div>
                                 </div>
+                                {day.completed && (
+                                    <span className="day-status-badge">Feito</span>
+                                )}
                                 <span className="day-open-arrow">
                                     <ChevronRight size={18} />
                                 </span>

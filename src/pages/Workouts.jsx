@@ -17,8 +17,8 @@ const Workouts = () => {
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
     const [userActivePlanIds, setUserActivePlanIds] = useState([]);
     const [processingWorkoutId, setProcessingWorkoutId] = useState(null);
-    const [completedDates, setCompletedDates] = useState([]);
-    const [incompleteDates, setIncompleteDates] = useState([]);
+    const [finalizedDates, setFinalizedDates] = useState([]);
+    const [doneDates, setDoneDates] = useState([]);
 
     useEffect(() => {
         loadUserActivePlans();
@@ -40,15 +40,19 @@ const Workouts = () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                setCompletedDates([]);
-                setIncompleteDates([]);
+                setFinalizedDates([]);
+                setDoneDates([]);
                 return;
             }
-            const calendarDates = await supabaseHelpers.getUserWorkoutCalendarDates(user.id, 45);
-            setCompletedDates(calendarDates.completedDates || []);
-            setIncompleteDates(calendarDates.incompleteDates || []);
+            // Usa a MESMA lógica da tela "Histórico de Atividades", distinguindo
+            // treinos finalizados de dias com apenas exercícios "Feito".
+            const res = await supabaseHelpers.getExerciseDoneCalendarDates(user.id);
+            setFinalizedDates(res.finalizedDates || []);
+            setDoneDates(res.doneDates || []);
         } catch (err) {
             console.error('Erro ao carregar calendário de treinos:', err);
+            setFinalizedDates([]);
+            setDoneDates([]);
         }
     };
 
@@ -173,8 +177,8 @@ const Workouts = () => {
 
             <div className="calendar-section">
                 <MiniCalendar
-                    completedDates={completedDates}
-                    incompleteDates={incompleteDates}
+                    finalizedDates={finalizedDates}
+                    doneDates={doneDates}
                     currentDate={new Date()}
                 />
             </div>

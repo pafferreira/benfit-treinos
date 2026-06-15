@@ -1,11 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
-import { Check, Target, Repeat, Timer, Play, Layers, StickyNote, ClipboardList, Dumbbell, Tags, ChevronDown } from 'lucide-react';
+import { Check, Target, Repeat, Timer, Play, Layers, StickyNote, ClipboardList, Dumbbell, Tags, ChevronDown, CalendarCheck } from 'lucide-react';
 import './SessionExerciseItem.css';
+
+// Formata uma chave de data 'YYYY-MM-DD' para pt-BR sem deslocamento de fuso.
+// (new Date('YYYY-MM-DD') é interpretado como UTC e pode voltar 1 dia em fusos negativos)
+const formatDoneDate = (key) => {
+    if (!key || typeof key !== 'string') return '';
+    const [y, m, d] = key.split('-').map(Number);
+    const dt = (y && m && d) ? new Date(y, m - 1, d) : new Date(key);
+    if (isNaN(dt.getTime())) return '';
+    return dt.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: '2-digit' });
+};
 
 const SessionExerciseItem = ({
     exercise,
     workoutExercise,
     isCompleted = false,
+    doneDate = null,
     onToggleComplete,
     isActive = false,
     onSelect,
@@ -26,11 +37,6 @@ const SessionExerciseItem = ({
         }
     }, [isActive]);
 
-    // Fail-safe: Se dados fundamentais faltarem, não renderiza nada para evitar crash
-    if (!exercise || !workoutExercise) {
-        return null; // Ou um placeholder de erro se preferir
-    }
-
     // Timer de 10 segundos para desfazer
     useEffect(() => {
         let interval;
@@ -47,6 +53,12 @@ const SessionExerciseItem = ({
         }
         return () => clearInterval(interval);
     }, [showUndo, undoTimeLeft]);
+
+    // Fail-safe: Se dados fundamentais faltarem, não renderiza nada para evitar crash.
+    // (Mantido após os hooks para respeitar as regras de hooks do React.)
+    if (!exercise || !workoutExercise) {
+        return null; // Ou um placeholder de erro se preferir
+    }
 
     const handleToggleComplete = () => {
         if (isCompleted && !showUndo) {
@@ -166,6 +178,14 @@ const SessionExerciseItem = ({
                                 </div>
                             )}
                         </div>
+
+                        {/* ── Data do último "Feito" (abaixo da foto) ── */}
+                        {doneDate && (
+                            <div className="session-exercise-done-date">
+                                <CalendarCheck size={14} />
+                                <span>Último “Feito”: {formatDoneDate(doneDate)}</span>
+                            </div>
+                        )}
 
                         {/* ── Stats Cards: Séries / Reps / Descanso ── */}
                         <div className="session-stats-grid">

@@ -206,6 +206,9 @@
 
 .day-open-main {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* centraliza verticalmente título + meta */
 }
 
 .day-open-title {
@@ -220,6 +223,42 @@
     color: var(--color-subtext-light);
     font-size: 0.8rem;
     font-weight: 600;
+}
+
+.day-open-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.day-last-session {
+    background: rgba(59,130,246,0.12);
+    padding: 0.18rem 0.45rem;
+    border-radius: 6px;
+    color: #1d4ed8;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.day-last-completed {
+    background: rgba(34,197,94,0.12);
+    padding: 0.18rem 0.45rem;
+    border-radius: 6px;
+    color: #15803d;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.day-status-badge {
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.25);
+    color: #15803d;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+    align-self: center;
 }
 
 .day-open-arrow {

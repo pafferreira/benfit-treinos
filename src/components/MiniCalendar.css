@@ -263,6 +263,35 @@
     box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
 }
 
+/* Apenas exercícios feitos (sessão não finalizada) */
+.day-card.done {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.day-card.done .day-number {
+    color: #1d4ed8;
+}
+
+.day-card.done .day-status-bar {
+    background-color: #3b82f6;
+}
+
+.day-card .day-dot-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    margin-top: -0.1rem;
+    z-index: 1;
+}
+
+.day-card.done.today {
+    background-color: #eff6ff;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1);
+}
+
 /* Incompleto */
 .day-card.incomplete {
     background-color: #fff8f0;
@@ -326,6 +355,26 @@
 }
 
 .calendar-days.variant-classic .day-circle.completed.today {
+    background-color: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
+.calendar-days.variant-classic .day-circle.done {
+    background-color: #eaf2ff;
+    color: #1d4ed8;
+    border-color: #bcd4fb;
+}
+
+.calendar-days.variant-classic .day-circle.done .day-number {
+    color: #1d4ed8;
+}
+
+.calendar-days.variant-classic .day-circle.done.today .day-number {
+    color: #fff;
+}
+
+.calendar-days.variant-classic .day-circle.done.today {
     background-color: var(--color-primary);
     color: #fff;
     border-color: var(--color-primary);
@@ -402,6 +451,18 @@
     color: #10b981;
 }
 
+.day-pill.done {
+    background-color: #eff6ff;
+}
+
+.day-pill.done .day-number {
+    color: #1d4ed8;
+}
+
+.day-pill.done .day-status-dot {
+    color: #3b82f6;
+}
+
 .day-pill.incomplete {
     background-color: #fff7ed;
 }
@@ -465,10 +526,50 @@
     color: #fff;
 }
 
+.day-node.done {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+
 .day-node.incomplete {
     border-color: #f97316;
     color: #f97316;
     background-color: #fff;
+}
+
+/* ─── Legenda de cores ─────────────────────────────────────────────────────── */
+.calendar-legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.1rem;
+    margin-top: 0.85rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid #eef2f7;
+}
+
+.calendar-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--color-subtext-light);
+}
+
+.legend-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legend-finalized {
+    background-color: #22c55e;
+}
+
+.legend-done {
+    background-color: #3b82f6;
 }
 
 /* ─── Responsivo ───────────────────────────────────────────────────────────── */

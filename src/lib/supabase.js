@@ -1238,6 +1238,27 @@ export const supabaseHelpers = {
             .order('started_at', { ascending: false });
 
         if (sessionsError) throw sessionsError;
+        // Normalize and attach a date-only key (workout_date) to each session to centralize date handling
+        const normalizeToDateKey = (iso) => {
+            if (!iso) return null;
+            const d = new Date(iso);
+            d.setHours(0, 0, 0, 0);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        // Debug: log raw sessions retrieved from DB (ids, started_at, ended_at, nested logs count)
+        try {
+            console.debug('[supabaseHelpers] getUserActivityHistory - raw sessions:', (sessions || []).map(s => ({
+                id: s.id,
+                started_at: s.started_at,
+                ended_at: s.ended_at,
+                workout_day_id: s.workout_day_id,
+                logs_count: (s.b_session_logs || []).length
+            })));
+        } catch { /* debug logging only */ }
 
         // Buscar planos atribuídos de b_daily_workout_logs (status atribuido/em_andamento/concluido)
         const { data: plans, error: plansError } = await supabase
@@ -1252,7 +1273,255 @@ export const supabaseHelpers = {
 
         if (plansError) throw plansError;
 
-        return { sessions: sessions || [], plans: plans || [] };
+        // Attach workout_date to sessions using the most relevant timestamp:
+        // prefer latest nested log created_at, then ended_at, then started_at, then created_at
+        const normSessions = (sessions || []).map(s => {
+            let latestLogDate = null;
+            if (s.b_session_logs && Array.isArray(s.b_session_logs) && s.b_session_logs.length > 0) {
+                latestLogDate = s.b_session_logs.reduce((acc, l) => {
+                    const t = l && l.created_at ? new Date(l.created_at) : null;
+                    if (!t) return acc;
+                    if (!acc) return t;
+                    return t > acc ? t : acc;
+                }, null);
+            }
+
+            const refIso = (latestLogDate ? latestLogDate.toISOString() : null) || s.ended_at || s.started_at || s.created_at || null;
+            const sessionWithDate = { ...s, workout_date: normalizeToDateKey(refIso) };
+
+            // Also attach workout_date to nested logs if present
+            if (sessionWithDate.b_session_logs && Array.isArray(sessionWithDate.b_session_logs)) {
+                sessionWithDate.b_session_logs = sessionWithDate.b_session_logs.map(l => ({ ...l, workout_date: normalizeToDateKey(l.created_at) }));
+            }
+
+            return sessionWithDate;
+        });
+
+        return { sessions: normSessions, plans: plans || [] };
+    },
+
+    // Retorna a maior data (mais recente) em que o usuário concluiu ("Feito") um dia do treino
+    // Resultado: objeto { [workout_day_id]: 'YYYY-MM-DD' }
+    async getLatestCompletedDatePerDay(userId, workoutId, dayIds = []) {
+        if (!userId || !workoutId || !Array.isArray(dayIds) || dayIds.length === 0) return {};
+
+        // 1) Obter quantidade de exercícios requeridos por dia
+        const exercisesByDay = {};
+        const { data: workoutExercises, error: exercisesError } = await supabase
+            .from('b_workout_exercises')
+            .select('workout_day_id')
+            .in('workout_day_id', dayIds);
+
+        if (exercisesError) {
+            console.error('getLatestCompletedDatePerDay - exercises fetch error:', exercisesError);
+            throw exercisesError;
+        }
+        (workoutExercises || []).forEach(item => {
+            exercisesByDay[item.workout_day_id] = (exercisesByDay[item.workout_day_id] || 0) + 1;
+        });
+
+        // 2) Buscar sessões finalizadas para esses dias com logs embutidos
+        const { data: sessions, error: sessionsError } = await supabase
+            .from('b_workout_sessions')
+            .select('id, workout_day_id, ended_at, started_at, b_session_logs (exercise_id, created_at)')
+            .eq('user_id', userId)
+            .eq('workout_id', workoutId)
+            .in('workout_day_id', dayIds)
+            .not('ended_at', 'is', null)
+            .order('ended_at', { ascending: false });
+
+        if (sessionsError) {
+            console.error('getLatestCompletedDatePerDay - sessions fetch error:', sessionsError);
+            throw sessionsError;
+        }
+
+        const result = {};
+
+        // 3) Para cada sessão (já ordenada por ended_at desc) ver se logs distintos >= required exercises
+        for (const s of (sessions || [])) {
+            const dayId = s.workout_day_id;
+            if (!dayId) continue;
+
+            const required = exercisesByDay[dayId] || 0;
+            const logs = s.b_session_logs || [];
+            const distinct = new Set(logs.map(l => l.exercise_id).filter(Boolean));
+            const loggedCount = distinct.size;
+
+            const completedByExercises = required > 0 ? (loggedCount >= required) : true; // if no definition, consider completed if session ended
+            if (s.ended_at && completedByExercises) {
+                // Use ended_at as completion moment
+                const d = new Date(s.ended_at);
+                d.setHours(0,0,0,0);
+                const y = d.getFullYear();
+                const m = String(d.getMonth()+1).padStart(2,'0');
+                const day = String(d.getDate()).padStart(2,'0');
+                const key = `${y}-${m}-${day}`;
+                if (!result[dayId]) {
+                    result[dayId] = key; // first (most recent) encountered due to ordering
+                }
+            }
+        }
+
+        return result;
+    },
+
+    // Retorna datas e mapas por exercício e por dia dos últimos logs do usuário
+    // Resultado: { completedDates: [], incompleteDates: [], perExerciseLatest: { [workout_day_id]: { [exercise_id]: 'YYYY-MM-DD' } }, perDayLatest: { [workout_day_id]: 'YYYY-MM-DD' } }
+    async getUserExerciseDoneDates(userId, days = 45) {
+        if (!userId) return { completedDates: [], incompleteDates: [], perExerciseLatest: {}, perDayLatest: {} };
+
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        // Fetch session logs with nested session info
+        const { data: logs, error: logsError } = await supabase
+            .from('b_session_logs')
+            .select('id, exercise_id, created_at, session_id, b_workout_sessions ( workout_id, workout_day_id )')
+            .eq('user_id', userId)
+            .gte('created_at', startDate.toISOString())
+            .order('created_at', { ascending: false });
+
+        if (logsError) {
+            console.error('getUserExerciseDoneDates - logs fetch error:', logsError);
+            throw logsError;
+        }
+
+        // Aggregate per workout_day_id and per exercise the latest date
+        const perExerciseLatest = {}; // workout_day_id -> exercise_id -> dateKey
+        const perDayLastDone = {}; // workout_day_id -> dateKey (último exercício "Feito", sem exigir dia completo)
+        const perDayExerciseSetsByDate = {}; // workout_day_id -> dateKey -> Set(exercise_id)
+        const dateKeyOf = (iso) => {
+            const d = new Date(iso);
+            d.setHours(0,0,0,0);
+            const y = d.getFullYear();
+            const m = String(d.getMonth()+1).padStart(2,'0');
+            const day = String(d.getDate()).padStart(2,'0');
+            return `${y}-${m}-${day}`;
+        };
+
+        const involvedDayIds = new Set();
+
+        (logs || []).forEach(l => {
+            const dayId = l.b_workout_sessions?.workout_day_id || null;
+            const exId = l.exercise_id;
+            const key = l.created_at ? dateKeyOf(l.created_at) : null;
+            if (!dayId || !exId || !key) return;
+            involvedDayIds.add(dayId);
+
+            perExerciseLatest[dayId] = perExerciseLatest[dayId] || {};
+            // only set if not present (we iterated descending), so first is latest
+            if (!perExerciseLatest[dayId][exId]) perExerciseLatest[dayId][exId] = key;
+
+            // primeiro key por dia = data do último exercício feito (logs em ordem desc)
+            if (!perDayLastDone[dayId]) perDayLastDone[dayId] = key;
+
+            perDayExerciseSetsByDate[dayId] = perDayExerciseSetsByDate[dayId] || {};
+            perDayExerciseSetsByDate[dayId][key] = perDayExerciseSetsByDate[dayId][key] || new Set();
+            perDayExerciseSetsByDate[dayId][key].add(exId);
+        });
+
+        // Fetch required exercises per day
+        const exercisesByDay = {};
+        const dayIdsArr = Array.from(involvedDayIds);
+        if (dayIdsArr.length > 0) {
+            const { data: workoutExercises, error: weError } = await supabase
+                .from('b_workout_exercises')
+                .select('workout_day_id')
+                .in('workout_day_id', dayIdsArr);
+            if (weError) {
+                console.error('getUserExerciseDoneDates - workout_exercises fetch error:', weError);
+                throw weError;
+            }
+            (workoutExercises || []).forEach(w => {
+                exercisesByDay[w.workout_day_id] = (exercisesByDay[w.workout_day_id] || 0) + 1;
+            });
+        }
+
+        const completedSet = new Set();
+        const incompleteSet = new Set();
+        const perDayLatest = {};
+
+        // Evaluate each day/date set
+        Object.keys(perDayExerciseSetsByDate).forEach(dayId => {
+            const dateMap = perDayExerciseSetsByDate[dayId];
+            Object.keys(dateMap).forEach(dateKey => {
+                const loggedCount = dateMap[dateKey].size;
+                const required = exercisesByDay[dayId] || 0;
+                const completedByExercises = required > 0 ? (loggedCount >= required) : true;
+                if (completedByExercises) {
+                    completedSet.add(dateKey);
+                    // set perDayLatest if not set (we want most recent -> logs were ordered desc)
+                    if (!perDayLatest[dayId]) perDayLatest[dayId] = dateKey;
+                } else {
+                    if (!completedSet.has(dateKey)) incompleteSet.add(dateKey);
+                }
+            });
+        });
+
+        return {
+            completedDates: Array.from(completedSet),
+            incompleteDates: Array.from(incompleteSet),
+            perExerciseLatest,
+            perDayLatest,
+            perDayLastDone
+        };
+    },
+
+    // Datas para o minicalendário, derivadas da MESMA query usada na tela
+    // "Histórico de Atividades" (getUserActivityHistory). Distingue dois estados:
+    //   - finalizedDates: datas com uma sessão de treino FINALIZADA (ended_at preenchido)
+    //   - doneDates: datas em que houve AO MENOS UM exercício "Feito" mas SEM sessão
+    //                finalizada naquele dia (treino em andamento / não finalizado)
+    // Resultado: { finalizedDates: [], doneDates: [], completedDates: [], incompleteDates: [], perDayLatest: {} }
+    async getExerciseDoneCalendarDates(userId) {
+        if (!userId) return { finalizedDates: [], doneDates: [], completedDates: [], incompleteDates: [], perDayLatest: {} };
+
+        const dateKeyOf = (iso) => {
+            if (!iso) return null;
+            const d = new Date(iso);
+            d.setHours(0, 0, 0, 0);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
+
+        const { sessions } = await this.getUserActivityHistory(userId);
+        const finalizedSet = new Set(); // datas com sessão finalizada (ended_at)
+        const doneSet = new Set();      // datas com qualquer exercício feito
+        const perDayLatest = {};
+
+        (sessions || []).forEach((session) => {
+            // Data de finalização da sessão (usa ended_at)
+            if (session.ended_at) {
+                const fkey = dateKeyOf(session.ended_at);
+                if (fkey) finalizedSet.add(fkey);
+            }
+
+            (session.b_session_logs || []).forEach((log) => {
+                const key = log.workout_date;
+                if (!key) return;
+                doneSet.add(key);
+
+                const dayId = session.workout_day_id;
+                if (dayId && (!perDayLatest[dayId] || key > perDayLatest[dayId])) {
+                    perDayLatest[dayId] = key;
+                }
+            });
+        });
+
+        // "apenas feito" = dias com exercício feito mas sem sessão finalizada
+        const doneOnlyDates = Array.from(doneSet).filter((k) => !finalizedSet.has(k));
+        const finalizedDates = Array.from(finalizedSet);
+
+        return {
+            finalizedDates,
+            doneDates: doneOnlyDates,
+            // compat: completedDates = união (todas as datas com atividade)
+            completedDates: Array.from(new Set([...finalizedDates, ...doneOnlyDates])),
+            incompleteDates: [],
+            perDayLatest
+        };
     },
 
     // Buscar exercícios concluídos em uma sessão específica
@@ -1313,82 +1582,100 @@ export const supabaseHelpers = {
     async getUserWorkoutCalendarDates(userId, days = 45) {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
-
-        const { data: sessions, error: sessionsError } = await supabase
-            .from('b_workout_sessions')
-            .select('id, workout_day_id, started_at, ended_at')
-            .eq('user_id', userId)
-            .gte('started_at', startDate.toISOString())
-            .order('started_at', { ascending: false });
-
-        if (sessionsError) throw sessionsError;
-        if (!sessions || sessions.length === 0) {
-            return { completedDates: [], incompleteDates: [] };
-        }
-
-        const sessionIds = sessions.map((session) => session.id);
-        const workoutDayIds = [...new Set(sessions.map((session) => session.workout_day_id).filter(Boolean))];
-
-        const logsBySession = {};
-        if (sessionIds.length > 0) {
-            const { data: sessionLogs, error: logsError } = await supabase
-                .from('b_session_logs')
-                .select('session_id')
-                .in('session_id', sessionIds);
-
-            if (logsError) throw logsError;
-            (sessionLogs || []).forEach((log) => {
-                logsBySession[log.session_id] = (logsBySession[log.session_id] || 0) + 1;
-            });
-        }
-
-        const exercisesByDay = {};
-        if (workoutDayIds.length > 0) {
-            const { data: workoutExercises, error: exercisesError } = await supabase
-                .from('b_workout_exercises')
-                .select('workout_day_id')
-                .in('workout_day_id', workoutDayIds);
-
-            if (exercisesError) throw exercisesError;
-            (workoutExercises || []).forEach((item) => {
-                exercisesByDay[item.workout_day_id] = (exercisesByDay[item.workout_day_id] || 0) + 1;
-            });
-        }
-
-        const toDateKey = (isoDate) => {
-            const parsed = new Date(isoDate);
-            const year = parsed.getFullYear();
-            const month = String(parsed.getMonth() + 1).padStart(2, '0');
-            const day = String(parsed.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
-
-        const completedSet = new Set();
-        const incompleteSet = new Set();
-
-        sessions.forEach((session) => {
-            if (!session.started_at) return;
-
-            const dateKey = toDateKey(session.started_at);
-            const requiredExercises = session.workout_day_id ? (exercisesByDay[session.workout_day_id] || 0) : 0;
-            const loggedExercises = logsBySession[session.id] || 0;
-            const completedByExercises = requiredExercises > 0 ? loggedExercises >= requiredExercises : Boolean(session.ended_at);
-            const isCompleted = Boolean(session.ended_at) && completedByExercises;
-
-            if (isCompleted) {
-                completedSet.add(dateKey);
-                incompleteSet.delete(dateKey);
-                return;
+        // Reuse activity history query to get sessions + nested logs (reduces duplicated queries)
+        try {
+            const { sessions } = await this.getUserActivityHistory(userId);
+            if (!sessions || sessions.length === 0) {
+                return { completedDates: [], incompleteDates: [] };
             }
 
-            if (!completedSet.has(dateKey)) {
-                incompleteSet.add(dateKey);
-            }
-        });
+            // Filter sessions within the requested window using workout_date (date-only key)
+            const startKey = (() => {
+                const d = new Date(startDate);
+                d.setHours(0,0,0,0);
+                const y = d.getFullYear();
+                const m = String(d.getMonth()+1).padStart(2,'0');
+                const day = String(d.getDate()).padStart(2,'0');
+                return `${y}-${m}-${day}`;
+            })();
 
-        return {
-            completedDates: Array.from(completedSet),
-            incompleteDates: Array.from(incompleteSet)
-        };
+            const recentSessions = sessions.filter(s => {
+                // prefer workout_date normalized by getUserActivityHistory
+                const wd = s.workout_date || (s.ended_at || s.started_at ? (() => {
+                    const d = new Date(s.ended_at || s.started_at);
+                    d.setHours(0,0,0,0);
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth()+1).padStart(2,'0');
+                    const day = String(d.getDate()).padStart(2,'0');
+                    return `${y}-${m}-${day}`;
+                })() : null);
+                if (!wd) return false;
+                return wd >= startKey;
+            });
+
+            // Debug: log recentSessions count and keys
+            try {
+                console.debug('[supabaseHelpers] getUserWorkoutCalendarDates - recentSessions:', recentSessions.map(s => ({ id: s.id, workout_day_id: s.workout_day_id, workout_date: s.workout_date })));
+            } catch { /* debug logging only */ }
+
+            if (recentSessions.length === 0) return { completedDates: [], incompleteDates: [] };
+
+            // Build workoutDayIds and exercisesByDay (required count per workout_day)
+            const workoutDayIds = [...new Set(recentSessions.map(s => s.workout_day_id).filter(Boolean))];
+            const exercisesByDay = {};
+            if (workoutDayIds.length > 0) {
+                const { data: workoutExercises, error: exercisesError } = await supabase
+                    .from('b_workout_exercises')
+                    .select('workout_day_id')
+                    .in('workout_day_id', workoutDayIds);
+
+                if (exercisesError) throw exercisesError;
+                (workoutExercises || []).forEach((item) => {
+                    exercisesByDay[item.workout_day_id] = (exercisesByDay[item.workout_day_id] || 0) + 1;
+                });
+            }
+
+            // Use session.workout_date if available (already normalized in getUserActivityHistory)
+            const toDateKey = (isoDate, session) => {
+                if (session && session.workout_date) return session.workout_date;
+                const parsed = new Date(isoDate);
+                parsed.setHours(0, 0, 0, 0);
+                const year = parsed.getFullYear();
+                const month = String(parsed.getMonth() + 1).padStart(2, '0');
+                const day = String(parsed.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            const completedSet = new Set();
+            const incompleteSet = new Set();
+
+            recentSessions.forEach((session) => {
+                const refDate = session.ended_at || session.started_at;
+                if (!refDate) return;
+                const dateKey = toDateKey(refDate, session);
+                const requiredExercises = session.workout_day_id ? (exercisesByDay[session.workout_day_id] || 0) : 0;
+                const loggedExercises = (session.b_session_logs || []).length || 0;
+                const completedByExercises = requiredExercises > 0 ? loggedExercises >= requiredExercises : Boolean(session.ended_at);
+                const isCompleted = Boolean(session.ended_at) && completedByExercises;
+
+                if (isCompleted) {
+                    completedSet.add(dateKey);
+                    incompleteSet.delete(dateKey);
+                    return;
+                }
+
+                if (!completedSet.has(dateKey)) {
+                    incompleteSet.add(dateKey);
+                }
+            });
+
+            return {
+                completedDates: Array.from(completedSet),
+                incompleteDates: Array.from(incompleteSet)
+            };
+        } catch (err) {
+            console.error('getUserWorkoutCalendarDates error:', err);
+            throw err;
+        }
     }
 }
