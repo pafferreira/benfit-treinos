@@ -136,9 +136,9 @@
     gap: 0.5rem;
     padding: 0.5rem 0;
     border-bottom: 1px solid #E5E7EB;
-    /* Sticky logo abaixo do page-header (~72px) */
+    /* Sticky logo abaixo do calendar (~152px) */
     position: sticky;
-    top: 72px;
+    top: 152px;
     z-index: 1500;
     background-color: var(--color-background-light);
     transition: box-shadow 0.2s;
@@ -579,10 +579,12 @@
 }
 
 .plan-card-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--color-text-light);
     margin: 0;
+    flex: 1;
+    min-width: 0;
 }
 
 .plan-card-dates {
@@ -595,7 +597,159 @@
 
 .plan-card-status {
     align-self: flex-start;
-    margin-top: 0.25rem;
+    margin-top: 0;
+}
+
+/* ── Calendar section in ActivityHistory ── */
+.activity-calendar-section {
+    position: sticky;
+    top: 72px;
+    z-index: 1510;
+    background-color: var(--color-background-light);
+    margin: 0;
+    padding: 0.35rem 0;
+    border: none;
+}
+
+.dark .activity-calendar-section {
+    background-color: var(--color-background-dark);
+}
+
+/* ── Redesigned Plan Card ── */
+.plan-card-redesign {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.plan-card-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.plan-card-header-row .plan-card-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.plan-card-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.plan-card-info-row .plan-card-dates {
+    flex: 1;
+    min-width: 0;
+}
+
+.plan-card-info-row .session-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-subtext-light);
+}
+
+.plan-card-info-row .session-meta-item svg {
+    color: var(--color-primary);
+    flex-shrink: 0;
+}
+
+/* Feeling badge color scale */
+.plan-feeling-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.65rem;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+}
+
+.plan-feeling-badge.feeling-score-1,
+.plan-feeling-badge.feeling-score-2,
+.plan-feeling-badge.feeling-score-3 {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+}
+.plan-feeling-badge.feeling-score-1 .plan-feeling-score,
+.plan-feeling-badge.feeling-score-2 .plan-feeling-score,
+.plan-feeling-badge.feeling-score-3 .plan-feeling-score {
+    color: #ef4444;
+}
+
+.plan-feeling-badge.feeling-score-4,
+.plan-feeling-badge.feeling-score-5 {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.25);
+}
+.plan-feeling-badge.feeling-score-4 .plan-feeling-score,
+.plan-feeling-badge.feeling-score-5 .plan-feeling-score {
+    color: #f59e0b;
+}
+
+.plan-feeling-badge.feeling-score-6,
+.plan-feeling-badge.feeling-score-7 {
+    background: rgba(0, 138, 207, 0.12);
+    border-color: rgba(0, 138, 207, 0.25);
+}
+.plan-feeling-badge.feeling-score-6 .plan-feeling-score,
+.plan-feeling-badge.feeling-score-7 .plan-feeling-score {
+    color: #008ac5;
+}
+
+.plan-feeling-badge.feeling-score-8,
+.plan-feeling-badge.feeling-score-9,
+.plan-feeling-badge.feeling-score-10 {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.25);
+}
+.plan-feeling-badge.feeling-score-8 .plan-feeling-score,
+.plan-feeling-badge.feeling-score-9 .plan-feeling-score,
+.plan-feeling-badge.feeling-score-10 .plan-feeling-score {
+    color: #10b981;
+}
+
+.plan-feeling-emoji {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.plan-feeling-score {
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+/* Notes */
+.plan-card-notes {
+    font-size: 0.8rem;
+    font-style: italic;
+    color: var(--color-subtext-light);
+    line-height: 1.4;
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Date Group Highlight Flash */
+.date-group-flash {
+    animation: flashHighlight 1.2s ease-out;
+}
+
+@keyframes flashHighlight {
+    0% {
+        background-color: rgba(0, 138, 207, 0.15);
+        transform: scale(1.02);
+    }
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
 }
 
 .exercise-log-details {

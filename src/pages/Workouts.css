@@ -64,6 +64,19 @@
     border-color: rgba(var(--color-primary-rgb), 0.35);
 }
 
+/* ── Last-visited plan highlight ── */
+.plan-card--last-visited {
+    border-color: var(--color-secondary, #008ACF);
+    border-width: 2px;
+    background: rgba(0, 138, 207, 0.04);
+    box-shadow: 0 0 0 3px rgba(0, 138, 207, 0.10), var(--shadow-sm);
+}
+
+.plan-card--last-visited:hover {
+    border-color: var(--color-secondary, #008ACF);
+    background: rgba(0, 138, 207, 0.08);
+}
+
 .plan-card-inactive {
     opacity: 0.68;
 }

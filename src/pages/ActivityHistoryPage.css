@@ -119,7 +119,7 @@
 /* ===== CONTENT AREA ===== */
 .activity-page-content {
     width: 100%;
-    padding: 1.25rem 1rem 3rem;
+    padding: 0 1rem 3rem;
 }
 
 @keyframes slideInDown {
@@ -144,6 +144,6 @@
     }
 
     .activity-page-content {
-        padding: 1.5rem 2rem 4rem;
+        padding: 0 2rem 4rem;
     }
 }

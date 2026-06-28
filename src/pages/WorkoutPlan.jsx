@@ -48,6 +48,12 @@ const WorkoutPlan = () => {
     const [lastFeeling, setLastFeeling] = useState(null);
     const [headerStuck, setHeaderStuck] = useState(false);
 
+    // Track the day the user just visited (navigated into and came back from)
+    const [lastVisitedDayId, setLastVisitedDayId] = useState(() => {
+        const stored = sessionStorage.getItem(`benfit_lastVisitedDay_${id}`);
+        return stored || null;
+    });
+
     // Sticky header on scroll
     useEffect(() => {
         const scrollContainer = document.querySelector('.layout-content');
@@ -206,6 +212,7 @@ const WorkoutPlan = () => {
     };
 
     const handleOpenDay = (day) => {
+        sessionStorage.setItem(`benfit_lastVisitedDay_${id}`, day.id);
         navigate(`/treino/${id}/dia/${day.id}`);
     };
 
@@ -307,18 +314,26 @@ const WorkoutPlan = () => {
                     <p className="empty-message">Nenhum dia de treino configurado neste plano.</p>
                 ) : (
                     <div className="day-buttons-list">
-                        {days.map((day) => {
+                        {(() => {
+                            // Determine the most recently used day (by session date)
+                            let lastUsedDayId = null;
+                            let latestDate = null;
+                            for (const day of days) {
+                                const d = day.last_done_date || day.last_session_date;
+                                if (d && (!latestDate || d > latestDate)) {
+                                    latestDate = d;
+                                    lastUsedDayId = day.id;
+                                }
+                            }
+                            return days.map((day) => {
                             const dateValue = day.last_done_date || day.last_completed_date || day.last_session_date;
-                            // Reflete a SESSÃO MAIS RECENTE do dia (mesma semântica do minicalendário):
-                            // última sessão finalizada (ended_at) → verde "Finalizado";
-                            // sessão em andamento / apenas exercícios "Feito" → azul.
-                            // Não usar last_completed_date aqui: ele guarda uma finalização ANTIGA e
-                            // marcaria como verde um dia que hoje só tem exercícios parciais.
                             const isFinalized = Boolean(day.finalized);
+                            const isLastUsed = day.id === lastUsedDayId;
+                            const isLastVisited = day.id === lastVisitedDayId;
                             return (
                             <button
                                 key={day.id}
-                                className="day-open-btn"
+                                className={`day-open-btn${isLastVisited ? ' day-open-btn--last-visited' : ''}`}
                                 onClick={() => handleOpenDay(day)}
                             >
                                 <div className="day-open-main">
@@ -332,6 +347,9 @@ const WorkoutPlan = () => {
                                         )}
                                     </div>
                                 </div>
+                                {isLastUsed && (
+                                    <span className="day-last-used-label">Último treino</span>
+                                )}
                                 {isFinalized && (
                                     <span className="day-status-badge">Finalizado</span>
                                 )}
@@ -340,7 +358,8 @@ const WorkoutPlan = () => {
                                 </span>
                             </button>
                             );
-                        })}
+                        });
+                        })()}
                     </div>
                 )}
             </div>

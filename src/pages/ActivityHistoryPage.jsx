@@ -1,8 +1,9 @@
 /* ActivityHistoryPage.jsx */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useUserRole } from '../hooks/useSupabase';
+import { supabase, supabaseHelpers } from '../lib/supabase';
 import ActivityHistory from '../components/ActivityHistory';
 import './ActivityHistoryPage.css';
 
@@ -10,25 +11,54 @@ const ActivityHistoryPage = () => {
     const { userId } = useParams();
     const { isRealAdmin } = useUserRole();
     const navigate = useNavigate();
-    const [isHeaderStuck, setIsHeaderStuck] = React.useState(false);
+    const [isHeaderStuck, setIsHeaderStuck] = useState(false);
+    const [finalizedDates, setFinalizedDates] = useState([]);
+    const [doneDates, setDoneDates] = useState([]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const handleScroll = (e) => {
-            // 10px threshold for sticking, checking the target element's scrollTop
             setIsHeaderStuck(e.target.scrollTop > 10);
+        };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                handleBack();
+            }
         };
 
         const mainContent = document.querySelector('.layout-content');
         if (mainContent) {
             mainContent.addEventListener('scroll', handleScroll);
         }
+        window.addEventListener('keydown', handleKeyDown);
 
         return () => {
             if (mainContent) {
                 mainContent.removeEventListener('scroll', handleScroll);
             }
+            window.removeEventListener('keydown', handleKeyDown);
         };
     }, []);
+
+    // Load calendar dates for MiniCalendar
+    useEffect(() => {
+        const loadCalendarDates = async () => {
+            try {
+                let uid = userId;
+                if (!uid) {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    uid = user?.id;
+                }
+                if (!uid) return;
+                const res = await supabaseHelpers.getExerciseDoneCalendarDates(uid);
+                setFinalizedDates(res.finalizedDates || []);
+                setDoneDates(res.doneDates || []);
+            } catch (err) {
+                console.error('Erro ao carregar calendário:', err);
+            }
+        };
+        loadCalendarDates();
+    }, [userId]);
 
     // Helper to go back
     const handleBack = () => {
@@ -61,12 +91,14 @@ const ActivityHistoryPage = () => {
 
 
 
-            <div className="activity-page-content mt-4 md:mt-6">
+            <div className="activity-page-content">
                 <ActivityHistory
                     isOpen={true}
                     onClose={handleBack}
                     userId={userId}
                     isPage={true}
+                    finalizedDates={finalizedDates}
+                    doneDates={doneDates}
                 />
             </div>
         </div>

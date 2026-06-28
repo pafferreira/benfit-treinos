@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Activity, Clock, Flame, Dumbbell, Calendar, ChevronDown,
-    Check, Timer, TrendingUp, Zap, Play, CircleDot
+    Check, Timer, TrendingUp, Zap, Play, CircleDot, Smile
 } from 'lucide-react';
 import { supabaseHelpers } from '../lib/supabase';
 import Modal from './Modal';
+import MiniCalendar from './MiniCalendar';
 import './ActivityHistory.css';
 
 // ==========================================
@@ -155,7 +156,7 @@ const SessionExercises = ({ exercises }) => {
 // ==========================================
 // Componente Principal
 // ==========================================
-const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }) => {
+const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false, finalizedDates = [], doneDates = [] }) => {
     const [loading, setLoading] = useState(true);
     const [sessions, setSessions] = useState([]);
     const [plans, setPlans] = useState([]);
@@ -260,6 +261,23 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }
         setExpandedSession(prev => prev === id ? null : id);
     };
 
+    const handleDayClick = (dateKey) => {
+        if (!dateKey) return;
+        const targetEl = document.querySelector(`[data-date-key="${dateKey}"]`);
+        if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            targetEl.classList.add('date-group-flash');
+            setTimeout(() => {
+                targetEl.classList.remove('date-group-flash');
+            }, 1200);
+        } else {
+            // Optional user notification
+            window.dispatchEvent(new CustomEvent('app-toast', { 
+                detail: { message: `Nenhuma atividade registrada em ${dateKey.split('-').reverse().join('/')}`, type: 'info' } 
+            }));
+        }
+    };
+
     const renderExerciseCard = (log) => {
         const exercise = log.b_exercises;
 
@@ -311,40 +329,56 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }
     const renderPlanCard = (plan) => {
         const workout = plan.b_workouts;
         const statusClass = `status-${plan.status}`;
+        const feelingValue = plan.feeling;
+
+        // Emoji based on feeling score
+        const getFeelingEmoji = (val) => {
+            if (!val) return null;
+            if (val <= 3) return '😓';
+            if (val <= 5) return '😐';
+            if (val <= 7) return '😊';
+            if (val <= 9) return '💪';
+            return '🔥';
+        };
 
         return (
-            <div key={plan.id} className="activity-session-card">
-                <div className="plan-card-column">
+            <div key={plan.id} className="activity-session-card plan-card-redesign">
+                <div className="plan-card-header-row">
                     <h4 className="plan-card-title">
                         {workout?.title || 'Plano sem título'}
                     </h4>
+                    <span className={`session-status-badge ${statusClass} plan-card-status`}>
+                        {STATUS_LABELS[plan.status] || plan.status}
+                    </span>
+                </div>
 
+                <div className="plan-card-info-row">
                     <div className="plan-card-dates">
-                        <span className="session-meta-item">
-                            Selecionado em: {formatDate(plan.created_at)}
-                        </span>
                         {plan.started_at && (
                             <span className="session-meta-item">
-                                Iniciado em: {formatDate(plan.started_at)}
+                                <Play size={12} /> Inic: {formatDate(plan.started_at)}
                             </span>
                         )}
                         {plan.ended_at && (
                             <span className="session-meta-item">
-                                Finalizado em: {formatDate(plan.ended_at)}
+                                <Check size={12} /> Fim: {formatDate(plan.ended_at)}
                             </span>
                         )}
                     </div>
 
-                    <span className={`session-status-badge ${statusClass} plan-card-status`}>
-                        {STATUS_LABELS[plan.status] || plan.status}
-                    </span>
-
-                    {plan.notes && (
-                        <div className="session-day-name" style={{ marginTop: '0.2rem', fontStyle: 'italic', fontSize: '0.8rem' }}>
-                            "{plan.notes}"
+                    {feelingValue && (
+                        <div className={`plan-feeling-badge feeling-score-${feelingValue}`}>
+                            <span className="plan-feeling-emoji">{getFeelingEmoji(feelingValue)}</span>
+                            <span className="plan-feeling-score">{feelingValue}</span>
                         </div>
                     )}
                 </div>
+
+                {plan.notes && (
+                    <div className="plan-card-notes">
+                        "{plan.notes}"
+                    </div>
+                )}
             </div>
         );
     };
@@ -354,35 +388,15 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }
 
     const Content = (
         <div className={`activity-history ${isPage ? 'is-page-view' : ''}`}>
-            {/* Stats Bar */}
-            <div className="activity-stats-bar">
-                <div className="activity-stat-card stat-card-blue">
-                    <div className="stat-icon-wrapper">
-                        <Activity size={20} />
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-value">{totalSessions}</span>
-                        <span className="stat-label">Sessões</span>
-                    </div>
-                </div>
-                <div className="activity-stat-card stat-card-green">
-                    <div className="stat-icon-wrapper">
-                        <TrendingUp size={20} />
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-value">{completedSessions}</span>
-                        <span className="stat-label">Concluídas</span>
-                    </div>
-                </div>
-                <div className="activity-stat-card stat-card-orange">
-                    <div className="stat-icon-wrapper">
-                        <Flame size={20} />
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-value">{totalCalories}</span>
-                        <span className="stat-label">Calorias</span>
-                    </div>
-                </div>
+            {/* Mini Calendar (replaces stats bar) */}
+            <div className="activity-calendar-section">
+                <MiniCalendar
+                    finalizedDates={finalizedDates}
+                    doneDates={doneDates}
+                    currentDate={new Date()}
+                    compact={true}
+                    onDayClick={handleDayClick}
+                />
             </div>
 
             {/* Filter Tabs */}
@@ -429,16 +443,28 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false }
                 </div>
             ) : (
                 <div className="activity-timeline">
-                    {Object.entries(currentItems).map(([dateLabel, items]) => (
-                        <div key={dateLabel} className="activity-date-group">
-                            <div className="activity-date-label">{dateLabel}</div>
-                            {items.map(item =>
-                                activeTab === 'sessoes'
-                                    ? renderExerciseCard(item)
-                                    : renderPlanCard(item)
-                            )}
-                        </div>
-                    ))}
+                    {Object.entries(currentItems).map(([dateLabel, items]) => {
+                        const firstItem = items[0];
+                        const refDate = firstItem ? (firstItem.created_at || firstItem.workout_date) : null;
+                        const dateKey = refDate ? (() => {
+                            const d = new Date(refDate);
+                            const y = d.getFullYear();
+                            const m = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            return `${y}-${m}-${day}`;
+                        })() : '';
+
+                        return (
+                            <div key={dateLabel} className="activity-date-group" data-date-key={dateKey}>
+                                <div className="activity-date-label">{dateLabel}</div>
+                                {items.map(item =>
+                                    activeTab === 'sessoes'
+                                        ? renderExerciseCard(item)
+                                        : renderPlanCard(item)
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

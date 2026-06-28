@@ -9,7 +9,10 @@ const MiniCalendar = ({
     incompleteDates = [],
     completedByDayMap = {},
     currentDate = new Date(),
-    variant = 'cards'
+    variant = 'cards',
+    onDoubleClick = null,  // callback para duplo clique no calendário
+    onDayClick = null,     // callback(dateKey) ao clicar em um dia
+    compact = false        // modo compacto (sem margins/padding extras)
 }) => {
     const [weekOffset, setWeekOffset] = useState(0);
     const [animDir, setAnimDir] = useState(null); // 'left' | 'right' | null
@@ -31,9 +34,9 @@ const MiniCalendar = ({
 
     function getWeekStart(date) {
         const d = new Date(date);
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajusta para segunda-feira
-        return new Date(d.setDate(diff));
+        const day = d.getDay(); // 0=Dom … 6=Sáb
+        d.setDate(d.getDate() - day); // Recua até Domingo
+        return d;
     }
 
     function getWeekNumber(date) {
@@ -108,9 +111,9 @@ const MiniCalendar = ({
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-    const monthName = weekStart.toLocaleDateString('pt-BR', { month: 'long' }).toLowerCase();
+    const monthName = weekStart.toLocaleDateString('pt-BR', { month: 'long' });
     const year = weekStart.getFullYear();
-    const monthYear = `${capitalizeFirstLetter(monthName)} de ${year}`;
+    const monthYear = `${capitalizeFirstLetter(monthName.toLowerCase())} de ${year}`;
     const weekNumber = getWeekNumber(weekStart);
     const isCurrentWeek = weekOffset === 0;
 
@@ -142,7 +145,7 @@ const MiniCalendar = ({
 
     const renderPills = () => (
         <div className="calendar-days variant-pills">
-            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => {
                 const date = weekDays[idx];
                 const isFinalized = isDateFinalized(date);
                 const isDone = !isFinalized && isDateDone(date);
@@ -151,7 +154,7 @@ const MiniCalendar = ({
                 const dayNumber = date.getDate();
 
                 return (
-                    <div key={day} className="day-column">
+                    <div key={day} className="day-column" onClick={() => onDayClick && onDayClick(formatDate(date))}>
                         <div className="day-label">{day}</div>
                         <div className={`day-pill ${isTodayDate ? 'today' : ''} ${isFinalized ? 'completed' : ''} ${isDone ? 'done' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
                             <span className="day-number">{dayNumber}</span>
@@ -170,7 +173,7 @@ const MiniCalendar = ({
     const renderTimeline = () => (
         <div className="calendar-days variant-timeline">
             <div className="timeline-line"></div>
-            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => {
                 const date = weekDays[idx];
                 const isFinalized = isDateFinalized(date);
                 const isDone = !isFinalized && isDateDone(date);
@@ -179,7 +182,7 @@ const MiniCalendar = ({
                 const dayNumber = date.getDate();
 
                 return (
-                    <div key={day} className="day-column">
+                    <div key={day} className="day-column" onClick={() => onDayClick && onDayClick(formatDate(date))}>
                         <div className="day-label">{day}</div>
                         <div className={`day-node ${isTodayDate ? 'today' : ''} ${isFinalized ? 'completed' : ''} ${isDone ? 'done' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
                             {isFinalized ? <Check size={14} strokeWidth={3} /> : <span className="day-number">{dayNumber}</span>}
@@ -192,7 +195,7 @@ const MiniCalendar = ({
 
     const renderCards = () => (
         <div className="calendar-days variant-cards">
-            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => {
                 const date = weekDays[idx];
                 const isFinalized = isDateFinalized(date);
                 const isDone = !isFinalized && isDateDone(date);
@@ -201,7 +204,9 @@ const MiniCalendar = ({
                 const dayNumber = date.getDate();
 
                 return (
-                    <div key={day} className={`day-card ${isTodayDate ? 'today' : ''} ${isFinalized ? 'completed' : ''} ${isDone ? 'done' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
+                    <div key={day} className={`day-card ${isTodayDate ? 'today' : ''} ${isFinalized ? 'completed' : ''} ${isDone ? 'done' : ''} ${isIncomplete ? 'incomplete' : ''}`}
+                        onClick={() => onDayClick && onDayClick(formatDate(date))}
+                    >
                         <div className="day-label">{day}</div>
                         <div className="day-number">{dayNumber}</div>
                         {isFinalized && (
@@ -223,7 +228,7 @@ const MiniCalendar = ({
 
     const renderClassic = () => (
         <div className="calendar-days variant-classic">
-            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, idx) => {
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => {
                 const date = weekDays[idx];
                 const isFinalized = isDateFinalized(date);
                 const isDone = !isFinalized && isDateDone(date);
@@ -232,7 +237,7 @@ const MiniCalendar = ({
                 const dayNumber = date.getDate();
 
                 return (
-                    <div key={day} className="day-column">
+                    <div key={day} className="day-column" onClick={() => onDayClick && onDayClick(formatDate(date))}>
                         <div className="day-label">{day}</div>
                         <div className={`day-circle ${isTodayDate ? 'today' : ''} ${isFinalized ? 'completed' : ''} ${isDone ? 'done' : ''} ${isIncomplete ? 'incomplete' : ''}`}>
                             <span className="day-number">{dayNumber}</span>
@@ -252,9 +257,11 @@ const MiniCalendar = ({
 
     return (
         <div
-            className={`mini-calendar-wrapper ${variant} ${animDir ? `anim-${animDir}` : ''}`}
+            className={`mini-calendar-wrapper ${variant} ${compact ? 'compact' : ''} ${animDir ? `anim-${animDir}` : ''}`}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
+            onDoubleClick={onDoubleClick || undefined}
+            style={onDoubleClick ? { cursor: 'pointer' } : undefined}
         >
             <div className="calendar-header">
                 <div className="calendar-header-left">

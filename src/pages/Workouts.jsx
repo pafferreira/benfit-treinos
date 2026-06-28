@@ -20,6 +20,9 @@ const Workouts = () => {
     const [finalizedDates, setFinalizedDates] = useState([]);
     const [doneDates, setDoneDates] = useState([]);
 
+    // Track the plan the user just visited (navigated into and came back from)
+    const [lastVisitedPlanId] = useState(() => sessionStorage.getItem('benfit_lastVisitedPlan') || null);
+
     useEffect(() => {
         loadUserActivePlans();
         loadCalendarDates();
@@ -180,6 +183,7 @@ const Workouts = () => {
                     finalizedDates={finalizedDates}
                     doneDates={doneDates}
                     currentDate={new Date()}
+                    onDoubleClick={() => navigate('/historico')}
                 />
             </div>
 
@@ -193,8 +197,11 @@ const Workouts = () => {
                     return (
                         <div
                             key={workout.id}
-                            className={`plan-card ${!isActive ? 'plan-card-inactive' : ''}`}
-                            onClick={() => navigate(`/treino/${workout.id}`)}
+                            className={`plan-card ${!isActive ? 'plan-card-inactive' : ''}${workout.id === lastVisitedPlanId ? ' plan-card--last-visited' : ''}`}
+                            onClick={() => {
+                                sessionStorage.setItem('benfit_lastVisitedPlan', workout.id);
+                                navigate(`/treino/${workout.id}`);
+                            }}
                         >
                             <div className={`plan-icon-container ${iconColor}`}>
                                 {isActive ? <Dumbbell size={24} strokeWidth={2.5} /> : <Clock size={24} strokeWidth={2.5} />}

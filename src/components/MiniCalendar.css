@@ -12,6 +12,19 @@
     user-select: none;
 }
 
+/* Compact Mode */
+.mini-calendar-wrapper.compact {
+    padding: 0;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+.mini-calendar-wrapper.compact .calendar-legend {
+    display: none;
+}
+
 /* ─── Animação de troca de semana ──────────────────────────────────────────── */
 @keyframes calFadeInRight {
     from {
