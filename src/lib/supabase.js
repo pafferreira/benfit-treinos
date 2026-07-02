@@ -758,6 +758,11 @@ export const supabaseHelpers = {
         if (error) throw error;
         if (!user) return null;
 
+        // Cache por usuário: perfil muda raramente e esta função roda em toda tela
+        if (this._userCache?.id === user.id && Date.now() - this._userCache.at < 60000) {
+            return this._userCache.value;
+        }
+
         // Fetch profile data from B_Users
         // First, try by ID
         let { data: profile, error: profileError } = await supabase
@@ -783,7 +788,13 @@ export const supabaseHelpers = {
             console.error('Error fetching profile:', profileError);
         }
 
-        return { ...user, ...profile };
+        const merged = { ...user, ...profile };
+        this._userCache = { id: user.id, value: merged, at: Date.now() };
+        return merged;
+    },
+
+    invalidateUserCache() {
+        this._userCache = null;
     },
 
     async updateUserProfile(userId, profileData) {
@@ -846,6 +857,8 @@ export const supabaseHelpers = {
                 console.error('Upsert failed:', error);
                 throw error;
             }
+
+            this.invalidateUserCache();
 
             return data;
         } catch (err) {
@@ -1547,25 +1560,27 @@ export const supabaseHelpers = {
         const now = new Date();
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-        // Sessões da semana
-        const { data: weeklySessions, error: sessionsErr } = await supabase
-            .from('b_workout_sessions')
-            .select('id, started_at, ended_at, calories_burned, feeling')
-            .eq('user_id', userId)
-            .gte('started_at', weekAgo.toISOString())
-            .order('started_at', { ascending: false });
+        // Sessões da semana + última sessão absoluta em paralelo
+        const [weeklyR, lastR] = await Promise.all([
+            supabase
+                .from('b_workout_sessions')
+                .select('id, started_at, ended_at, calories_burned, feeling')
+                .eq('user_id', userId)
+                .gte('started_at', weekAgo.toISOString())
+                .order('started_at', { ascending: false }),
+            supabase
+                .from('b_workout_sessions')
+                .select('id, started_at, ended_at, calories_burned, feeling')
+                .eq('user_id', userId)
+                .not('ended_at', 'is', null)
+                .order('started_at', { ascending: false })
+                .limit(1)
+                .single(),
+        ]);
 
+        const { data: weeklySessions, error: sessionsErr } = weeklyR;
         if (sessionsErr) throw sessionsErr;
-
-        // Última sessão absoluta (ignorando a semana)
-        const { data: absoluteLastSession } = await supabase
-            .from('b_workout_sessions')
-            .select('id, started_at, ended_at, calories_burned, feeling')
-            .eq('user_id', userId)
-            .not('ended_at', 'is', null)
-            .order('started_at', { ascending: false })
-            .limit(1)
-            .single();
+        const absoluteLastSession = lastR.data;
 
         const completedThisWeek = (weeklySessions || []).filter(s => s.ended_at).length;
         const caloriesThisWeek = (weeklySessions || []).reduce((sum, s) => sum + (s.calories_burned || 0), 0);
