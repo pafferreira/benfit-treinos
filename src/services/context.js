@@ -88,6 +88,7 @@ export const buildUserContext = async (userId) => {
                 b_workouts(title),
                 b_workout_days(day_name, day_number),
                 b_session_logs(
+                    set_number, reps_completed, weight_kg,
                     b_exercises(name, muscle_group)
                 )
             `)
@@ -169,16 +170,34 @@ export const buildUserContext = async (userId) => {
                 const feeling = s.feeling ? `feeling: ${s.feeling}/10` : '';
                 const calories = s.calories_burned ? `${s.calories_burned} kcal` : '';
 
-                // Extrai grupos musculares únicos
-                const muscles = [...new Set(
-                    (s.b_session_logs || [])
-                        .map(log => log.b_exercises?.muscle_group)
-                        .filter(Boolean)
-                )].join(', ');
+                // Agrega logs por exercício: total de séries, melhor carga, reps típicas
+                const byExercise = {};
+                for (const log of (s.b_session_logs || [])) {
+                    const name = log.b_exercises?.name;
+                    if (!name) continue;
+                    if (!byExercise[name]) {
+                        byExercise[name] = { sets: 0, topWeight: 0, reps: [], muscle: log.b_exercises?.muscle_group };
+                    }
+                    byExercise[name].sets++;
+                    if (log.weight_kg > byExercise[name].topWeight) byExercise[name].topWeight = log.weight_kg;
+                    if (log.reps_completed) byExercise[name].reps.push(log.reps_completed);
+                }
 
-                return `• ${dateStr}: ${workoutTitle} – ${dayLabel}${muscles ? ` (${muscles})` : ''} ${[feeling, calories].filter(Boolean).join(', ')}`;
+                const exerciseLines = Object.entries(byExercise).map(([name, ex]) => {
+                    const reps = ex.reps.length > 0 ? `${Math.min(...ex.reps)}-${Math.max(...ex.reps)} reps` : '';
+                    const weight = ex.topWeight > 0 ? `até ${ex.topWeight} kg` : '';
+                    const detail = [`${ex.sets} série(s)`, reps, weight].filter(Boolean).join(', ');
+                    return `    - ${name}${ex.muscle ? ` [${ex.muscle}]` : ''}: ${detail}`;
+                });
+
+                const header = `• ${dateStr}: ${workoutTitle} – ${dayLabel} ${[feeling, calories].filter(Boolean).join(', ')}`.trimEnd();
+                return exerciseLines.length > 0 ? `${header}\n${exerciseLines.join('\n')}` : header;
             });
-            sections.push(`## Histórico de Treinos Recentes\n${sessionLines.join('\n')}`);
+            sections.push(
+                `## Histórico Detalhado de Treinos Recentes\n` +
+                `(use estes dados para avaliar progressão de carga, detectar grupos musculares negligenciados e sugerir os próximos exercícios)\n` +
+                sessionLines.join('\n')
+            );
         }
     } catch (e) {
         console.warn('[Context] Erro ao buscar histórico de sessões:', e?.message);
