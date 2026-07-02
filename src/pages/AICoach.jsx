@@ -4,7 +4,7 @@ import { Send, Bot, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
 import { chatWithBenfit, generateConversationTitle, generateEmbedding } from '../services/ai';
-import { buildUserContext } from '../services/context';
+import { buildUserContext, buildExerciseStats } from '../services/context';
 import { useUserRole } from '../hooks/useSupabase';
 import './AICoach.css';
 
@@ -138,6 +138,18 @@ const SHARED_KNOWLEDGE_PATTERNS = [
 const isSharedKnowledgeQuery = (text) =>
     SHARED_KNOWLEDGE_PATTERNS.some(p => p.test(text));
 
+// Detecta perguntas sobre o histórico PESSOAL do aluno — nunca responder
+// com o catálogo; precisa dos dados agregados do banco + Gemini
+const PERSONAL_HISTORY_PATTERNS = [
+    /\b(eu\s+)?(fiz|realizei|executei|treinei|completei)\b/i,
+    /\bquant[oa]s?\s+(vezes|exerc[íi]cios|s[ée]ries|treinos|sess[õo]es)\b.*\b(fiz|meu|minha|tenho)\b/i,
+    /\bat[ée]\s+hoje\b/i,
+    /\bmeu\s+hist[óo]rico\b/i,
+    /\bminha\s+(evolu[çc][ãa]o|frequ[êe]ncia|progress[ãa]o)\b/i,
+];
+const isPersonalHistoryQuery = (text) =>
+    PERSONAL_HISTORY_PATTERNS.some(p => p.test(text));
+
 // Formata data relativa para o sidebar
 const formatRelativeDate = (dateStr) => {
     const date = new Date(dateStr);
@@ -210,15 +222,22 @@ const AICoach = () => {
             }
         };
         init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ── Scroll interno → layout ───────────────────────────────────
+    const programmaticScrollRef = useRef(false);
+
     useEffect(() => {
         const area = messagesAreaRef.current;
         if (!area) return;
         const onScroll = () => {
             const scrollTop = area.scrollTop;
+            // Scroll programático (auto-scroll do chat) não deve esconder o header
+            if (programmaticScrollRef.current) {
+                programmaticScrollRef.current = false;
+                lastScrollRef.current = scrollTop;
+                return;
+            }
             const direction = scrollTop > lastScrollRef.current ? 'down' : 'up';
             lastScrollRef.current = scrollTop;
             window.dispatchEvent(new CustomEvent('app-inner-scroll', { detail: { scrollTop, direction } }));
@@ -227,11 +246,23 @@ const AICoach = () => {
         return () => { area.removeEventListener('scroll', onScroll); };
     }, []);
 
-    const scrollToBottom = useCallback(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+    const scrollToBottom = useCallback((force = false) => {
+        const area = messagesAreaRef.current;
+        if (!area) return;
+        // Só auto-rola se o usuário já está perto do fundo (ou forçado, ex: mensagem enviada)
+        const nearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 120;
+        if (!force && !nearBottom) return;
+        programmaticScrollRef.current = true;
+        area.scrollTop = area.scrollHeight;
     }, []);
 
-    useEffect(() => { scrollToBottom(); }, [messages, isTyping, scrollToBottom]);
+    const lastSenderRef = useRef(null);
+    useEffect(() => {
+        const last = messages[messages.length - 1];
+        const force = last?.sender === 'user' && last.id !== lastSenderRef.current;
+        if (force) lastSenderRef.current = last.id;
+        scrollToBottom(force);
+    }, [messages, isTyping, scrollToBottom]);
 
     // ── Fechar sidebar: overlay click ─────────────────────────────
     useEffect(() => {
@@ -461,8 +492,18 @@ const AICoach = () => {
                     sharedResults = result.sharedResults;
                 }
 
+                // Pergunta sobre histórico pessoal? Nunca responder com catálogo —
+                // busca estatísticas agregadas de todo o histórico e vai ao Gemini
+                const isPersonalHistory = isPersonalHistoryQuery(text);
+                let exerciseStats = null;
+                if (isPersonalHistory && uid) {
+                    exerciseStats = await buildExerciseStats(uid).catch(() => null);
+                }
+
                 // Resultados com similaridade suficiente → resposta direta, sem Gemini
-                const directResults = sharedResults.filter(r => r.similarity >= DIRECT_SIMILARITY_THRESHOLD);
+                const directResults = isPersonalHistory
+                    ? []
+                    : sharedResults.filter(r => r.similarity >= DIRECT_SIMILARITY_THRESHOLD);
                 directAnswer = directResults.length > 0
                     ? formatSharedKnowledgeResponse(directResults)
                     : null;
@@ -493,6 +534,7 @@ const AICoach = () => {
                     const fullContext = [
                         instructions,
                         structuredContext ? `### DADOS DO ALUNO:\n${structuredContext}` : '',
+                        exerciseStats || '',
                         weakSharedText ? `\n## CATÁLOGO BENFIT:\n${weakSharedText}` : '',
                         contextText ? `\n## MEMÓRIAS:\n${contextText}` : '',
                     ].filter(Boolean).join('\n\n---\n\n');

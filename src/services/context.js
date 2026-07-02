@@ -74,6 +74,42 @@ const getCatalogSection = async () => {
     return text;
 };
 
+/**
+ * Estatísticas agregadas de TODO o histórico de exercícios do usuário.
+ * Usado quando o aluno pergunta sobre seu histórico completo
+ * ("quantos exercícios de tríceps fiz até hoje?").
+ */
+export const buildExerciseStats = async (userId) => {
+    const { data: logs, error } = await supabase
+        .from('b_session_logs')
+        .select('exercise_id, created_at, b_exercises(name, muscle_group)')
+        .eq('user_id', userId)
+        .limit(3000);
+
+    if (error || !logs || logs.length === 0) return null;
+
+    const byGroup = {};
+    for (const log of logs) {
+        const group = log.b_exercises?.muscle_group || 'Outros';
+        const name = log.b_exercises?.name || 'Desconhecido';
+        if (!byGroup[group]) byGroup[group] = { total: 0, exercises: {} };
+        byGroup[group].total++;
+        byGroup[group].exercises[name] = (byGroup[group].exercises[name] || 0) + 1;
+    }
+
+    const lines = Object.entries(byGroup)
+        .sort((a, b) => b[1].total - a[1].total)
+        .map(([group, g]) => {
+            const exList = Object.entries(g.exercises)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, n]) => `${name} (${n}x)`)
+                .join(', ');
+            return `• ${group}: ${g.total} série(s)/registro(s) no total — ${exList}`;
+        });
+
+    return `## Estatísticas Completas de Exercícios (todo o histórico)\n(cada registro = uma série/execução concluída)\n${lines.join('\n')}`;
+};
+
 export const buildUserContext = async (userId) => {
     // Todas as fontes em paralelo — antes eram 5 queries sequenciais por mensagem
     const [profileR, goalsR, workoutsR, sessionsR, catalogR] = await Promise.allSettled([
