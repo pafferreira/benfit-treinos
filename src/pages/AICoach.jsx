@@ -192,7 +192,6 @@ const AICoach = () => {
     const userIdRef = useRef(null);
     const currentConvIdRef = useRef(null);
     const textareaRef = useRef(null);
-    const lastScrollRef = useRef(0);
 
     // ── Init ─────────────────────────────────────────────────────
     useEffect(() => {
@@ -224,27 +223,8 @@ const AICoach = () => {
         init();
     }, []);
 
-    // ── Scroll interno → layout ───────────────────────────────────
-    const programmaticScrollRef = useRef(false);
-
-    useEffect(() => {
-        const area = messagesAreaRef.current;
-        if (!area) return;
-        const onScroll = () => {
-            const scrollTop = area.scrollTop;
-            // Scroll programático (auto-scroll do chat) não deve esconder o header
-            if (programmaticScrollRef.current) {
-                programmaticScrollRef.current = false;
-                lastScrollRef.current = scrollTop;
-                return;
-            }
-            const direction = scrollTop > lastScrollRef.current ? 'down' : 'up';
-            lastScrollRef.current = scrollTop;
-            window.dispatchEvent(new CustomEvent('app-inner-scroll', { detail: { scrollTop, direction } }));
-        };
-        area.addEventListener('scroll', onScroll, { passive: true });
-        return () => { area.removeEventListener('scroll', onScroll); };
-    }, []);
+    // Nota: o chat NÃO dispara 'app-inner-scroll' — esconder o nav mudava a
+    // altura da área de mensagens a cada scroll e fazia a tela "pular".
 
     const scrollToBottom = useCallback((force = false) => {
         const area = messagesAreaRef.current;
@@ -252,7 +232,6 @@ const AICoach = () => {
         // Só auto-rola se o usuário já está perto do fundo (ou forçado, ex: mensagem enviada)
         const nearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 120;
         if (!force && !nearBottom) return;
-        programmaticScrollRef.current = true;
         area.scrollTop = area.scrollHeight;
     }, []);
 
@@ -500,10 +479,13 @@ const AICoach = () => {
                     exerciseStats = await buildExerciseStats(uid).catch(() => null);
                 }
 
-                // Resultados com similaridade suficiente → resposta direta, sem Gemini
-                const directResults = isPersonalHistory
-                    ? []
-                    : sharedResults.filter(r => r.similarity >= DIRECT_SIMILARITY_THRESHOLD);
+                // Resposta direta do catálogo APENAS para o seletor de músculos
+                // ("Exercícios de X") — qualquer pergunta livre vai ao Gemini,
+                // que usa o catálogo como contexto e responde de forma natural.
+                const isMusclePickerQuery = /^Exercícios de /.test(text);
+                const directResults = (isMusclePickerQuery && !isPersonalHistory)
+                    ? sharedResults.filter(r => r.similarity >= DIRECT_SIMILARITY_THRESHOLD)
+                    : [];
                 directAnswer = directResults.length > 0
                     ? formatSharedKnowledgeResponse(directResults)
                     : null;
