@@ -17,10 +17,12 @@ import ActivityHistoryPage from './pages/ActivityHistoryPage'
 import SharedKnowledge from './pages/SharedKnowledge'
 import './App.css'
 import ToastContainer from './components/ToastContainer'
+import SplashScreen from './components/SplashScreen'
 
 function App() {
   return (
     <BrowserRouter>
+      <SplashScreen />
       <ToastContainer />
       <Routes>
         <Route path="/login" element={<Login />} />
