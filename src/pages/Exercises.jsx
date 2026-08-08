@@ -359,7 +359,7 @@ const Exercises = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-0 w-full">
+                        <div className="flex flex-col gap-2 w-full">
                             {filteredExercises.map(exercise => (
                                 <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white p-0 transition-all flex items-center gap-4 w-full cursor-pointer hover:bg-blue-50/40`}>
                                     <div className="h-16 w-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden relative">
