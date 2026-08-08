@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAvatars } from '../hooks/useSupabase';
 import Modal from './Modal';
-import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Image as ImageIcon, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon } from 'lucide-react';
+import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Search, Image as ImageIcon, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon } from 'lucide-react';
 import ExerciseUsageTab from './ExerciseUsageTab';
 import ExerciseHistoryTab from './ExerciseHistoryTab';
 import './ExerciseModal.css';
@@ -57,6 +57,9 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
     const [tagInput, setTagInput] = useState('');
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
     const [equipmentTypes, setEquipmentTypes] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState('Todas');
+    const [filterGender, setFilterGender] = useState('Todos');
 
     useEffect(() => {
         setActiveTab('detalhes');
@@ -506,6 +509,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                 )}
                             </div>
 
+
                             {/* Avatar Selector (Collapsible) - Only if NOT readOnly */}
                             {!readOnly && showAvatarSelector && (
                                 <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-200 animate-in slide-in-from-top-2">
@@ -519,46 +523,103 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                     {loadingAvatars ? (
                                         <div className="text-center py-4 text-xs text-gray-400">Carregando...</div>
                                     ) : (
-                                        <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
-                                            {avatars.filter(a => a.category === 'exercicio' || !a.category).map((avatar) => (
-                                                <div key={avatar.id} className="avatar-tooltip-wrapper">
-                                                    <div
-                                                        onClick={() => {
-                                                            setFormData(prev => ({ ...prev, image_url: avatar.public_url }));
-                                                            setShowAvatarSelector(false);
-                                                        }}
-                                                        className={`group relative cursor-pointer aspect-video rounded-xl overflow-hidden border-2 transition-all shadow-sm hover:shadow-md ${formData.image_url === avatar.public_url ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-100 hover:border-blue-300'}`}
-                                                    >
-                                                        <img
-                                                            src={avatar.public_url}
-                                                            alt={avatar.name}
-                                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                        />
-                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                                        <>
+                                            <div className="mb-4">
+                                                <div className="relative mb-3">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Buscar avatar..."
+                                                        value={searchTerm}
+                                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                                        className="w-full pl-9 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                                                    />
+                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                                    {searchTerm && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSearchTerm('')}
+                                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                                                            aria-label="Limpar busca"
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="relative">
+                                                        <select
+                                                            value={filterCategory}
+                                                            onChange={(e) => setFilterCategory(e.target.value)}
+                                                            className="w-full pl-2 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-gray-700"
+                                                        >
+                                                            <option value="Todas">Todas as categorias</option>
+                                                            {[...new Set(avatars.map(a => a.category).filter(Boolean))].map(cat => (
+                                                                <option key={cat} value={cat}>{cat}</option>
+                                                            ))}
+                                                        </select>
+                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                                                     </div>
-                                                    <span className="avatar-tooltip">{avatar.name}</span>
+
+                                                    <div className="relative">
+                                                        <select
+                                                            value={filterGender}
+                                                            onChange={(e) => setFilterGender(e.target.value)}
+                                                            className="w-full pl-2 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-gray-700"
+                                                        >
+                                                            <option value="Todos">Todos os gêneros</option>
+                                                            {[...new Set(avatars.map(a => a.gender).filter(Boolean))].map(gen => (
+                                                                <option key={gen} value={gen}>{gen}</option>
+                                                            ))}
+                                                        </select>
+                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                                    </div>
                                                 </div>
-                                            ))}
-                                            {/* Fallback/Generic Options if needed, or if empty */}
-                                            {avatars.filter(a => a.category === 'exercicio').length === 0 && (
-                                                <div className="col-span-2 text-center py-4 text-xs text-gray-400">
-                                                    Nenhuma imagem encontrada na galeria.
-                                                </div>
-                                            )}
-                                        </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+                                                {avatars
+                                                    .filter(a => a.is_active !== false)
+                                                    .filter(avatar => {
+                                                        const term = searchTerm.trim().toLowerCase();
+                                                        const matchesText = term === '' ||
+                                                            avatar.name?.toLowerCase().includes(term) ||
+                                                            avatar.category?.toLowerCase().includes(term) ||
+                                                            avatar.gender?.toLowerCase().includes(term) ||
+                                                            avatar.tags?.some(tag => tag.toLowerCase().includes(term));
+                                                        const matchesCategory = filterCategory === 'Todas' || avatar.category === filterCategory;
+                                                        const matchesGender = filterGender === 'Todos' || avatar.gender === filterGender;
+                                                        return matchesText && matchesCategory && matchesGender;
+                                                    })
+                                                    .map((avatar) => (
+                                                        <div key={avatar.id} className="avatar-tooltip-wrapper">
+                                                            <div
+                                                                onClick={() => {
+                                                                    setFormData(prev => ({ ...prev, image_url: avatar.public_url }));
+                                                                    setShowAvatarSelector(false);
+                                                                }}
+                                                                className={`group relative cursor-pointer aspect-video rounded-xl overflow-hidden border-2 transition-all shadow-sm hover:shadow-md ${formData.image_url === avatar.public_url ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-100 hover:border-blue-300'}`}
+                                                            >
+                                                                <img
+                                                                    src={avatar.public_url}
+                                                                    alt={avatar.name}
+                                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                                />
+                                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                                                            </div>
+                                                            <div className="mt-2 text-xs">
+                                                                <div className="font-semibold text-gray-700 truncate">{avatar.name}</div>
+                                                                <div className="flex flex-wrap gap-1 mt-1 text-[10px] text-gray-500">
+                                                                    {avatar.category && <span className="bg-gray-100 px-2 py-1 rounded-full">{avatar.category}</span>}
+                                                                    {avatar.gender && <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full">{avatar.gender}</span>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </>
                                     )}
 
-                                    <div className="mt-3 pt-3 border-t border-gray-200">
-                                        <label className="text-xs text-gray-500 mb-1 block">Ou URL externa:</label>
-                                        <input
-                                            type="url"
-                                            name="image_url"
-                                            value={formData.image_url}
-                                            onChange={handleChange}
-                                            placeholder="https://..."
-                                            className="w-full text-xs p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
-                                        />
-                                    </div>
                                 </div>
                             )}
 

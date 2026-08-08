@@ -132,6 +132,15 @@ export const useAvatars = () => {
 
     useEffect(() => {
         loadAvatars()
+
+        const handleAvatarsUpdated = () => {
+            loadAvatars()
+        }
+
+        window.addEventListener('avatars-updated', handleAvatarsUpdated)
+        return () => {
+            window.removeEventListener('avatars-updated', handleAvatarsUpdated)
+        }
     }, [])
 
     const loadAvatars = async () => {

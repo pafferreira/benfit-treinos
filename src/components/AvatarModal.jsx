@@ -96,13 +96,6 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
             return;
         }
 
-        // Validate file size (max 5MB)
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (file.size > maxSize) {
-            alert('O arquivo deve ter no máximo 5MB.');
-            return;
-        }
-
         try {
             setUploading(true);
             setUploadProgress(10);
@@ -112,11 +105,16 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
             // chegam com vários MB; o preview é sempre um quadrado pequeno).
             const originalSize = file.size;
             const resizedFile = await resizeImageFile(file);
-            if (resizedFile.size < originalSize) {
-                setCompressionInfo({ before: originalSize, after: resizedFile.size });
-            }
+            setUploadProgress(25);
+            setCompressionInfo({ before: originalSize, after: resizedFile.size });
 
-            setUploadProgress(20);
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (resizedFile.size > maxSize) {
+                alert('A imagem ainda está maior que 5MB após otimização. Use um arquivo menor ou carregue uma versão otimizada em Perfil → Gerenciar Avatares.');
+                setUploading(false);
+                setUploadProgress(0);
+                return;
+            }
 
             // Generate unique filename
             const fileExt = resizedFile.name.split('.').pop();

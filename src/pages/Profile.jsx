@@ -264,6 +264,8 @@ const Profile = () => {
             setShowAvatarModal(false);
             // Reload avatars list using hook
             reloadAvatars && reloadAvatars();
+            window.dispatchEvent(new Event('avatars-updated'));
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: selectedAvatar ? 'Avatar atualizado com sucesso!' : 'Avatar criado com sucesso!', type: 'success' } }));
         } catch (err) {
             console.error('Error saving avatar:', err);
             alert('Erro ao salvar avatar: ' + err.message);
