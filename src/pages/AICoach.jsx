@@ -24,15 +24,20 @@ const QUICK_ACTIONS = [
 ];
 
 const MUSCLE_GROUPS = [
-    { name: 'Tríceps',      keywords: ['tríceps', 'triceps', 'trícep', 'tricep'] },
-    { name: 'Bíceps',       keywords: ['bíceps', 'biceps', 'bícep', 'bicep'] },
-    { name: 'Peitoral',     keywords: ['peitoral', 'peito', 'pectorais'] },
-    { name: 'Costas',       keywords: ['costas', 'dorsal', 'latíssimo', 'latissimo', 'remada'] },
-    { name: 'Ombros',       keywords: ['ombros', 'ombro', 'deltoides', 'deltoide'] },
-    { name: 'Pernas',       keywords: ['pernas', 'perna', 'quadríceps', 'quadriceps', 'isquiotibiais', 'coxa'] },
-    { name: 'Abdômen',      keywords: ['abdômen', 'abdomen', 'abdominal', 'abdominais', 'core'] },
-    { name: 'Glúteos',      keywords: ['glúteos', 'gluteos', 'glúteo', 'gluteo'] },
-    { name: 'Panturrilha',  keywords: ['panturrilha', 'panturrilhas', 'sóleo', 'soleo'] },
+    { name: 'Peitoral',           keywords: ['peitoral', 'peito', 'pectorais'] },
+    { name: 'Costas',             keywords: ['costas', 'dorsal', 'latíssimo', 'latissimo', 'remada'] },
+    { name: 'Ombros',             keywords: ['ombros', 'ombro', 'deltoides', 'deltoide'] },
+    { name: 'Trapézio',           keywords: ['trapézio', 'trapezio'] },
+    { name: 'Bíceps',             keywords: ['bíceps', 'biceps', 'bícep', 'bicep'] },
+    { name: 'Tríceps',            keywords: ['tríceps', 'triceps', 'trícep', 'tricep'] },
+    { name: 'Antebraço',          keywords: ['antebraço', 'antebraco', 'punho', 'preensão', 'preensao'] },
+    { name: 'Abdômen',            keywords: ['abdômen', 'abdomen', 'abdominal', 'abdominais', 'core'] },
+    { name: 'Lombar',             keywords: ['lombar', 'lombares', 'eretores', 'paravertebrais'] },
+    { name: 'Glúteos',            keywords: ['glúteos', 'gluteos', 'glúteo', 'gluteo'] },
+    { name: 'Quadríceps',         keywords: ['quadríceps', 'quadriceps', 'quadríceps femoral'] },
+    { name: 'Posterior de Coxa',  keywords: ['posterior de coxa', 'isquiotibiais', 'isquiotibial', 'posterior da coxa'] },
+    { name: 'Adutores',           keywords: ['adutores', 'adutor', 'interno da coxa', 'interno de coxa'] },
+    { name: 'Panturrilha',        keywords: ['panturrilha', 'panturrilhas', 'sóleo', 'soleo'] },
 ];
 
 const INITIAL_MESSAGE = {

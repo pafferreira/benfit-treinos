@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { useAction } from '../context/ActionContext';
-import { supabaseHelpers } from '../lib/supabase';
+import { supabaseHelpers, getExerciseMuscleGroups } from '../lib/supabase';
 import { Search, Plus, Edit2, Trash2, Target, Package, LayoutGrid, List, Dumbbell, Filter, X } from 'lucide-react';
 import ExerciseModal from '../components/ExerciseModal';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -37,15 +37,17 @@ const Exercises = () => {
 
     const filteredExercises = useMemo(() => {
         return exercises.filter(exercise => {
+            const groups = getExerciseMuscleGroups(exercise);
             const q = searchTerm.trim().toLowerCase();
             const matchesSearch = !q || [
                 exercise.name,
-                exercise.muscle_group,
+                groups.join(' '),
                 exercise.equipment,
                 (exercise.tags || []).join(' '),
                 (Array.isArray(exercise.instructions) ? exercise.instructions.join(' ') : exercise.instructions || '')
             ].some(field => (field || '').toString().toLowerCase().includes(q));
-            const matchesMuscle = muscleFilter === 'all' || exercise.muscle_group === muscleFilter;
+            // Basta o exercício conter o grupo filtrado — não precisa ser o principal
+            const matchesMuscle = muscleFilter === 'all' || groups.includes(muscleFilter);
             const matchesEquipment = equipmentFilter === 'all' || exercise.equipment === equipmentFilter;
 
             return matchesSearch && matchesMuscle && matchesEquipment;
@@ -53,7 +55,7 @@ const Exercises = () => {
     }, [exercises, searchTerm, muscleFilter, equipmentFilter]);
 
     const stats = useMemo(() => {
-        const uniqueMuscles = new Set(filteredExercises.map(ex => ex.muscle_group));
+        const uniqueMuscles = new Set(filteredExercises.flatMap(getExerciseMuscleGroups));
         const uniqueEquipment = new Set(filteredExercises.map(ex => ex.equipment));
 
         return {
@@ -64,7 +66,7 @@ const Exercises = () => {
     }, [filteredExercises]);
 
     const filterOptions = useMemo(() => {
-        const muscles = [...new Set(exercises.map(ex => ex.muscle_group))].sort();
+        const muscles = [...new Set(exercises.flatMap(getExerciseMuscleGroups))].sort();
         const equipment = [...new Set(exercises.map(ex => ex.equipment))].sort();
         return { muscles, equipment };
     }, [exercises]);
@@ -315,12 +317,17 @@ const Exercises = () => {
                                             </div>
                                         )}
 
-                                        {/* Muscle Badge */}
-                                        <div className="absolute bottom-2 left-2 pointer-events-none">
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/90 backdrop-blur-sm text-gray-800 shadow-sm border border-gray-200/50">
-                                                <Target size={12} className="mr-1 text-blue-500" />
-                                                {exercise.muscle_group}
-                                            </span>
+                                        {/* Muscle Badges — um por grupo trabalhado */}
+                                        <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1 pointer-events-none">
+                                            {getExerciseMuscleGroups(exercise).map((group, i) => (
+                                                <span
+                                                    key={group}
+                                                    className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/90 backdrop-blur-sm text-gray-800 shadow-sm border border-gray-200/50"
+                                                >
+                                                    {i === 0 && <Target size={12} className="mr-1 text-blue-500" />}
+                                                    {group}
+                                                </span>
+                                            ))}
                                         </div>
                                     </div>
 
@@ -373,9 +380,9 @@ const Exercises = () => {
                                     <div className="flex-1 min-w-0">
                                         <h3 className="text-base font-bold text-gray-900 truncate">{exercise.name}</h3>
                                         <div className="flex items-center gap-3 mt-1">
-                                            <span className="inline-flex items-center text-xs text-gray-500">
-                                                <Target size={12} className="mr-1 text-blue-500" />
-                                                {exercise.muscle_group}
+                                            <span className="inline-flex items-center text-xs text-gray-500 truncate">
+                                                <Target size={12} className="mr-1 text-blue-500 shrink-0" />
+                                                {getExerciseMuscleGroups(exercise).join(', ')}
                                             </span>
                                             <span className="inline-flex items-center text-xs text-gray-500">
                                                 <Package size={12} className="mr-1 text-gray-400" />

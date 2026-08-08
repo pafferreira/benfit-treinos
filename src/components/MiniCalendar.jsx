@@ -17,6 +17,22 @@ const MiniCalendar = ({
     const [weekOffset, setWeekOffset] = useState(0);
     const [animDir, setAnimDir] = useState(null); // 'left' | 'right' | null
     const touchStartX = useRef(null);
+    const lastClickAt = useRef(0);
+
+    // Duplo clique manual via timestamp de cliques, em vez do evento nativo
+    // 'dblclick' — em telas touch (o uso real deste app é majoritariamente
+    // mobile) o dblclick nativo é pouco confiável para duplo toque.
+    const DOUBLE_CLICK_WINDOW_MS = 350;
+    const handleWrapperClick = () => {
+        if (!onDoubleClick) return;
+        const now = Date.now();
+        if (now - lastClickAt.current < DOUBLE_CLICK_WINDOW_MS) {
+            lastClickAt.current = 0;
+            onDoubleClick();
+        } else {
+            lastClickAt.current = now;
+        }
+    };
 
     // Recalcula a weekStart base sempre que currentDate mudar
     // Normaliza currentDate para meia-noite local para evitar off-by-one em timezones
@@ -260,7 +276,7 @@ const MiniCalendar = ({
             className={`mini-calendar-wrapper ${variant} ${compact ? 'compact' : ''} ${animDir ? `anim-${animDir}` : ''}`}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
-            onDoubleClick={onDoubleClick || undefined}
+            onClick={handleWrapperClick}
             style={onDoubleClick ? { cursor: 'pointer' } : undefined}
         >
             <div className="calendar-header">

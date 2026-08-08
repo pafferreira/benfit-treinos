@@ -7,6 +7,7 @@ import ActionButton from '../components/ActionButton';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import MiniCalendar from '../components/MiniCalendar';
+import { cacheGet, cacheInvalidate, swr } from '../lib/dataCache';
 import './Workouts.css';
 
 const Workouts = () => {
@@ -15,10 +16,11 @@ const Workouts = () => {
     const { isAdmin, isPersonal, isUser } = useUserRole();
 
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
-    const [userActivePlanIds, setUserActivePlanIds] = useState([]);
+    const [userActivePlanIds, setUserActivePlanIds] = useState(() => cacheGet('workouts:activePlans')?.value || []);
     const [processingWorkoutId, setProcessingWorkoutId] = useState(null);
-    const [finalizedDates, setFinalizedDates] = useState([]);
-    const [doneDates, setDoneDates] = useState([]);
+    const cachedCalendar = cacheGet('workouts:calendar')?.value;
+    const [finalizedDates, setFinalizedDates] = useState(cachedCalendar?.finalizedDates || []);
+    const [doneDates, setDoneDates] = useState(cachedCalendar?.doneDates || []);
 
     // Track the plan the user just visited (navigated into and came back from)
     const [lastVisitedPlanId] = useState(() => sessionStorage.getItem('benfit_lastVisitedPlan') || null);
@@ -30,10 +32,16 @@ const Workouts = () => {
 
     const loadUserActivePlans = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            const activePlans = await supabaseHelpers.getUserActivePlans(user.id);
-            setUserActivePlanIds(activePlans.map((p) => p.workout_id));
+            await swr(
+                'workouts:activePlans',
+                async () => {
+                    const user = await supabaseHelpers.getCurrentUser();
+                    if (!user) return [];
+                    const activePlans = await supabaseHelpers.getUserActivePlans(user.id);
+                    return activePlans.map((p) => p.workout_id);
+                },
+                { onData: setUserActivePlanIds }
+            );
         } catch (err) {
             console.error('Erro ao carregar planos ativos:', err);
         }
@@ -41,21 +49,28 @@ const Workouts = () => {
 
     const loadCalendarDates = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setFinalizedDates([]);
-                setDoneDates([]);
-                return;
-            }
-            // Usa a MESMA lógica da tela "Histórico de Atividades", distinguindo
-            // treinos finalizados de dias com apenas exercícios "Feito".
-            const res = await supabaseHelpers.getExerciseDoneCalendarDates(user.id);
-            setFinalizedDates(res.finalizedDates || []);
-            setDoneDates(res.doneDates || []);
+            await swr(
+                'workouts:calendar',
+                async () => {
+                    const user = await supabaseHelpers.getCurrentUser();
+                    if (!user) return { finalizedDates: [], doneDates: [] };
+                    // Usa a MESMA lógica da tela "Histórico de Atividades", distinguindo
+                    // treinos finalizados de dias com apenas exercícios "Feito".
+                    const res = await supabaseHelpers.getExerciseDoneCalendarDates(user.id);
+                    return {
+                        finalizedDates: res.finalizedDates || [],
+                        doneDates: res.doneDates || [],
+                    };
+                },
+                {
+                    onData: (res) => {
+                        setFinalizedDates(res.finalizedDates);
+                        setDoneDates(res.doneDates);
+                    },
+                }
+            );
         } catch (err) {
             console.error('Erro ao carregar calendário de treinos:', err);
-            setFinalizedDates([]);
-            setDoneDates([]);
         }
     };
 
@@ -83,6 +98,7 @@ const Workouts = () => {
                         setProcessingWorkoutId(workout.id);
                         await supabaseHelpers.unassignPlanFromUser(user.id, workout.id);
                         window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Plano "${workout.title}" removido.`, type: 'success' } }));
+                        cacheInvalidate('workouts:activePlans');
                         await loadUserActivePlans();
                         reload();
                     } catch (err) {
@@ -101,6 +117,7 @@ const Workouts = () => {
             setProcessingWorkoutId(workout.id);
             await supabaseHelpers.assignPlanToUser(user.id, workout.id);
             window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: `Plano "${workout.title}" atribuído com sucesso!`, type: 'success' } }));
+            cacheInvalidate('workouts:activePlans');
             await loadUserActivePlans();
             reload();
         } catch (err) {

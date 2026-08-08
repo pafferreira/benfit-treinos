@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Clock, Layers, Calendar, Flame, Activity } from 'lucide-react';
 
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
-import { supabase, supabaseHelpers } from '../lib/supabase';
+import { supabaseHelpers } from '../lib/supabase';
+import { cacheGet, swr } from '../lib/dataCache';
 import './WorkoutPlan.css';
 
 const DIFFICULTY_COLOR = {
@@ -42,17 +43,19 @@ const WorkoutPlan = () => {
     const headerRef = useRef(null);
     const lastScrollY = useRef(0);
 
-    const [loading, setLoading] = useState(true);
-    const [workout, setWorkout] = useState(null);
-    const [days, setDays] = useState([]);
-    const [lastFeeling, setLastFeeling] = useState(null);
+    // Se já visitamos este plano nesta sessão, renderiza direto do cache:
+    // sem skeleton, sem espera — a revalidação acontece em segundo plano.
+    const cacheKey = `plan:${id}`;
+    const initial = cacheGet(cacheKey)?.value || null;
+
+    const [loading, setLoading] = useState(!initial);
+    const [workout, setWorkout] = useState(initial?.workout || null);
+    const [days, setDays] = useState(initial?.days || []);
+    const [lastFeeling, setLastFeeling] = useState(initial?.lastFeeling || null);
     const [headerStuck, setHeaderStuck] = useState(false);
 
     // Track the day the user just visited (navigated into and came back from)
-    const [lastVisitedDayId, setLastVisitedDayId] = useState(() => {
-        const stored = sessionStorage.getItem(`benfit_lastVisitedDay_${id}`);
-        return stored || null;
-    });
+    const [lastVisitedDayId] = useState(() => sessionStorage.getItem(`benfit_lastVisitedDay_${id}`) || null);
 
     // Sticky header on scroll
     useEffect(() => {
@@ -69,147 +72,34 @@ const WorkoutPlan = () => {
         return () => scrollContainer.removeEventListener('scroll', handleScroll);
     }, []);
 
-    useEffect(() => {
-        loadWorkoutData();
-    }, [id]);
-
-    const loadWorkoutData = async () => {
+    const loadWorkoutData = useCallback(async () => {
         try {
-            setLoading(true);
-
-            const { data: workoutData, error: workoutError } = await supabase
-                .from('b_workouts')
-                .select('*')
-                .eq('id', id)
-                .single();
-
-            if (workoutError) throw workoutError;
-            setWorkout(workoutData);
-
-            // Fetch days and include exercises inline to avoid a second query for counts
-            const { data: daysData, error: daysError } = await supabase
-                .from('b_workout_days')
-                .select('*, b_workout_exercises ( id, exercise_id )')
-                .eq('workout_id', id)
-                .order('day_number');
-
-            if (daysError) throw daysError;
-
-            const dayIds = (daysData || []).map((d) => d.id);
-
-            // Enrich days with user-specific progress: last session date, exercises done in last session and completed flag
-            let enrichedDays = (daysData || []).map((day) => ({
-                ...day,
-                // use nested b_workout_exercises length if available
-                exercise_count: (day.b_workout_exercises && day.b_workout_exercises.length) || 0,
-                last_session_date: null,
-                exercises_done: 0,
-                completed: false
-            }));
-
-            try {
-                const currentUser = await supabaseHelpers.getCurrentUser();
-                if (currentUser?.id) {
-                    // Fetch recent sessions for all days in a single query
-                    // Limitar número de sessões buscadas para reduzir payload e latência.
-                    // Buscamos as sessões mais recentes do usuário para esse treino, limitando a um múltiplo do número de dias.
-                    const fetchLimit = Math.max(10, dayIds.length * 2);
-
-                    // Single batched query: sessions with nested logs (b_session_logs)
-                    const { data: sessionsWithLogs } = await supabase
-                        .from('b_workout_sessions')
-                        .select('id, workout_day_id, started_at, ended_at, b_session_logs (exercise_id)')
-                        .eq('user_id', currentUser.id)
-                        .eq('workout_id', id)
-                        .in('workout_day_id', dayIds)
-                        .order('started_at', { ascending: false })
-                        .limit(fetchLimit);
-
-                    if (sessionsWithLogs && sessionsWithLogs.length > 0) {
-                        // Pick the latest session per day (by started_at desc)
-                        const latestSessionByDay = {};
-                        for (const s of sessionsWithLogs) {
-                            if (!latestSessionByDay[s.workout_day_id]) {
-                                latestSessionByDay[s.workout_day_id] = s;
-                            }
-                        }
-
-                        // Assign counts to days using nested logs
-                        enrichedDays = enrichedDays.map(d => {
-                            const s = latestSessionByDay[d.id];
-                            if (!s) return d;
-                            d.last_session_date = s.ended_at || s.started_at || null;
-                            d.finalized = Boolean(s.ended_at); // sessão finalizada (mesmo critério do minicalendário)
-                            const logs = s.b_session_logs || [];
-                            const distinctExerciseIds = new Set((logs || []).map(l => l.exercise_id).filter(Boolean));
-                            d.exercises_done = distinctExerciseIds.size;
-                            d.completed = d.exercise_count > 0 ? (d.exercises_done >= d.exercise_count) : false;
-                            return d;
-                        });
-                    }
-
-                    // Additionally fetch latest completed date per day (Feito) to show most recent completion
-                    try {
-                        const latestByDay = await supabaseHelpers.getLatestCompletedDatePerDay(currentUser.id, id, dayIds);
-                        enrichedDays = enrichedDays.map(d => ({
-                            ...d,
-                            // Apenas datas REALMENTE finalizadas+completas (sem fallback p/ last_session_date,
-                            // senão todo dia com sessão ficaria marcado como finalizado/verde).
-                            last_completed_date: latestByDay[d.id] || null,
-                            per_exercise_done_dates: {},
-                        }));
-                        
-                        // Also fetch per-exercise latest done dates + per-day last "Feito" date
-                        try {
-                            const exDates = await supabaseHelpers.getUserExerciseDoneDates(currentUser.id, 365);
-                            // exDates.perExerciseLatest: { dayId: { exerciseId: 'YYYY-MM-DD' } }
-                            // exDates.perDayLastDone: { dayId: 'YYYY-MM-DD' } (data do último exercício feito)
-                            enrichedDays = enrichedDays.map(d => ({
-                                ...d,
-                                per_exercise_done_dates: exDates.perExerciseLatest[d.id] || {},
-                                last_done_date: exDates.perDayLastDone?.[d.id] || null,
-                            }));
-                        } catch (err) {
-                            console.warn('Could not fetch per-exercise done dates:', err);
-                        }
-                    } catch (err) {
-                        console.warn('Could not fetch latest completed date per day:', err);
-                        enrichedDays = enrichedDays.map(d => ({ ...d, last_completed_date: null }));
-                    }
+            await swr(
+                `plan:${id}`,
+                async () => {
+                    const currentUser = await supabaseHelpers.getCurrentUser();
+                    return supabaseHelpers.getWorkoutPlanOverview(currentUser?.id, id);
+                },
+                {
+                    onData: ({ workout: w, days: d, lastFeeling: f }) => {
+                        setWorkout(w);
+                        setDays(d);
+                        setLastFeeling(f);
+                        setLoading(false);
+                    },
                 }
-            } catch (err) {
-                console.warn('Could not load per-day session info:', err);
-            }
-
-            setDays(enrichedDays);
-
-            // Load last feeling for this workout plan
-            try {
-                const currentUser = await supabaseHelpers.getCurrentUser();
-                if (currentUser?.id) {
-                    const { data: lastSession } = await supabase
-                        .from('b_workout_sessions')
-                        .select('feeling, ended_at, calories_burned, workout_day_id')
-                        .eq('user_id', currentUser.id)
-                        .eq('workout_id', id)
-                        .not('ended_at', 'is', null)
-                        .not('feeling', 'is', null)
-                        .order('ended_at', { ascending: false })
-                        .limit(1)
-                        .maybeSingle();
-
-                    if (lastSession?.feeling) {
-                        setLastFeeling(lastSession);
-                    }
-                }
-            } catch { /* feeling is optional */ }
-
+            );
         } catch (error) {
             console.error('Erro ao carregar dados do treino:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        loadWorkoutData();
+    }, [loadWorkoutData]);
+
 
     const handleOpenDay = (day) => {
         sessionStorage.setItem(`benfit_lastVisitedDay_${id}`, day.id);

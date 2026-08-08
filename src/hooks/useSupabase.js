@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react'
 import { supabaseHelpers } from '../lib/supabase'
+import { cacheGet, cacheInvalidate, cacheSet } from '../lib/dataCache'
+
+const EXERCISES_KEY = 'exercises:all'
+const WORKOUTS_KEY = 'workouts:all'
 
 export const useExercises = () => {
-    const [exercises, setExercises] = useState([])
-    const [loading, setLoading] = useState(true)
+    // Cache warm = lista aparece na hora; a revalidação roda em background.
+    const cached = cacheGet(EXERCISES_KEY)?.value || null
+    const [exercises, setExercises] = useState(cached || [])
+    const [loading, setLoading] = useState(!cached)
     const [error, setError] = useState(null)
 
     useEffect(() => {
@@ -12,11 +18,9 @@ export const useExercises = () => {
 
     const loadExercises = async () => {
         try {
-            setLoading(true)
             setError(null)
-            console.log('🔄 Loading exercises from Supabase...')
             const data = await supabaseHelpers.getAllExercises()
-            console.log('✅ Loaded', data.length, 'exercises from Supabase')
+            cacheSet(EXERCISES_KEY, data)
             setExercises(data)
         } catch (err) {
             console.error('❌ Error loading exercises from Supabase:', err)
@@ -34,26 +38,35 @@ export const useExercises = () => {
         }
     }
 
-    return { exercises, loading, error, reload: loadExercises }
+    const reload = () => {
+        cacheInvalidate(EXERCISES_KEY)
+        return loadExercises()
+    }
+
+    return { exercises, loading, error, reload }
 }
 
 export const useWorkouts = () => {
-    const [workouts, setWorkouts] = useState([])
-    const [loading, setLoading] = useState(true)
+    const cached = cacheGet(WORKOUTS_KEY)?.value || null
+    const [workouts, setWorkouts] = useState(cached || [])
+    const [loading, setLoading] = useState(!cached)
     const [error, setError] = useState(null)
 
     useEffect(() => {
         loadWorkouts()
 
         // Reload when impersonation changes so visibility rules are re-applied
-        const handleImpersonationChange = () => loadWorkouts();
+        // (a visibilidade muda, então o cache precisa ser descartado)
+        const handleImpersonationChange = () => {
+            cacheInvalidate(WORKOUTS_KEY)
+            loadWorkouts()
+        };
         window.addEventListener('impersonation-updated', handleImpersonationChange);
         return () => window.removeEventListener('impersonation-updated', handleImpersonationChange);
     }, [])
 
     const loadWorkouts = async () => {
         try {
-            setLoading(true)
             setError(null)
             const data = await supabaseHelpers.getAllWorkouts()
 
@@ -90,6 +103,7 @@ export const useWorkouts = () => {
                 return transformed
             })
 
+            cacheSet(WORKOUTS_KEY, transformedData)
             setWorkouts(transformedData)
         } catch (err) {
             console.error('❌ Error loading workouts from Supabase:', err)
@@ -102,7 +116,13 @@ export const useWorkouts = () => {
         }
     }
 
-    return { workouts, loading, error, reload: loadWorkouts }
+    const reload = () => {
+        cacheInvalidate(WORKOUTS_KEY)
+        cacheInvalidate('plan:', { prefix: true })
+        return loadWorkouts()
+    }
+
+    return { workouts, loading, error, reload }
 }
 
 export const useAvatars = () => {
