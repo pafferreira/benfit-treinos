@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useAvatars } from '../hooks/useSupabase';
+import { useAvatars, useUserRole } from '../hooks/useSupabase';
 import Modal from './Modal';
-import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Image as ImageIcon, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon } from 'lucide-react';
+import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Image as ImageIcon, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon, Lock } from 'lucide-react';
+import ExerciseUsageTab from './ExerciseUsageTab';
+import ExerciseHistoryTab from './ExerciseHistoryTab';
 import './ExerciseModal.css';
 
 const Accordion = ({ title, icon: Icon, children, defaultOpen = false, collapsedPreview = null }) => {
@@ -37,6 +39,10 @@ const Accordion = ({ title, icon: Icon, children, defaultOpen = false, collapsed
 
 const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = false, readOnly = false }) => {
     const { avatars, loading: loadingAvatars } = useAvatars();
+    const { isAdmin, isPersonal, isUser } = useUserRole();
+    const tabsLocked = !!(isUser && !isAdmin && !isPersonal);
+
+    const [activeTab, setActiveTab] = useState('detalhes');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -55,6 +61,8 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
     const [equipmentTypes, setEquipmentTypes] = useState([]);
 
     useEffect(() => {
+        setActiveTab('detalhes');
+
         if (exercise) {
             // Exercícios anteriores à migração só têm muscle_group preenchido
             const groups = Array.isArray(exercise.muscle_groups) && exercise.muscle_groups.length > 0
@@ -202,7 +210,52 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         <Modal isOpen={isOpen} onClose={onClose} title={readOnly ? 'Detalhes do Exercício' : (exercise?.id ? 'Editar Exercício' : 'Novo Exercício')} size="full">
             <form onSubmit={!readOnly ? handleSubmit : (e) => e.preventDefault()} className="flex flex-col gap-6">
 
-                {/* Top Section: Main Info & Visuals in a Grid */}
+                {exercise?.id && (
+                    <div className="flex gap-1 border-b border-gray-200 -mt-2 mb-2">
+                        {[
+                            { key: 'detalhes', label: 'Detalhes' },
+                            { key: 'planos', label: 'Planos' },
+                            { key: 'historico', label: 'Histórico' },
+                        ].map(tab => (
+                            <button
+                                key={tab.key}
+                                type="button"
+                                onClick={() => setActiveTab(tab.key)}
+                                className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+                                    activeTab === tab.key
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {activeTab === 'planos' && exercise?.id && (
+                    tabsLocked ? (
+                        <div className="py-10 flex flex-col items-center text-center text-gray-400">
+                            <Lock size={28} className="mb-2 opacity-50" />
+                            <p className="text-sm">Disponível apenas para admin e personal.</p>
+                        </div>
+                    ) : (
+                        <ExerciseUsageTab exerciseId={exercise.id} />
+                    )
+                )}
+
+                {activeTab === 'historico' && exercise?.id && (
+                    tabsLocked ? (
+                        <div className="py-10 flex flex-col items-center text-center text-gray-400">
+                            <Lock size={28} className="mb-2 opacity-50" />
+                            <p className="text-sm">Disponível apenas para admin e personal.</p>
+                        </div>
+                    ) : (
+                        <ExerciseHistoryTab exerciseId={exercise.id} exerciseImageUrl={formData.image_url} />
+                    )
+                )}
+
+                {activeTab === 'detalhes' && (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8">
 
                     {/* Left Column: Form Fields (8 cols) */}
@@ -543,6 +596,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                         </div>
                     </div>
                 </div>
+                )}
 
                 {/* Footer Actions */}
                 <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-auto">
