@@ -4,7 +4,7 @@ import Modal from './Modal';
 import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Image as ImageIcon, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon } from 'lucide-react';
 import './ExerciseModal.css';
 
-const Accordion = ({ title, icon: Icon, children, defaultOpen = false }) => {
+const Accordion = ({ title, icon: Icon, children, defaultOpen = false, collapsedPreview = null }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
@@ -14,11 +14,16 @@ const Accordion = ({ title, icon: Icon, children, defaultOpen = false }) => {
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full flex items-center justify-between p-4 bg-gray-50/50 hover:bg-gray-50 transition-colors"
             >
-                <div className="flex items-center gap-3">
-                    {Icon && <Icon className="text-blue-500" size={20} />}
-                    <span className="font-semibold text-gray-700">{title}</span>
+                <div className="flex items-center gap-3 min-w-0">
+                    {Icon && <Icon className="text-blue-500 shrink-0" size={20} />}
+                    <span className="font-semibold text-gray-700 shrink-0">{title}</span>
+                    {!isOpen && collapsedPreview && (
+                        <div className="flex items-center gap-1.5 flex-wrap min-w-0 overflow-hidden">
+                            {collapsedPreview}
+                        </div>
+                    )}
                 </div>
-                {isOpen ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+                {isOpen ? <ChevronUp size={20} className="text-gray-400 shrink-0" /> : <ChevronDown size={20} className="text-gray-400 shrink-0" />}
             </button>
 
             {isOpen && (
@@ -118,6 +123,17 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         }));
     };
 
+    // Remove um valor legado (string composta de antes da migração, ex: "Pernas /
+    // Glúteo") que não corresponde a nenhuma opção fixa — só usado pelo chip de
+    // reclassificação manual.
+    const removeLegacyGroup = (value) => {
+        if (readOnly) return;
+        setFormData(prev => ({
+            ...prev,
+            muscle_groups: prev.muscle_groups.filter(g => g !== value)
+        }));
+    };
+
     const handleInstructionChange = (index, value) => {
         const newInstructions = [...formData.instructions];
         newInstructions[index] = value;
@@ -178,7 +194,9 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         'Peitoral', 'Costas', 'Ombros', 'Trapézio', 'Bíceps', 'Tríceps', 'Antebraço',
         'Abdômen', 'Lombar', 'Glúteos', 'Quadríceps', 'Posterior de Coxa', 'Adutores',
         'Panturrilha', 'Cardio', 'Corpo Todo'
-    ];
+    ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    const legacyGroups = formData.muscle_groups.filter(g => !muscleGroups.includes(g));
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={readOnly ? 'Detalhes do Exercício' : (exercise?.id ? 'Editar Exercício' : 'Novo Exercício')} size="full">
@@ -211,55 +229,6 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                            <span className="inline-flex items-center gap-2">
-                                                <Target size={16} className="text-blue-500" />
-                                                Grupos Musculares {!readOnly && <span className="text-red-500">*</span>}
-                                            </span>
-                                            <span className="block text-xs font-normal text-gray-400 mt-0.5">
-                                                {readOnly
-                                                    ? 'Grupos trabalhados por este exercício'
-                                                    : 'Selecione um ou mais. O primeiro escolhido vira o grupo principal.'}
-                                            </span>
-                                        </label>
-
-                                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl border ${readOnly ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
-                                            {muscleGroups.map(group => {
-                                                const checked = formData.muscle_groups.includes(group);
-                                                const isPrimary = formData.muscle_groups[0] === group;
-                                                return (
-                                                    <label
-                                                        key={group}
-                                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all select-none ${
-                                                            checked
-                                                                ? 'bg-blue-50 border-blue-300 text-blue-700'
-                                                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                                                        } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checked}
-                                                            onChange={() => toggleMuscleGroup(group)}
-                                                            disabled={readOnly}
-                                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/30 shrink-0"
-                                                        />
-                                                        <span className="truncate">{group}</span>
-                                                        {isPrimary && formData.muscle_groups.length > 1 && (
-                                                            <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-blue-500">
-                                                                1º
-                                                            </span>
-                                                        )}
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {!readOnly && formData.muscle_groups.length === 0 && (
-                                            <p className="mt-1.5 text-xs text-red-500">Escolha ao menos um grupo muscular.</p>
-                                        )}
-                                    </div>
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -284,6 +253,100 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </Accordion>
+
+                            <Accordion
+                                title="Grupos Musculares"
+                                icon={Target}
+                                defaultOpen={false}
+                                collapsedPreview={
+                                    formData.muscle_groups.length > 0 ? (
+                                        formData.muscle_groups.map(group => (
+                                            <span key={group} className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium">
+                                                {group}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <span className="text-xs text-red-400 italic">Nenhum grupo selecionado</span>
+                                    )
+                                }
+                            >
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                        <span className="inline-flex items-center gap-2">
+                                            <Target size={16} className="text-blue-500" />
+                                            Grupos Musculares {!readOnly && <span className="text-red-500">*</span>}
+                                        </span>
+                                        <span className="block text-xs font-normal text-gray-400 mt-0.5">
+                                            {readOnly
+                                                ? 'Grupos trabalhados por este exercício'
+                                                : 'Selecione um ou mais. O primeiro escolhido vira o grupo principal.'}
+                                        </span>
+                                    </label>
+
+                                    {legacyGroups.length > 0 && (
+                                        <div className="mb-3 p-3 rounded-xl border border-amber-200 bg-amber-50">
+                                            <p className="text-xs text-amber-700 font-medium mb-2">
+                                                Valor antigo de antes da migração — escolha os grupos corretos abaixo e remova este chip.
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {legacyGroups.map(value => (
+                                                    <span
+                                                        key={value}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-200 text-gray-600 text-xs font-medium"
+                                                    >
+                                                        {value}
+                                                        {!readOnly && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeLegacyGroup(value)}
+                                                                className="hover:text-red-600"
+                                                                title="Remover valor antigo"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        )}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl border ${readOnly ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
+                                        {muscleGroups.map(group => {
+                                            const checked = formData.muscle_groups.includes(group);
+                                            const isPrimary = formData.muscle_groups[0] === group;
+                                            return (
+                                                <label
+                                                    key={group}
+                                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all select-none ${
+                                                        checked
+                                                            ? 'bg-blue-50 border-blue-300 text-blue-700'
+                                                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                                                    } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={() => toggleMuscleGroup(group)}
+                                                        disabled={readOnly}
+                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/30 shrink-0"
+                                                    />
+                                                    <span className="truncate">{group}</span>
+                                                    {isPrimary && formData.muscle_groups.length > 1 && (
+                                                        <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-blue-500">
+                                                            1º
+                                                        </span>
+                                                    )}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {!readOnly && formData.muscle_groups.length === 0 && (
+                                        <p className="mt-1.5 text-xs text-red-500">Escolha ao menos um grupo muscular.</p>
+                                    )}
                                 </div>
                             </Accordion>
 
