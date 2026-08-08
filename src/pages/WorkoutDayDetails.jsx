@@ -6,7 +6,8 @@ import SessionExerciseItem from '../components/SessionExerciseItem';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import Modal from '../components/Modal';
-import { supabase, supabaseHelpers } from '../lib/supabase';
+import { supabaseHelpers } from '../lib/supabase';
+import { cacheGet, cacheInvalidate, swr } from '../lib/dataCache';
 import { saveToMemory } from '../services/memory';
 import './WorkoutDayDetails.css';
 
@@ -75,24 +76,28 @@ const WorkoutDayDetails = () => {
     const { id, dayId } = useParams();
     const navigate = useNavigate();
 
-    const [loading, setLoading] = useState(true);
-    const [workout, setWorkout] = useState(null);
-    const [day, setDay] = useState(null);
-    const [workoutExercises, setWorkoutExercises] = useState([]);
-    const [completedExercises, setCompletedExercises] = useState([]);
+    // Volta do plano para o dia já visitado renderiza do cache, sem skeleton.
+    const cacheKey = `day:${id}:${dayId}`;
+    const initial = cacheGet(cacheKey)?.value || null;
+
+    const [loading, setLoading] = useState(!initial);
+    const [workout, setWorkout] = useState(initial?.workout || null);
+    const [day, setDay] = useState(initial?.day || null);
+    const [workoutExercises, setWorkoutExercises] = useState(initial?.exercises || []);
+    const [completedExercises, setCompletedExercises] = useState(initial?.completedExercises || []);
     // Última data em que cada exercício foi marcado como "Feito" — { [exercise_id]: 'YYYY-MM-DD' }
-    const [exerciseDoneDates, setExerciseDoneDates] = useState({});
+    const [exerciseDoneDates, setExerciseDoneDates] = useState(initial?.exerciseDoneDates || {});
     const [showRestTimer, setShowRestTimer] = useState(false);
     const [restDuration, setRestDuration] = useState(60); // Timer principal sempre em 60s por padrão, como pedido pelo user
     const [activeExerciseIndex, setActiveExerciseIndex] = useState(0); // Controle do Accordion
-    const [currentSessionId, setCurrentSessionId] = useState(null);
-    const [currentSessionStartedAt, setCurrentSessionStartedAt] = useState(null);
-    const [lastExerciseDoneAt, setLastExerciseDoneAt] = useState(null);
+    const [currentSessionId, setCurrentSessionId] = useState(initial?.openSession?.id || null);
+    const [currentSessionStartedAt, setCurrentSessionStartedAt] = useState(initial?.openSession?.started_at || null);
+    const [lastExerciseDoneAt, setLastExerciseDoneAt] = useState(initial?.lastExerciseDoneAt || null);
     const [userWeightKg, setUserWeightKg] = useState(70);
     const [showFinishModal, setShowFinishModal] = useState(false);
     const [feelingScore, setFeelingScore] = useState(6);
     const [finishingSession, setFinishingSession] = useState(false);
-    const [lastFeelingLog, setLastFeelingLog] = useState(null);
+    const [lastFeelingLog, setLastFeelingLog] = useState(initial?.lastFeelingLog || null);
     const [isHeaderStuck, setIsHeaderStuck] = useState(false);
     const finishModalHistoryRef = useRef(false);
 
@@ -139,145 +144,38 @@ const WorkoutDayDetails = () => {
         finishModalHistoryRef.current = false;
     }, []);
 
-    const loadOpenSessionProgress = async (workoutId, workoutDayId, userId) => {
-        const { data: openSession, error: openSessionError } = await supabase
-            .from('b_workout_sessions')
-            .select('id, started_at')
-            .eq('user_id', userId)
-            .eq('workout_id', workoutId)
-            .eq('workout_day_id', workoutDayId)
-            .is('ended_at', null)
-            .order('started_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-        if (openSessionError) throw openSessionError;
-
-        if (!openSession) {
-            setCurrentSessionId(null);
-            setCurrentSessionStartedAt(null);
-            setLastExerciseDoneAt(null);
-            setCompletedExercises([]);
-            return;
-        }
-
-        setCurrentSessionId(openSession.id);
-        setCurrentSessionStartedAt(openSession.started_at);
-
-        const { data: sessionLogs, error: logsError } = await supabase
-            .from('b_session_logs')
-            .select('exercise_id, created_at')
-            .eq('session_id', openSession.id)
-            .eq('user_id', userId);
-
-        if (logsError) throw logsError;
-
-        if (sessionLogs && sessionLogs.length > 0) {
-            const timestamps = sessionLogs.map(l => new Date(l.created_at).getTime()).filter(t => !isNaN(t));
-            if (timestamps.length > 0) {
-                setLastExerciseDoneAt(new Date(Math.max(...timestamps)).toISOString());
-            }
-        } else {
-            setLastExerciseDoneAt(null);
-        }
-
-        const completedIds = [...new Set((sessionLogs || []).map((log) => log.exercise_id).filter(Boolean))];
-        setCompletedExercises(completedIds);
-        return completedIds; // Retornado para uso imediato em loadDayDetails
-    };
-
     const loadDayDetails = useCallback(async () => {
         try {
-            setLoading(true);
+            await swr(
+                `day:${id}:${dayId}`,
+                async () => {
+                    const currentUser = await supabaseHelpers.getCurrentUser();
+                    const bundle = await supabaseHelpers.getWorkoutDayBundle(currentUser?.id, id, dayId);
+                    return { ...bundle, userWeightKg: currentUser?.weight_kg };
+                },
+                {
+                    onData: (data) => {
+                        setWorkout(data.workout);
+                        setDay(data.day);
+                        setWorkoutExercises(data.exercises);
+                        setCompletedExercises(data.completedExercises);
+                        setExerciseDoneDates(data.exerciseDoneDates);
+                        setCurrentSessionId(data.openSession?.id || null);
+                        setCurrentSessionStartedAt(data.openSession?.started_at || null);
+                        setLastExerciseDoneAt(data.lastExerciseDoneAt);
+                        setLastFeelingLog(data.lastFeelingLog);
+                        if (data.userWeightKg) setUserWeightKg(Number(data.userWeightKg));
 
-            // ... fetching workout, day, exercises ...
-            const { data: workoutData, error: workoutError } = await supabase
-                .from('b_workouts')
-                .select('*')
-                .eq('id', id)
-                .single();
-            if (workoutError) throw workoutError;
-            setWorkout(workoutData);
+                        // Abre o acordeão no primeiro exercício ainda não concluído
+                        const firstIncomplete = data.exercises.findIndex(
+                            (item) => !data.completedExercises.includes(item.exercise_id)
+                        );
+                        setActiveExerciseIndex(firstIncomplete);
 
-            const { data: dayData, error: dayError } = await supabase
-                .from('b_workout_days')
-                .select('*')
-                .eq('id', dayId)
-                .eq('workout_id', id)
-                .single();
-            if (dayError) throw dayError;
-            setDay(dayData);
-
-            const { data: exercisesData, error: exercisesError } = await supabase
-                .from('b_workout_exercises')
-                .select(`
-                    *,
-                    b_exercises (*)
-                `)
-                .eq('workout_day_id', dayId)
-                .order('order_index');
-            if (exercisesError) throw exercisesError;
-
-            const fetchedExercises = exercisesData || [];
-            setWorkoutExercises(fetchedExercises);
-
-            const currentUser = await supabaseHelpers.getCurrentUser();
-            if (currentUser?.weight_kg) {
-                setUserWeightKg(Number(currentUser.weight_kg));
-            }
-
-            if (currentUser?.id) {
-                // Aguarda o load das sessões abertas e pega os IDs concluídos
-                const completedIds = await loadOpenSessionProgress(workoutData.id, dayData.id, currentUser.id) || [];
-
-                // Encontra o primeiro exercício não concluído para abrir o Acordeão
-                const firstIncompleteIndex = fetchedExercises.findIndex(item => !completedIds.includes(item.exercise_id));
-                if (firstIncompleteIndex !== -1) {
-                    setActiveExerciseIndex(firstIncompleteIndex);
-                } else {
-                    // Se todos concluídos, recolhe tudo
-                    setActiveExerciseIndex(-1);
+                        setLoading(false);
+                    },
                 }
-
-                // Load last finished feeling
-                const { data: lastSession } = await supabase
-                    .from('b_workout_sessions')
-                    .select('feeling, ended_at, calories_burned')
-                    .eq('user_id', currentUser.id)
-                    .eq('workout_id', workoutData.id)
-                    .eq('workout_day_id', dayData.id)
-                    .not('ended_at', 'is', null) // Only finished sessions
-                    .order('ended_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-
-                if (lastSession?.feeling) {
-                    setLastFeelingLog({
-                        score: lastSession.feeling,
-                        endedAt: lastSession.ended_at,
-                        calories: lastSession.calories_burned
-                    });
-                } else {
-                    setLastFeelingLog(null);
-                }
-
-                // Última data em que cada exercício foi marcado como "Feito"
-                // (mesma origem de logs usada na tela "Histórico de Atividades")
-                try {
-                    const exDates = await supabaseHelpers.getUserExerciseDoneDates(currentUser.id, 365);
-                    setExerciseDoneDates(exDates.perExerciseLatest?.[dayData.id] || {});
-                } catch (err) {
-                    console.warn('Não foi possível carregar datas dos exercícios:', err);
-                    setExerciseDoneDates({});
-                }
-            } else {
-                setCompletedExercises([]);
-                setCurrentSessionId(null);
-                setCurrentSessionStartedAt(null);
-                setLastExerciseDoneAt(null);
-                setLastFeelingLog(null);
-                setExerciseDoneDates({});
-            }
+            );
         } catch (error) {
             console.error('Erro ao carregar detalhes do dia:', error);
         } finally {
@@ -299,8 +197,13 @@ const WorkoutDayDetails = () => {
 
         const saveLog = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const user = await supabaseHelpers.getCurrentUser();
                 if (!user || !workout || !day) return;
+
+                // O progresso mudou: derruba os caches desta tela e do plano para
+                // que a próxima navegação revalide em vez de servir dado velho.
+                cacheInvalidate(`day:${id}:${dayId}`);
+                cacheInvalidate(`plan:${id}`);
 
                 if (isComplete) {
                     const now = new Date().toISOString();
@@ -363,7 +266,11 @@ const WorkoutDayDetails = () => {
         setShowFinishModal(true);
     };
 
-    const totalExercises = workoutExercises.length;
+    // Conta por exercise_id único, não por linha: o mesmo exercício pode
+    // aparecer mais de uma vez no dia (duplicidade na estrutura do treino),
+    // e completedExercises já é deduplicado — comparar contagem de linhas
+    // cruas contra ids únicos nunca fecha, travando "Finalizar" pra sempre.
+    const totalExercises = new Set(workoutExercises.map((item) => item.exercise_id)).size;
     const completedCount = completedExercises.length;
     const isFullyCompleted = totalExercises > 0 && completedCount >= totalExercises;
 
@@ -402,8 +309,11 @@ const WorkoutDayDetails = () => {
 
         try {
             setFinishingSession(true);
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await supabaseHelpers.getCurrentUser();
             if (!user) throw new Error('Usuário não autenticado.');
+
+            cacheInvalidate(`day:${id}:${dayId}`);
+            cacheInvalidate(`plan:${id}`);
 
             await supabaseHelpers.finalizeWorkoutSession({
                 sessionId: currentSessionId,
