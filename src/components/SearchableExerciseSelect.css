@@ -156,19 +156,3 @@
 .create-option:hover {
     background-color: #dbeafe;
 }
-
-.selected-value-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-
-.selected-value-thumb {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    object-fit: cover;
-    border: 1px solid #e2e8f0;
-    flex-shrink: 0;
-}

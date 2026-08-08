@@ -80,15 +80,10 @@ const WorkoutEditor = () => {
 
     const [schedule, setSchedule] = useState([{ day_name: 'Dia 1', exercises: [] }]);
     const [openDays, setOpenDays] = useState([0]);
-    const [openExerciseKeys, setOpenExerciseKeys] = useState(() => new Set());
+    const [openExerciseKey, setOpenExerciseKey] = useState(null);
 
     const toggleExerciseOpen = (key) => {
-        setOpenExerciseKeys((prev) => {
-            const next = new Set(prev);
-            if (next.has(key)) next.delete(key);
-            else next.add(key);
-            return next;
-        });
+        setOpenExerciseKey((prev) => (prev === key ? null : key));
     };
 
     const forcePublic = isPersonal && !isAdmin;
@@ -229,17 +224,13 @@ const WorkoutEditor = () => {
             };
             return next;
         });
-        setOpenExerciseKeys((prev) => new Set(prev).add(newExercise._uiKey));
+        setOpenExerciseKey(newExercise._uiKey);
     };
 
     const removeExerciseFromDay = (dayIndex, exerciseIndex) => {
         const removedKey = schedule[dayIndex]?.exercises?.[exerciseIndex]?._uiKey;
         if (removedKey) {
-            setOpenExerciseKeys((prev) => {
-                const next = new Set(prev);
-                next.delete(removedKey);
-                return next;
-            });
+            setOpenExerciseKey((prev) => (prev === removedKey ? null : prev));
         }
         setSchedule((prev) => {
             const next = [...prev];
@@ -507,7 +498,7 @@ const WorkoutEditor = () => {
 
                                             <div className="day-content">
                                                 {day.exercises.map((ex, exIndex) => {
-                                                    const isExOpen = openExerciseKeys.has(ex._uiKey);
+                                                    const isExOpen = ex._uiKey === openExerciseKey;
                                                     const selectedEx = exercises.find((e) => e.id === ex.exercise_id);
                                                     return (
                                                     <div key={ex._uiKey} className="exercise-row-card">
@@ -532,7 +523,7 @@ const WorkoutEditor = () => {
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center gap-1 shrink-0">
-                                                                <ChevronDown size={16} className={`day-toggle-icon ${isExOpen ? 'rotate-180' : ''}`} />
+                                                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-300 ${isExOpen ? 'rotate-180' : ''}`} />
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => { e.stopPropagation(); removeExerciseFromDay(dayIndex, exIndex); }}
