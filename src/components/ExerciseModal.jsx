@@ -236,6 +236,10 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                     </div>
                 )}
 
+                {activeTab !== 'detalhes' && exercise?.id && (
+                    <h3 className="text-base font-bold text-gray-800 -mt-1">{formData.name}</h3>
+                )}
+
                 {activeTab === 'planos' && exercise?.id && (
                     tabsLocked ? (
                         <div className="py-10 flex flex-col items-center text-center text-gray-400">

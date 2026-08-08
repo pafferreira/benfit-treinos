@@ -101,53 +101,48 @@ const ExerciseHistoryTab = ({ exerciseId, exerciseImageUrl }) => {
             {Object.entries(groups).map(([dateLabel, sessions]) => (
                 <div key={dateLabel} className="activity-date-group">
                     <div className="activity-date-label">{dateLabel}</div>
-                    {sessions.map((session) => (
-                        <div key={session.session_id} className="activity-exercise-card">
-                            <div className="exercise-card-grid">
-                                <div className="exercise-col-photo">
-                                    {exerciseImageUrl ? (
-                                        <img
-                                            src={exerciseImageUrl}
-                                            alt=""
-                                            className="exercise-card-img"
-                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                        />
-                                    ) : (
-                                        <div className="exercise-card-icon-placeholder">
-                                            <Dumbbell size={20} color="var(--color-primary)" />
-                                        </div>
-                                    )}
-                                </div>
+                    {sessions.map((session) => {
+                        const maxWeight = Math.max(0, ...session.sets.map((s) => s.weight_kg || 0));
+                        return (
+                            <div key={session.session_id} className="activity-exercise-card">
+                                <div className="exercise-card-grid">
+                                    <div className="exercise-col-photo">
+                                        {exerciseImageUrl ? (
+                                            <img
+                                                src={exerciseImageUrl}
+                                                alt=""
+                                                className="exercise-card-img"
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                        ) : (
+                                            <div className="exercise-card-icon-placeholder">
+                                                <Dumbbell size={20} color="var(--color-primary)" />
+                                            </div>
+                                        )}
+                                    </div>
 
-                                <div className="exercise-col-details">
-                                    <h4 className="exercise-card-name">
-                                        {session.workout_title || 'Treino Avulso'}
-                                    </h4>
-                                    {session.day_name && (
-                                        <div className="exercise-card-session-text">{session.day_name}</div>
-                                    )}
-                                </div>
+                                    <div className="exercise-col-details">
+                                        <h4 className="exercise-card-name">
+                                            {session.workout_title || 'Treino Avulso'}
+                                        </h4>
+                                        {session.day_name && (
+                                            <div className="exercise-card-session-text">{session.day_name}</div>
+                                        )}
+                                    </div>
 
-                                <div className="exercise-col-meta">
-                                    <span className="exercise-detail-tag">
-                                        {session.sets.length} série{session.sets.length > 1 ? 's' : ''}
-                                    </span>
-                                    <span className="exercise-card-time">
-                                        <Clock size={12} style={{ color: 'var(--color-primary)' }} />
-                                        {formatTime(session.performed_at)}
-                                    </span>
+                                    <div className="exercise-col-meta">
+                                        {maxWeight > 0 && (
+                                            <span className="exercise-detail-tag">{maxWeight}kg</span>
+                                        )}
+                                        <span className="exercise-card-time">
+                                            <Clock size={12} style={{ color: 'var(--color-primary)' }} />
+                                            {formatTime(session.performed_at)}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div className="exercise-log-details" style={{ flexWrap: 'wrap' }}>
-                                {session.sets.map((set, idx) => (
-                                    <span key={idx} className="exercise-log-detail-tag">
-                                        {set.weight_kg ? `${set.weight_kg}kg` : '–'} × {set.reps_completed}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             ))}
         </div>
