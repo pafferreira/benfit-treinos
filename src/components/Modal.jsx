@@ -72,7 +72,7 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'medium' }) =>
             onClick={handleBackdropClick}
         >
             <div
-                className={`relative w-[90%] md:w-full ${sizeClasses[size] || 'max-w-lg'} mx-auto bg-white rounded-lg shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-[#dbe3ee]`}
+                className={`relative w-full max-w-[calc(100vw-2.5rem)] sm:w-[90%] md:w-full ${sizeClasses[size] || 'max-w-lg'} mx-auto bg-white rounded-lg shadow-2xl flex flex-col max-h-[90vh] overflow-x-hidden animate-in zoom-in-95 duration-200 border border-[#dbe3ee]`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[#e8eef6] shrink-0">
@@ -86,7 +86,7 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'medium' }) =>
                         <X size={20} aria-hidden="true" />
                     </button>
                 </div>
-                <div className="p-6 overflow-y-auto overscroll-contain flex-1">
+                <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1">
                     {children}
                 </div>
                 {footer && (

@@ -35,7 +35,9 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
 
     const [formData, setFormData] = useState({
         name: '',
-        muscle_group: '',
+        // muscle_groups é a fonte de verdade; muscle_group (singular) é derivado
+        // do primeiro item para continuar compatível com filtros e Coach IA.
+        muscle_groups: [],
         equipment: '',
         image_url: '',
         video_url: '',
@@ -49,9 +51,14 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
 
     useEffect(() => {
         if (exercise) {
+            // Exercícios anteriores à migração só têm muscle_group preenchido
+            const groups = Array.isArray(exercise.muscle_groups) && exercise.muscle_groups.length > 0
+                ? exercise.muscle_groups
+                : (exercise.muscle_group ? [exercise.muscle_group] : []);
+
             setFormData({
                 name: exercise.name || '',
-                muscle_group: exercise.muscle_group || '',
+                muscle_groups: groups,
                 equipment: exercise.equipment || '',
                 image_url: exercise.image_url || '',
                 video_url: exercise.video_url || '',
@@ -61,7 +68,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         } else {
             setFormData({
                 name: '',
-                muscle_group: '',
+                muscle_groups: [],
                 equipment: '',
                 image_url: '',
                 video_url: '',
@@ -99,6 +106,18 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // Adiciona no fim / remove preservando a ordem — assim o "grupo principal"
+    // (primeiro item) só muda quando o usuário desmarca de fato.
+    const toggleMuscleGroup = (group) => {
+        if (readOnly) return;
+        setFormData(prev => ({
+            ...prev,
+            muscle_groups: prev.muscle_groups.includes(group)
+                ? prev.muscle_groups.filter(g => g !== group)
+                : [...prev.muscle_groups, group]
+        }));
+    };
+
     const handleInstructionChange = (index, value) => {
         const newInstructions = [...formData.instructions];
         newInstructions[index] = value;
@@ -131,12 +150,23 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        if (formData.muscle_groups.length === 0) {
+            window.dispatchEvent(new CustomEvent('app-toast', {
+                detail: { message: 'Selecione ao menos um grupo muscular.', type: 'error' }
+            }));
+            return;
+        }
+
         // Filter empty instructions
         const cleanInstructions = formData.instructions.filter(i => i.trim() !== '');
 
         // Use generic kettlebell image as default if none selected
         const finalData = {
             ...formData,
+            // Campo legado derivado do primeiro grupo (o banco também sincroniza
+            // via trigger, mas mandar aqui mantém o payload autoexplicativo)
+            muscle_group: formData.muscle_groups[0],
             instructions: cleanInstructions,
             image_url: formData.image_url || '/exercicios/exerc_generico_3.png'
         };
@@ -145,7 +175,9 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
     };
 
     const muscleGroups = [
-        'Peito', 'Costas', 'Pernas', 'Ombros', 'Braços', 'Abdômen', 'Cardio', 'Corpo Todo'
+        'Peitoral', 'Costas', 'Ombros', 'Trapézio', 'Bíceps', 'Tríceps', 'Antebraço',
+        'Abdômen', 'Lombar', 'Glúteos', 'Quadríceps', 'Posterior de Coxa', 'Adutores',
+        'Panturrilha', 'Cardio', 'Corpo Todo'
     ];
 
     return (
@@ -153,7 +185,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
             <form onSubmit={!readOnly ? handleSubmit : (e) => e.preventDefault()} className="flex flex-col gap-6">
 
                 {/* Top Section: Main Info & Visuals in a Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8">
 
                     {/* Left Column: Form Fields (8 cols) */}
                     <div className="lg:col-span-8 flex flex-col gap-6">
@@ -179,30 +211,56 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                                Grupo Muscular {!readOnly && <span className="text-red-500">*</span>}
-                                            </label>
-                                            <div className="relative">
-                                                <select
-                                                    name="muscle_group"
-                                                    value={formData.muscle_group}
-                                                    onChange={handleChange}
-                                                    className={`w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none ${!readOnly ? 'cursor-pointer' : ''} text-gray-700 font-medium ${readOnly ? 'bg-gray-50' : ''}`}
-                                                    required
-                                                    disabled={readOnly}
-                                                >
-                                                    <option value="">Selecione...</option>
-                                                    {muscleGroups.map(group => (
-                                                        <option key={group} value={group}>{group}</option>
-                                                    ))}
-                                                </select>
-                                                <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
-                                                {!readOnly && <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />}
-                                            </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                            <span className="inline-flex items-center gap-2">
+                                                <Target size={16} className="text-blue-500" />
+                                                Grupos Musculares {!readOnly && <span className="text-red-500">*</span>}
+                                            </span>
+                                            <span className="block text-xs font-normal text-gray-400 mt-0.5">
+                                                {readOnly
+                                                    ? 'Grupos trabalhados por este exercício'
+                                                    : 'Selecione um ou mais. O primeiro escolhido vira o grupo principal.'}
+                                            </span>
+                                        </label>
+
+                                        <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl border ${readOnly ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
+                                            {muscleGroups.map(group => {
+                                                const checked = formData.muscle_groups.includes(group);
+                                                const isPrimary = formData.muscle_groups[0] === group;
+                                                return (
+                                                    <label
+                                                        key={group}
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all select-none ${
+                                                            checked
+                                                                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                                                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                                                        } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() => toggleMuscleGroup(group)}
+                                                            disabled={readOnly}
+                                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/30 shrink-0"
+                                                        />
+                                                        <span className="truncate">{group}</span>
+                                                        {isPrimary && formData.muscle_groups.length > 1 && (
+                                                            <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-blue-500">
+                                                                1º
+                                                            </span>
+                                                        )}
+                                                    </label>
+                                                );
+                                            })}
                                         </div>
 
+                                        {!readOnly && formData.muscle_groups.length === 0 && (
+                                            <p className="mt-1.5 text-xs text-red-500">Escolha ao menos um grupo muscular.</p>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                                                 Equipamento {!readOnly && <span className="text-red-500">*</span>}
