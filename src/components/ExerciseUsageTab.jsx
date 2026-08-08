@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Layers, ListChecks } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Layers, ListChecks, ChevronRight } from 'lucide-react';
 import { supabaseHelpers } from '../lib/supabase';
 
 const DIFFICULTY_COLOR = {
@@ -8,10 +9,16 @@ const DIFFICULTY_COLOR = {
     'Avançado': { bg: 'rgba(239,68,68,0.12)', text: '#b91c1c' },
 };
 
-const ExerciseUsageTab = ({ exerciseId }) => {
+const ExerciseUsageTab = ({ exerciseId, onNavigate }) => {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [usage, setUsage] = useState([]);
     const [error, setError] = useState(null);
+
+    const goToDay = (workoutId, dayId) => {
+        if (onNavigate) onNavigate();
+        navigate(`/treino/${workoutId}/dia/${dayId}`);
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -68,13 +75,20 @@ const ExerciseUsageTab = ({ exerciseId }) => {
                         </div>
                         <div className="space-y-1.5">
                             {plan.days.map(day => (
-                                <div key={day.id} className="flex items-center gap-2 text-sm text-gray-600">
+                                <button
+                                    key={day.id}
+                                    type="button"
+                                    onClick={() => goToDay(plan.workout_id, day.id)}
+                                    className="w-full flex items-center gap-2 text-sm text-gray-600 text-left p-1.5 -mx-1.5 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors group"
+                                    title="Ir para este dia no plano"
+                                >
                                     <ListChecks size={14} className="text-blue-400 shrink-0" />
                                     <span className="font-medium">{day.day_name || `Dia ${day.day_number}`}</span>
-                                    <span className="text-gray-400">
+                                    <span className="text-gray-400 group-hover:text-blue-500">
                                         {day.sets}x{day.reps}{day.rest_seconds ? ` · ${day.rest_seconds}s descanso` : ''}
                                     </span>
-                                </div>
+                                    <ChevronRight size={14} className="ml-auto text-gray-300 group-hover:text-blue-500 shrink-0" />
+                                </button>
                             ))}
                         </div>
                     </div>

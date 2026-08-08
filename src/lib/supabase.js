@@ -21,6 +21,35 @@ export const supabase = createClient(
     }
 )
 
+// Chave 'YYYY-MM-DD' no fuso local (evita off-by-one de toISOString)
+const localDateKey = (iso) => {
+    if (!iso) return null
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return null
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Um exercício pode ter vários grupos musculares (muscle_groups TEXT[]).
+ * muscle_group (singular) continua existindo como "grupo principal" para não
+ * quebrar filtros, Coach IA e dados de fallback — sempre o primeiro da lista.
+ */
+export const getExerciseMuscleGroups = (exercise) => {
+    if (!exercise) return []
+    if (Array.isArray(exercise.muscle_groups) && exercise.muscle_groups.length > 0) {
+        return exercise.muscle_groups
+    }
+    return exercise.muscle_group ? [exercise.muscle_group] : []
+}
+
+const normalizeMuscleGroups = (exerciseData) => {
+    const groups = getExerciseMuscleGroups(exerciseData)
+    return {
+        muscle_groups: groups,
+        muscle_group: groups[0] || null,
+    }
+}
+
 const normalizeWorkoutExercisePayload = (exercise, index, workoutDayId) => {
     const parsedSets = parseInt(exercise.sets, 10)
     const parsedRest = exercise.rest_seconds === '' || exercise.rest_seconds === null || exercise.rest_seconds === undefined
@@ -129,7 +158,7 @@ export const supabaseHelpers = {
             .insert({
                 exercise_key,
                 name: exerciseData.name,
-                muscle_group: exerciseData.muscle_group,
+                ...normalizeMuscleGroups(exerciseData),
                 equipment: exerciseData.equipment,
                 image_url: exerciseData.image_url || null,
                 video_url: exerciseData.video_url || '',
@@ -151,7 +180,7 @@ export const supabaseHelpers = {
             .from('b_exercises')
             .update({
                 name: exerciseData.name,
-                muscle_group: exerciseData.muscle_group,
+                ...normalizeMuscleGroups(exerciseData),
                 equipment: exerciseData.equipment,
                 image_url: exerciseData.image_url || null,
                 video_url: exerciseData.video_url || '',
@@ -754,8 +783,16 @@ export const supabaseHelpers = {
 
     // User Profile
     async getCurrentUser() {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error) throw error;
+        // getSession() lê do storage local; getUser() faz round-trip ao GoTrue.
+        // Como esta função roda várias vezes por tela, a diferença é visível.
+        const { data: { session } } = await supabase.auth.getSession();
+        let user = session?.user || null;
+
+        if (!user) {
+            const { data, error } = await supabase.auth.getUser();
+            if (error) throw error;
+            user = data?.user || null;
+        }
         if (!user) return null;
 
         // Cache por usuário: perfil muda raramente e esta função roda em toda tela
@@ -1229,6 +1266,185 @@ export const supabaseHelpers = {
     },
 
     // ==========================================
+    // Exercício isolado: onde é usado, histórico e execução avulsa
+    // ==========================================
+
+    /**
+     * Planos e dias em que o exercício aparece.
+     * Retorna [{ workout_id, workout_title, difficulty, days: [{ id, day_name,
+     * day_number, sets, reps, rest_seconds }] }] — já agrupado por plano.
+     */
+    async getExerciseUsage(exerciseId) {
+        if (!exerciseId) return []
+
+        const { data, error } = await supabase
+            .from('b_workout_exercises')
+            .select(`
+                id, sets, reps, rest_seconds, order_index,
+                b_workout_days (
+                    id, day_name, day_number,
+                    b_workouts ( id, title, difficulty, is_public )
+                )
+            `)
+            .eq('exercise_id', exerciseId)
+
+        if (error) throw error
+
+        const byWorkout = new Map()
+
+        for (const row of data || []) {
+            const day = row.b_workout_days
+            const workout = day?.b_workouts
+            // RLS pode esconder planos de outros usuários: o join volta null
+            if (!day || !workout) continue
+
+            if (!byWorkout.has(workout.id)) {
+                byWorkout.set(workout.id, {
+                    workout_id: workout.id,
+                    workout_title: workout.title,
+                    difficulty: workout.difficulty,
+                    is_public: workout.is_public,
+                    days: [],
+                })
+            }
+
+            byWorkout.get(workout.id).days.push({
+                id: day.id,
+                day_name: day.day_name,
+                day_number: day.day_number,
+                sets: row.sets,
+                reps: row.reps,
+                rest_seconds: row.rest_seconds,
+            })
+        }
+
+        const usage = Array.from(byWorkout.values())
+        usage.forEach((w) => w.days.sort((a, b) => (a.day_number || 0) - (b.day_number || 0)))
+        usage.sort((a, b) => a.workout_title.localeCompare(b.workout_title, 'pt-BR'))
+        return usage
+    },
+
+    /**
+     * Últimas execuções do exercício pelo usuário, agrupadas por sessão.
+     * Cada item traz as séries registradas e de onde veio (plano/dia ou avulso).
+     */
+    async getExerciseHistory(userId, exerciseId, limit = 10) {
+        if (!userId || !exerciseId) return []
+
+        const { data, error } = await supabase
+            .from('b_session_logs')
+            .select(`
+                id, set_number, weight_kg, reps_completed, created_at, session_id,
+                b_workout_sessions (
+                    id, started_at, ended_at, feeling,
+                    b_workouts ( id, title ),
+                    b_workout_days ( id, day_name, day_number )
+                )
+            `)
+            .eq('user_id', userId)
+            .eq('exercise_id', exerciseId)
+            .order('created_at', { ascending: false })
+            // Margem sobre o limite: várias séries podem cair na mesma sessão
+            .limit(limit * 12)
+
+        if (error) throw error
+
+        const bySession = new Map()
+
+        for (const log of data || []) {
+            const session = log.b_workout_sessions
+            // Sessão nula = log órfão; agrupa pelo id mesmo assim
+            const key = log.session_id || log.id
+
+            if (!bySession.has(key)) {
+                bySession.set(key, {
+                    session_id: key,
+                    performed_at: session?.started_at || log.created_at,
+                    ended_at: session?.ended_at || null,
+                    feeling: session?.feeling ?? null,
+                    workout_id: session?.b_workouts?.id || null,
+                    workout_title: session?.b_workouts?.title || null,
+                    workout_day_id: session?.b_workout_days?.id || null,
+                    day_name: session?.b_workout_days?.day_name || null,
+                    day_number: session?.b_workout_days?.day_number || null,
+                    sets: [],
+                })
+            }
+
+            const entry = bySession.get(key)
+            entry.sets.push({
+                set_number: log.set_number,
+                weight_kg: log.weight_kg,
+                reps_completed: log.reps_completed,
+                created_at: log.created_at,
+            })
+            // A data mais recente do grupo representa a execução
+            if (log.created_at > entry.performed_at) entry.performed_at = log.created_at
+        }
+
+        const history = Array.from(bySession.values())
+        history.forEach((h) => h.sets.sort((a, b) => (a.set_number || 0) - (b.set_number || 0)))
+        history.sort((a, b) => new Date(b.performed_at) - new Date(a.performed_at))
+        return history.slice(0, limit)
+    },
+
+    /**
+     * Registra a execução de um exercício fora de um plano ("treino livre").
+     *
+     * Cria uma sessão com workout_id/workout_day_id nulos — ambas as colunas já
+     * são nullable — e grava uma linha em b_session_logs por série. A sessão
+     * nasce já finalizada (ended_at) porque é um registro pontual, não um treino
+     * em andamento.
+     *
+     * `sets`: [{ weight_kg, reps_completed }]
+     */
+    async logStandaloneExercise(userId, exerciseId, sets = []) {
+        if (!userId) throw new Error('Usuário não autenticado.')
+        if (!exerciseId) throw new Error('Exercício inválido.')
+
+        const validSets = sets.filter((s) => Number(s.reps_completed) > 0)
+        if (validSets.length === 0) {
+            throw new Error('Informe ao menos uma série com repetições.')
+        }
+
+        const now = new Date().toISOString()
+
+        const { data: session, error: sessionError } = await supabase
+            .from('b_workout_sessions')
+            .insert({
+                user_id: userId,
+                workout_id: null,
+                workout_day_id: null,
+                started_at: now,
+                ended_at: now,
+            })
+            .select()
+            .single()
+
+        if (sessionError) throw sessionError
+
+        const { error: logsError } = await supabase.from('b_session_logs').insert(
+            validSets.map((set, index) => ({
+                session_id: session.id,
+                user_id: userId,
+                exercise_id: exerciseId,
+                set_number: index + 1,
+                weight_kg: Number(set.weight_kg) > 0 ? Number(set.weight_kg) : null,
+                reps_completed: Number(set.reps_completed),
+                created_at: now,
+            }))
+        )
+
+        if (logsError) {
+            // Sem os logs a sessão vazia só polui o histórico
+            await supabase.from('b_workout_sessions').delete().eq('id', session.id)
+            throw logsError
+        }
+
+        return session
+    },
+
+    // ==========================================
     // Histórico de Atividades
     // ==========================================
 
@@ -1478,6 +1694,214 @@ export const supabaseHelpers = {
             perDayLatest,
             perDayLastDone
         };
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Bundles consolidados: uma única ida ao banco por tela em vez de cascata
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Tudo que a tela do plano (WorkoutPlan) precisa, em 2 queries paralelas.
+     * Antes eram ~10 round-trips sequenciais (incluindo um scan de 365 dias de
+     * logs de TODOS os treinos do usuário).
+     *
+     * Retorna { workout, days, lastFeeling } com os dias já enriquecidos com
+     * progresso do usuário.
+     */
+    async getWorkoutPlanOverview(userId, workoutId) {
+        const [workoutRes, daysRes] = await Promise.all([
+            supabase.from('b_workouts').select('*').eq('id', workoutId).single(),
+            supabase
+                .from('b_workout_days')
+                .select('*, b_workout_exercises ( id, exercise_id )')
+                .eq('workout_id', workoutId)
+                .order('day_number'),
+        ])
+
+        if (workoutRes.error) throw workoutRes.error
+        if (daysRes.error) throw daysRes.error
+
+        const workout = workoutRes.data
+        const rawDays = daysRes.data || []
+
+        let days = rawDays.map((day) => ({
+            ...day,
+            exercise_count: day.b_workout_exercises?.length || 0,
+            last_session_date: null,
+            last_completed_date: null,
+            last_done_date: null,
+            per_exercise_done_dates: {},
+            exercises_done: 0,
+            completed: false,
+            finalized: false,
+        }))
+
+        if (!userId || days.length === 0) {
+            return { workout, days, lastFeeling: null }
+        }
+
+        // Uma única query cobre: última sessão por dia, dia finalizado, exercícios
+        // feitos, data do último "Feito" por exercício e o último feeling do plano.
+        const { data: sessions, error: sessionsError } = await supabase
+            .from('b_workout_sessions')
+            .select('id, workout_day_id, started_at, ended_at, feeling, calories_burned, b_session_logs ( exercise_id, created_at )')
+            .eq('user_id', userId)
+            .eq('workout_id', workoutId)
+            .order('started_at', { ascending: false })
+            .limit(200)
+
+        if (sessionsError) {
+            console.warn('getWorkoutPlanOverview - sessions fetch error:', sessionsError)
+            return { workout, days, lastFeeling: null }
+        }
+
+        const requiredByDay = Object.fromEntries(days.map((d) => [d.id, d.exercise_count]))
+        const latestSessionByDay = {}
+        const latestCompletedByDay = {}
+        const lastDoneByDay = {}
+        const perExerciseByDay = {}
+        let lastFeeling = null
+
+        // Sessões vêm em ordem decrescente: o primeiro valor encontrado é o mais recente.
+        for (const session of sessions || []) {
+            const dayId = session.workout_day_id
+            if (!dayId || !(dayId in requiredByDay)) continue
+
+            if (!latestSessionByDay[dayId]) latestSessionByDay[dayId] = session
+
+            const logs = session.b_session_logs || []
+
+            perExerciseByDay[dayId] = perExerciseByDay[dayId] || {}
+            for (const log of logs) {
+                const key = localDateKey(log.created_at)
+                if (!log.exercise_id || !key) continue
+                if (!perExerciseByDay[dayId][log.exercise_id]) {
+                    perExerciseByDay[dayId][log.exercise_id] = key
+                }
+                if (!lastDoneByDay[dayId]) lastDoneByDay[dayId] = key
+            }
+
+            // Dia "finalizado" = sessão encerrada com todos os exercícios logados
+            if (session.ended_at && !latestCompletedByDay[dayId]) {
+                const distinct = new Set(logs.map((l) => l.exercise_id).filter(Boolean))
+                const required = requiredByDay[dayId] || 0
+                if (required === 0 || distinct.size >= required) {
+                    latestCompletedByDay[dayId] = localDateKey(session.ended_at)
+                }
+            }
+
+            if (!lastFeeling && session.ended_at && session.feeling != null) {
+                lastFeeling = {
+                    feeling: session.feeling,
+                    ended_at: session.ended_at,
+                    calories_burned: session.calories_burned,
+                    workout_day_id: dayId,
+                }
+            }
+        }
+
+        days = days.map((day) => {
+            const session = latestSessionByDay[day.id]
+            const perExercise = perExerciseByDay[day.id] || {}
+            if (!session) {
+                return { ...day, per_exercise_done_dates: perExercise }
+            }
+            const logs = session.b_session_logs || []
+            const distinct = new Set(logs.map((l) => l.exercise_id).filter(Boolean))
+            return {
+                ...day,
+                last_session_date: session.ended_at || session.started_at || null,
+                finalized: Boolean(session.ended_at),
+                exercises_done: distinct.size,
+                completed: day.exercise_count > 0 ? distinct.size >= day.exercise_count : false,
+                last_completed_date: latestCompletedByDay[day.id] || null,
+                last_done_date: lastDoneByDay[day.id] || null,
+                per_exercise_done_dates: perExercise,
+            }
+        })
+
+        return { workout, days, lastFeeling }
+    },
+
+    /**
+     * Tudo que a tela de detalhe do dia (WorkoutDayDetails) precisa.
+     * 3 queries em paralelo + 1 de sessões — antes eram 7 sequenciais.
+     */
+    async getWorkoutDayBundle(userId, workoutId, dayId) {
+        const [workoutRes, dayRes, exercisesRes] = await Promise.all([
+            supabase.from('b_workouts').select('*').eq('id', workoutId).single(),
+            supabase.from('b_workout_days').select('*').eq('id', dayId).eq('workout_id', workoutId).single(),
+            supabase
+                .from('b_workout_exercises')
+                .select('*, b_exercises (*)')
+                .eq('workout_day_id', dayId)
+                .order('order_index'),
+        ])
+
+        if (workoutRes.error) throw workoutRes.error
+        if (dayRes.error) throw dayRes.error
+        if (exercisesRes.error) throw exercisesRes.error
+
+        const bundle = {
+            workout: workoutRes.data,
+            day: dayRes.data,
+            exercises: exercisesRes.data || [],
+            openSession: null,
+            completedExercises: [],
+            lastExerciseDoneAt: null,
+            lastFeelingLog: null,
+            exerciseDoneDates: {},
+        }
+
+        if (!userId) return bundle
+
+        // Sessão aberta, último feeling e datas por exercício saem todos daqui.
+        const { data: sessions, error: sessionsError } = await supabase
+            .from('b_workout_sessions')
+            .select('id, started_at, ended_at, feeling, calories_burned, b_session_logs ( exercise_id, created_at )')
+            .eq('user_id', userId)
+            .eq('workout_id', workoutId)
+            .eq('workout_day_id', dayId)
+            .order('started_at', { ascending: false })
+            .limit(60)
+
+        if (sessionsError) {
+            console.warn('getWorkoutDayBundle - sessions fetch error:', sessionsError)
+            return bundle
+        }
+
+        const perExercise = {}
+        for (const session of sessions || []) {
+            const logs = session.b_session_logs || []
+
+            for (const log of logs) {
+                const key = localDateKey(log.created_at)
+                if (!log.exercise_id || !key) continue
+                if (!perExercise[log.exercise_id]) perExercise[log.exercise_id] = key
+            }
+
+            if (!session.ended_at && !bundle.openSession) {
+                bundle.openSession = { id: session.id, started_at: session.started_at }
+                bundle.completedExercises = [...new Set(logs.map((l) => l.exercise_id).filter(Boolean))]
+                const timestamps = logs
+                    .map((l) => new Date(l.created_at).getTime())
+                    .filter((t) => !isNaN(t))
+                bundle.lastExerciseDoneAt = timestamps.length
+                    ? new Date(Math.max(...timestamps)).toISOString()
+                    : null
+            }
+
+            if (!bundle.lastFeelingLog && session.ended_at && session.feeling != null) {
+                bundle.lastFeelingLog = {
+                    score: session.feeling,
+                    endedAt: session.ended_at,
+                    calories: session.calories_burned,
+                }
+            }
+        }
+
+        bundle.exerciseDoneDates = perExercise
+        return bundle
     },
 
     // Datas para o minicalendário, derivadas da MESMA query usada na tela

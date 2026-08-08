@@ -243,7 +243,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                             <p className="text-sm">Disponível apenas para admin e personal.</p>
                         </div>
                     ) : (
-                        <ExerciseUsageTab exerciseId={exercise.id} />
+                        <ExerciseUsageTab exerciseId={exercise.id} onNavigate={onClose} />
                     )
                 )}
 
