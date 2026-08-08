@@ -34,6 +34,23 @@ const WorkoutEditorSkeleton = () => (
     </div>
 );
 
+const PlanDataSection = ({ title, defaultOpen, children }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    return (
+        <div className={`day-block ${isOpen ? 'open' : ''}`}>
+            <div className="day-header" onClick={() => setIsOpen((prev) => !prev)}>
+                <div className="flex items-center gap-2 w-full">
+                    <ChevronDown size={20} className={`day-toggle-icon ${isOpen ? 'rotate-180' : ''}`} />
+                    <span className="text-sm font-bold text-[var(--color-text-main)]">{title}</span>
+                </div>
+            </div>
+            <div className="day-content">
+                {children}
+            </div>
+        </div>
+    );
+};
+
 const WorkoutEditor = () => {
     const navigate = useNavigate();
     const { id } = useParams();
@@ -364,6 +381,7 @@ const WorkoutEditor = () => {
                     <WorkoutEditorSkeleton />
                 ) : (
                     <form className="modal-form workout-editor-form" onSubmit={handleSubmit}>
+                        <PlanDataSection title="Dados do Plano" defaultOpen={!isEditMode}>
                         <div className="workout-editor-compact-grid">
                             <div className="form-group full-width">
                                 <label>
@@ -428,6 +446,7 @@ const WorkoutEditor = () => {
                                 />
                             </div>
                         </div>
+                        </PlanDataSection>
 
                         <div className="workout-builder">
                             <h3>Estrutura do Treino</h3>
