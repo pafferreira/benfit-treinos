@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronDown, Plus, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Plus, Trash2, X, Dumbbell } from 'lucide-react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import SearchableExerciseSelect from '../components/SearchableExerciseSelect';
@@ -80,6 +80,16 @@ const WorkoutEditor = () => {
 
     const [schedule, setSchedule] = useState([{ day_name: 'Dia 1', exercises: [] }]);
     const [openDays, setOpenDays] = useState([0]);
+    const [openExerciseKeys, setOpenExerciseKeys] = useState(() => new Set());
+
+    const toggleExerciseOpen = (key) => {
+        setOpenExerciseKeys((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    };
 
     const forcePublic = isPersonal && !isAdmin;
 
@@ -145,7 +155,8 @@ const WorkoutEditor = () => {
                             sets: we.sets ?? 3,
                             reps: we.reps ?? '10',
                             rest_seconds: we.rest_seconds ?? 60,
-                            notes: we.notes || ''
+                            notes: we.notes || '',
+                            _uiKey: we.id || crypto.randomUUID()
                         }))
                 }));
 
@@ -207,19 +218,29 @@ const WorkoutEditor = () => {
     };
 
     const addExerciseToDay = (dayIndex) => {
+        const newExercise = { ...EMPTY_EXERCISE, _uiKey: crypto.randomUUID() };
         setSchedule((prev) => {
             const next = [...prev];
             const day = next[dayIndex];
             if (!day) return prev;
             next[dayIndex] = {
                 ...day,
-                exercises: [...(day.exercises || []), { ...EMPTY_EXERCISE }]
+                exercises: [...(day.exercises || []), newExercise]
             };
             return next;
         });
+        setOpenExerciseKeys((prev) => new Set(prev).add(newExercise._uiKey));
     };
 
     const removeExerciseFromDay = (dayIndex, exerciseIndex) => {
+        const removedKey = schedule[dayIndex]?.exercises?.[exerciseIndex]?._uiKey;
+        if (removedKey) {
+            setOpenExerciseKeys((prev) => {
+                const next = new Set(prev);
+                next.delete(removedKey);
+                return next;
+            });
+        }
         setSchedule((prev) => {
             const next = [...prev];
             const day = next[dayIndex];
@@ -485,18 +506,46 @@ const WorkoutEditor = () => {
                                             </div>
 
                                             <div className="day-content">
-                                                {day.exercises.map((ex, exIndex) => (
-                                                    <div key={exIndex} className="exercise-row-card">
-                                                        <div className="exercise-number-header flex justify-between items-center">Exercício {exIndex + 1}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeExerciseFromDay(dayIndex, exIndex)}
-                                                                className="exercise-remove-btn"
-                                                                title="Remover Exercício"
-                                                            >
-                                                                <X size={18} />
-                                                            </button>
+                                                {day.exercises.map((ex, exIndex) => {
+                                                    const isExOpen = openExerciseKeys.has(ex._uiKey);
+                                                    const selectedEx = exercises.find((e) => e.id === ex.exercise_id);
+                                                    return (
+                                                    <div key={ex._uiKey} className="exercise-row-card">
+                                                        <div
+                                                            className="flex justify-between items-center gap-2 cursor-pointer"
+                                                            onClick={() => toggleExerciseOpen(ex._uiKey)}
+                                                        >
+                                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                {selectedEx?.image_url ? (
+                                                                    <img
+                                                                        src={selectedEx.image_url}
+                                                                        alt=""
+                                                                        className="w-8 h-8 rounded-md object-cover border border-gray-200 shrink-0"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
+                                                                        <Dumbbell size={14} className="text-gray-400" />
+                                                                    </div>
+                                                                )}
+                                                                <span className="exercise-number-header truncate">
+                                                                    {selectedEx?.name || `Exercício ${exIndex + 1}`}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                <ChevronDown size={16} className={`day-toggle-icon ${isExOpen ? 'rotate-180' : ''}`} />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); removeExerciseFromDay(dayIndex, exIndex); }}
+                                                                    className="exercise-remove-btn"
+                                                                    title="Remover Exercício"
+                                                                >
+                                                                    <X size={18} />
+                                                                </button>
+                                                            </div>
                                                         </div>
+
+                                                        {isExOpen && (
+                                                        <div className="mt-3">
                                                         <div className="flex gap-3 mb-3 items-end">
                                                             <div className="exercise-field flex-1">
                                                                 <label className="mb-1 block">Nome Exercício</label>
@@ -507,7 +556,6 @@ const WorkoutEditor = () => {
                                                                     onCreateNew={(name) => handleCreateNewExercise(name, dayIndex, exIndex)}
                                                                 />
                                                             </div>
-
                                                         </div>
 
                                                         <div className="grid grid-cols-3 gap-3 mb-3">
@@ -560,8 +608,11 @@ const WorkoutEditor = () => {
                                                                 className="notes-input w-full"
                                                             />
                                                         </div>
+                                                        </div>
+                                                        )}
                                                     </div>
-                                                ))}
+                                                    );
+                                                })}
 
                                                 <button type="button" onClick={() => addExerciseToDay(dayIndex)} className="exercise-add-btn mt-2">
                                                     <Plus size={16} /> Adicionar Exercício
