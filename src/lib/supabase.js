@@ -1272,7 +1272,9 @@ export const supabaseHelpers = {
     /**
      * Planos e dias em que o exercício aparece.
      * Retorna [{ workout_id, workout_title, difficulty, days: [{ id, day_name,
-     * day_number, sets, reps, rest_seconds }] }] — já agrupado por plano.
+     * day_number, entries: [{ sets, reps, rest_seconds }] }] }] — já agrupado
+     * por plano e por dia (entries tem mais de 1 item quando o exercício foi
+     * adicionado duplicado ao mesmo dia).
      */
     async getExerciseUsage(exerciseId) {
         if (!exerciseId) return []
@@ -1304,22 +1306,35 @@ export const supabaseHelpers = {
                     workout_title: workout.title,
                     difficulty: workout.difficulty,
                     is_public: workout.is_public,
-                    days: [],
+                    days: new Map(),
                 })
             }
 
-            byWorkout.get(workout.id).days.push({
-                id: day.id,
-                day_name: day.day_name,
-                day_number: day.day_number,
+            const plan = byWorkout.get(workout.id)
+
+            // O mesmo exercício pode ter sido adicionado mais de uma vez ao
+            // mesmo dia (duplicidade na estrutura do treino) — agrupa por dia
+            // em vez de repetir a linha, listando as variações encontradas.
+            if (!plan.days.has(day.id)) {
+                plan.days.set(day.id, {
+                    id: day.id,
+                    day_name: day.day_name,
+                    day_number: day.day_number,
+                    entries: [],
+                })
+            }
+
+            plan.days.get(day.id).entries.push({
                 sets: row.sets,
                 reps: row.reps,
                 rest_seconds: row.rest_seconds,
             })
         }
 
-        const usage = Array.from(byWorkout.values())
-        usage.forEach((w) => w.days.sort((a, b) => (a.day_number || 0) - (b.day_number || 0)))
+        const usage = Array.from(byWorkout.values()).map((plan) => ({
+            ...plan,
+            days: Array.from(plan.days.values()).sort((a, b) => (a.day_number || 0) - (b.day_number || 0)),
+        }))
         usage.sort((a, b) => a.workout_title.localeCompare(b.workout_title, 'pt-BR'))
         return usage
     },
