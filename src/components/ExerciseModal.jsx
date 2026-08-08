@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useAvatars, useUserRole } from '../hooks/useSupabase';
+import { useAvatars } from '../hooks/useSupabase';
 import Modal from './Modal';
-import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Image as ImageIcon, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon, Lock } from 'lucide-react';
+import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Image as ImageIcon, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon } from 'lucide-react';
 import ExerciseUsageTab from './ExerciseUsageTab';
 import ExerciseHistoryTab from './ExerciseHistoryTab';
 import './ExerciseModal.css';
@@ -39,8 +39,6 @@ const Accordion = ({ title, icon: Icon, children, defaultOpen = false, collapsed
 
 const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = false, readOnly = false }) => {
     const { avatars, loading: loadingAvatars } = useAvatars();
-    const { isAdmin, isPersonal, isUser } = useUserRole();
-    const tabsLocked = !!(isUser && !isAdmin && !isPersonal);
 
     const [activeTab, setActiveTab] = useState('detalhes');
 
@@ -241,32 +239,22 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                 )}
 
                 {activeTab === 'planos' && exercise?.id && (
-                    tabsLocked ? (
-                        <div className="py-10 flex flex-col items-center text-center text-gray-400">
-                            <Lock size={28} className="mb-2 opacity-50" />
-                            <p className="text-sm">Disponível apenas para admin e personal.</p>
-                        </div>
-                    ) : (
-                        <ExerciseUsageTab exerciseId={exercise.id} onNavigate={onClose} />
-                    )
+                    <ExerciseUsageTab exerciseId={exercise.id} onNavigate={onClose} />
                 )}
 
                 {activeTab === 'historico' && exercise?.id && (
-                    tabsLocked ? (
-                        <div className="py-10 flex flex-col items-center text-center text-gray-400">
-                            <Lock size={28} className="mb-2 opacity-50" />
-                            <p className="text-sm">Disponível apenas para admin e personal.</p>
-                        </div>
-                    ) : (
-                        <ExerciseHistoryTab exerciseId={exercise.id} exerciseImageUrl={formData.image_url} />
-                    )
+                    <ExerciseHistoryTab exerciseId={exercise.id} exerciseImageUrl={formData.image_url} />
                 )}
 
+                {/* Coluna única — o app roda sempre em largura mobile (.mobile-container,
+                    max-width 28rem) mesmo no desktop, então um split lg:grid-cols-12
+                    dispara pelo breakpoint da JANELA e espreme as colunas dentro
+                    dos 28rem, deixando a Visualização minúscula. */}
                 {activeTab === 'detalhes' && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8">
+                <div className="flex flex-col gap-6">
 
                     {/* Left Column: Form Fields (8 cols) */}
-                    <div className="lg:col-span-8 flex flex-col gap-6">
+                    <div className="flex flex-col gap-6">
 
                         {/* Collapsible Sections (Persianas) */}
                         <div className="space-y-4">
@@ -289,28 +277,26 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                                Equipamento {!readOnly && <span className="text-red-500">*</span>}
-                                            </label>
-                                            <div className="relative">
-                                                <select
-                                                    name="equipment"
-                                                    value={formData.equipment}
-                                                    onChange={handleChange}
-                                                    className={`w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none ${!readOnly ? 'cursor-pointer' : ''} text-gray-700 font-medium ${readOnly ? 'bg-gray-50' : ''}`}
-                                                    required
-                                                    disabled={readOnly}
-                                                >
-                                                    <option value="">Selecione...</option>
-                                                    {equipmentTypes.map(type => (
-                                                        <option key={type} value={type}>{type}</option>
-                                                    ))}
-                                                </select>
-                                                <Weight className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
-                                                {!readOnly && <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />}
-                                            </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                            Equipamento {!readOnly && <span className="text-red-500">*</span>}
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                name="equipment"
+                                                value={formData.equipment}
+                                                onChange={handleChange}
+                                                className={`w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none ${!readOnly ? 'cursor-pointer' : ''} text-gray-700 font-medium ${readOnly ? 'bg-gray-50' : ''}`}
+                                                required
+                                                disabled={readOnly}
+                                            >
+                                                <option value="">Selecione...</option>
+                                                {equipmentTypes.map(type => (
+                                                    <option key={type} value={type}>{type}</option>
+                                                ))}
+                                            </select>
+                                            <Weight className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                                            {!readOnly && <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />}
                                         </div>
                                     </div>
                                 </div>
@@ -483,8 +469,8 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
 
                     </div>
 
-                    {/* Right Column: Image & Media (4 cols) */}
-                    <div className="lg:col-span-4 flex flex-col gap-4">
+                    {/* Visualização e Mídia — abaixo do resto, não mais coluna lateral */}
+                    <div className="flex flex-col gap-4">
                         <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
                             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                                 <ImageIcon size={18} className="text-blue-500" />

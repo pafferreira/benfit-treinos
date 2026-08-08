@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { resizeImageFile } from '../lib/imageResize';
 import Modal from './Modal';
 import { X, ChevronDown, ChevronUp, Image as ImageIcon, Tag, User, Users, Upload, Loader, CheckCircle } from 'lucide-react';
+
+const formatKb = (bytes) => `${Math.round(bytes / 1024)} KB`;
 
 const Accordion = ({ title, icon: Icon, children, defaultOpen = false }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -43,6 +46,7 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
     const [imagePreview, setImagePreview] = useState('');
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [compressionInfo, setCompressionInfo] = useState(null);
 
     useEffect(() => {
         if (avatar) {
@@ -102,18 +106,29 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
         try {
             setUploading(true);
             setUploadProgress(10);
+            setCompressionInfo(null);
+
+            // Reduz dimensão/peso no navegador antes de subir (fotos de celular
+            // chegam com vários MB; o preview é sempre um quadrado pequeno).
+            const originalSize = file.size;
+            const resizedFile = await resizeImageFile(file);
+            if (resizedFile.size < originalSize) {
+                setCompressionInfo({ before: originalSize, after: resizedFile.size });
+            }
+
+            setUploadProgress(20);
 
             // Generate unique filename
-            const fileExt = file.name.split('.').pop();
+            const fileExt = resizedFile.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
             const filePath = `avatars/${fileName}`;
 
             setUploadProgress(30);
 
             // Upload to Supabase Storage
-            const { data: uploadData, error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabase.storage
                 .from('benfit-assets')
-                .upload(filePath, file, {
+                .upload(filePath, resizedFile, {
                     cacheControl: '3600',
                     upsert: false
                 });
@@ -198,10 +213,14 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
                 {/* Top Section: Form Fields & Preview */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Coluna única — mesmo motivo do ExerciseModal: o app roda sempre em
+                    largura mobile (.mobile-container, max-width 28rem), então
+                    lg:grid-cols-12 dispara pelo breakpoint da janela e espreme
+                    tudo dentro dos 28rem. */}
+                <div className="flex flex-col gap-6">
 
                     {/* Left Column: Form Fields (8 cols) */}
-                    <div className="lg:col-span-8 flex flex-col gap-6">
+                    <div className="flex flex-col gap-6">
 
                         {/* Collapsible Sections */}
                         <div className="space-y-4">
@@ -320,8 +339,8 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
 
                     </div>
 
-                    {/* Right Column: Image Preview & Upload (4 cols) */}
-                    <div className="lg:col-span-4 flex flex-col gap-6">
+                    {/* Visualização e Upload — abaixo do resto, não mais coluna lateral */}
+                    <div className="flex flex-col gap-6">
                         {/* Preview Section */}
                         <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
                             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -400,6 +419,11 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
                                             Sucesso
                                         </p>
                                         <p className="text-[10px] text-gray-600 mt-0.5 truncate">{formData.storage_path || 'URL externa'}</p>
+                                        {compressionInfo && (
+                                            <p className="text-[10px] text-green-700 mt-0.5">
+                                                Reduzida de {formatKb(compressionInfo.before)} para {formatKb(compressionInfo.after)}
+                                            </p>
+                                        )}
                                     </div>
                                 )}
 

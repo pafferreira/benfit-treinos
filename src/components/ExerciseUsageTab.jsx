@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layers, ListChecks, ChevronRight } from 'lucide-react';
+import { ListChecks, ChevronRight } from 'lucide-react';
 import { supabaseHelpers } from '../lib/supabase';
 import { cacheGet, swr } from '../lib/dataCache';
 
@@ -57,7 +57,7 @@ const ExerciseUsageTab = ({ exerciseId, onNavigate }) => {
     if (usage.length === 0) {
         return (
             <div className="py-10 flex flex-col items-center text-center text-gray-400">
-                <Layers size={28} className="mb-2 opacity-50" />
+                <img src="/Halter_02.png" alt="" className="w-16 h-16 object-contain mb-2 opacity-50" />
                 <p className="text-sm">Este exercício ainda não está em nenhum plano.</p>
             </div>
         );
@@ -70,7 +70,7 @@ const ExerciseUsageTab = ({ exerciseId, onNavigate }) => {
                 return (
                     <div key={plan.workout_id} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
                         <div className="flex items-center justify-between gap-2 mb-2">
-                            <h4 className="font-semibold text-gray-800">{plan.workout_title}</h4>
+                            <h4 className="font-semibold text-gray-800 min-w-0 truncate">{plan.workout_title}</h4>
                             {plan.difficulty && (
                                 <span
                                     className="px-2 py-0.5 rounded-full text-xs font-semibold shrink-0"
@@ -93,8 +93,8 @@ const ExerciseUsageTab = ({ exerciseId, onNavigate }) => {
                                         title="Ir para este dia no plano"
                                     >
                                         <ListChecks size={14} className="text-blue-400 shrink-0" />
-                                        <span className="font-medium">{day.day_name || `Dia ${day.day_number}`}</span>
-                                        <span className="text-gray-400 group-hover:text-blue-500">
+                                        <span className="font-medium min-w-0 truncate">{day.day_name || `Dia ${day.day_number}`}</span>
+                                        <span className="text-gray-400 group-hover:text-blue-500 shrink-0 whitespace-nowrap">
                                             {main.sets}x{main.reps}{main.rest_seconds ? ` · ${main.rest_seconds}s descanso` : ''}
                                         </span>
                                         {duplicated && (

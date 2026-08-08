@@ -150,13 +150,13 @@
 }
 
 /* Day Footer Actions */
+/* absolute (não fixed): ancorado no .mobile-container (position:relative,
+   max-width 28rem), senão no desktop ele gruda na borda da janela inteira. */
 .workout-day-footer-actions {
-    position: fixed;
+    position: absolute;
     bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
     width: 100%;
-    max-width: 28rem;
     background: #fff;
     border-top: 1px solid #e2e8f0;
     padding: 0.85rem 1.25rem;
@@ -199,7 +199,7 @@
 
 /* Floating Timer Button */
 .day-floating-timer-btn {
-    position: fixed;
+    position: absolute;
     bottom: 5.5rem;
     right: 1.25rem;
     width: 56px;
@@ -230,7 +230,7 @@
 
 /* Timer Overlay */
 .day-rest-timer-overlay {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;

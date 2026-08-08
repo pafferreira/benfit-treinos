@@ -286,9 +286,9 @@ const Exercises = () => {
             <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
                 {filteredExercises.length > 0 ? (
                     viewMode === 'grid' ? (
-                        <div className="grid grid-cols-1 gap-6">
+                        <div className="grid grid-cols-1 gap-0">
                             {filteredExercises.map(exercise => (
-                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 flex flex-col md:flex-row h-full cursor-pointer hover:shadow-xl hover:border-blue-100`}>
+                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white overflow-hidden transition-all duration-300 flex flex-col md:flex-row h-full cursor-pointer hover:bg-blue-50/40`}>
                                     {/* Image Container - Larger in single column view */}
                                     <div className="relative w-full md:w-1/3 aspect-[4/3] md:aspect-auto bg-gray-50 overflow-hidden">
                                         <img
@@ -332,7 +332,7 @@ const Exercises = () => {
                                     </div>
 
                                     {/* Card Content */}
-                                    <div className="p-6 flex flex-col flex-1 gap-2">
+                                    <div className="p-0 flex flex-col flex-1 gap-2">
                                         <div className="flex justify-between items-start">
                                             <h3 className="text-xl font-bold text-gray-900 leading-tight">
                                                 {exercise.name}
@@ -359,9 +359,9 @@ const Exercises = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-3 w-full">
+                        <div className="flex flex-col gap-0 w-full">
                             {filteredExercises.map(exercise => (
-                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 transition-all flex items-center gap-4 w-full cursor-pointer hover:shadow-md hover:border-blue-100`}>
+                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white p-0 transition-all flex items-center gap-4 w-full cursor-pointer hover:bg-blue-50/40`}>
                                     <div className="h-16 w-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden relative">
                                         <img
                                             src={exercise.image_url ?

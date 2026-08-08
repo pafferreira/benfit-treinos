@@ -263,7 +263,14 @@ const DashboardLayoutContent = () => {
 
                 {/* Bottom Navigation */}
                 <nav className={`bottom-nav ${isNavHidden ? 'nav-hidden' : ''}`}>
-                    <span className="app-version">v{__APP_VERSION__}</span>
+                    <button
+                        type="button"
+                        className="app-version"
+                        onClick={() => window.dispatchEvent(new CustomEvent('splash-replay'))}
+                        title="Ver a splash novamente"
+                    >
+                        v{__APP_VERSION__}
+                    </button>
                     <button
                         className={`nav-btn ${isActive('/') ? 'active' : ''}`}
                         onClick={() => handleNav('/')}

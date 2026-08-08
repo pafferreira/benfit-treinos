@@ -112,10 +112,13 @@ const EditProfileModal = ({ isOpen, onClose, onSave, user, isLoading = false }) 
         <Modal isOpen={isOpen} onClose={onClose} title="Editar Dados Pessoais" size="full" footer={footerContent}>
             <form id="edit-profile-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Coluna única — mesmo motivo dos outros modais: o app roda sempre em
+                    largura mobile (.mobile-container, max-width 28rem), então
+                    lg:grid-cols-12 dispara pelo breakpoint da janela e espreme
+                    tudo dentro dos 28rem. */}
+                <div className="flex flex-col gap-6">
 
-                    {/* Left Column: Avatar & Visuals (4 cols) */}
-                    <div className="lg:col-span-4 flex flex-col gap-4">
+                    <div className="flex flex-col gap-4">
                         <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
                             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                                 <Camera size={18} className="text-blue-500" />
@@ -185,8 +188,7 @@ const EditProfileModal = ({ isOpen, onClose, onSave, user, isLoading = false }) 
                         </div>
                     </div>
 
-                    {/* Right Column: Form Fields (8 cols) */}
-                    <div className="lg:col-span-8 flex flex-col gap-6">
+                    <div className="flex flex-col gap-6">
 
                         {/* Basic Info Card */}
                         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">

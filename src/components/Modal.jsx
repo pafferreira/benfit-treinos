@@ -69,9 +69,19 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'medium' }) =>
 
     // Ensure modal overlays the global header which uses a high z-index (e.g. header CSS uses z-index:1000).
     // We set a high z-index here to avoid the modal being overlapped by the header.
+    //
+    // `absolute` (não `fixed`): o app roda dentro de `.mobile-container`, um frame
+    // de largura mobile (max-width: 28rem) mesmo no desktop. `fixed` ignora esse
+    // frame e cobre a janela inteira do navegador — `absolute` respeita o
+    // `.mobile-container` (position: relative), igual o `.bottom-nav` já faz.
+    // size="full" (ExerciseModal, AvatarModal, EditProfileModal) costuma ter abas
+    // com quantidade de conteúdo bem diferente entre si (ex: Detalhes vs Planos
+    // vazio) — centralizar verticalmente faz o topo pular de posição a cada troca
+    // de aba, porque a altura muda e o centro é recalculado. Ancorado no topo
+    // (items-start), o topo fica fixo e só o rodapé encolhe/cresce com o conteúdo.
     return (
         <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4 animate-in fade-in duration-200"
+            className={`absolute inset-0 z-[9999] flex ${size === 'full' ? 'items-start pt-6 sm:pt-10' : 'items-center'} justify-center bg-black/50 backdrop-blur-[2px] p-4 animate-in fade-in duration-200`}
             onClick={handleBackdropClick}
         >
             <div
