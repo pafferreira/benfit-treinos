@@ -1,6 +1,7 @@
 /* SearchableExerciseSelect.jsx */
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, Plus, ChevronDown } from 'lucide-react';
+import { normalizeText } from '../lib/textUtils';
 import './SearchableExerciseSelect.css';
 
 const SearchableExerciseSelect = ({
@@ -23,10 +24,10 @@ const SearchableExerciseSelect = ({
     // Filter exercises based on search term
     const filteredExercises = useMemo(() => {
         if (!searchTerm) return exercises;
-        const lowerTerm = searchTerm.toLowerCase();
+        const normalizedTerm = normalizeText(searchTerm);
         return exercises.filter(ex =>
-            ex.name.toLowerCase().includes(lowerTerm) ||
-            (ex.muscle_group && ex.muscle_group.toLowerCase().includes(lowerTerm))
+            normalizeText(ex.name).includes(normalizedTerm) ||
+            (ex.muscle_group && normalizeText(ex.muscle_group).includes(normalizedTerm))
         );
     }, [exercises, searchTerm]);
 
