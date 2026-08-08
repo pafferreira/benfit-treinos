@@ -201,7 +201,10 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
     const muscleGroups = [
         'Peitoral', 'Costas', 'Ombros', 'Trapézio', 'Bíceps', 'Tríceps', 'Antebraço',
         'Abdômen', 'Lombar', 'Glúteos', 'Quadríceps', 'Posterior de Coxa', 'Adutores',
-        'Panturrilha', 'Cardio', 'Corpo Todo'
+        'Panturrilha', 'Cardio', 'Corpo Todo',
+        // Termos encontrados nos valores compostos legados (ex: "Pernas / Glúteo",
+        // "Posterior / Lombar") — adicionados pra permitir reclassificação exata.
+        'Pernas', 'Glúteo', 'Posterior'
     ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
     const legacyGroups = formData.muscle_groups.filter(g => !muscleGroups.includes(g));
@@ -326,17 +329,12 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                 }
                             >
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        <span className="inline-flex items-center gap-2">
-                                            <Target size={16} className="text-blue-500" />
-                                            Grupos Musculares {!readOnly && <span className="text-red-500">*</span>}
-                                        </span>
-                                        <span className="block text-xs font-normal text-gray-400 mt-0.5">
-                                            {readOnly
-                                                ? 'Grupos trabalhados por este exercício'
-                                                : 'Selecione um ou mais. O primeiro escolhido vira o grupo principal.'}
-                                        </span>
-                                    </label>
+                                    <p className="text-xs text-gray-400 mb-3">
+                                        {!readOnly && <span className="text-red-500 font-semibold">* </span>}
+                                        {readOnly
+                                            ? 'Grupos trabalhados por este exercício'
+                                            : 'Selecione um ou mais. O primeiro escolhido vira o grupo principal.'}
+                                    </p>
 
                                     {legacyGroups.length > 0 && (
                                         <div className="mb-3 p-3 rounded-xl border border-amber-200 bg-amber-50">
