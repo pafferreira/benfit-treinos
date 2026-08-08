@@ -283,10 +283,10 @@ const Exercises = () => {
             </div>
 
             {/* Content Area */}
-            <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+            <div className="w-full px-2 sm:px-4 lg:px-6 py-8">
                 {filteredExercises.length > 0 ? (
                     viewMode === 'grid' ? (
-                        <div className="grid grid-cols-1 gap-0">
+                        <div className="grid grid-cols-1 gap-4">
                             {filteredExercises.map(exercise => (
                                 <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white overflow-hidden transition-all duration-300 flex flex-col md:flex-row h-full cursor-pointer hover:bg-blue-50/40`}>
                                     {/* Image Container - Larger in single column view */}
@@ -332,7 +332,7 @@ const Exercises = () => {
                                     </div>
 
                                     {/* Card Content */}
-                                    <div className="p-0 flex flex-col flex-1 gap-2">
+                                    <div className="p-0 flex flex-col flex-1 gap-5">
                                         <div className="flex justify-between items-start">
                                             <h3 className="text-xl font-bold text-gray-900 leading-tight">
                                                 {exercise.name}
