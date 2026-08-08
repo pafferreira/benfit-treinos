@@ -65,7 +65,17 @@ const SearchableExerciseSelect = ({
                 }}
             >
                 {selectedExercise ? (
-                    <span className="selected-value">{selectedExercise.name}</span>
+                    <span className="selected-value-wrapper">
+                        {selectedExercise.image_url ? (
+                            <img
+                                src={selectedExercise.image_url}
+                                alt=""
+                                className="selected-value-thumb"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                        ) : null}
+                        <span className="selected-value">{selectedExercise.name}</span>
+                    </span>
                 ) : (
                     <span className="placeholder-text">{placeholder}</span>
                 )}
