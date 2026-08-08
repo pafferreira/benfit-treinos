@@ -1,0 +1,153 @@
+.splash-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 15000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.75rem;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    opacity: 1;
+    transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.splash-fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Palco: dá contexto 3D ao halter e ancora o brilho de fundo */
+.splash-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    perspective: 700px;
+}
+
+/* Halo pulsante atrás do ícone — só opacity/transform, sem reflow */
+.splash-glow {
+    position: absolute;
+    width: 230px;
+    height: 230px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 68%);
+    animation: splash-glow-pulse 2s ease-in-out infinite;
+    will-change: transform, opacity;
+}
+
+.splash-media {
+    position: relative;
+    width: 168px;
+    height: 168px;
+    border-radius: var(--radius-2xl);
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--shadow-2xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-style: preserve-3d;
+    animation: splash-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, opacity;
+}
+
+/* Balanço 3D contínuo: sugere o giro do halter sem custo de vídeo */
+.splash-media--animated {
+    animation:
+        splash-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        splash-sway 2.6s 520ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.splash-video,
+.splash-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.splash-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    animation: splash-rise 620ms 160ms cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+.splash-logo-text {
+    font-family: 'Nunito', 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 1.75rem;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+
+.splash-highlight {
+    color: var(--color-accent);
+}
+
+.splash-logo-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+@keyframes splash-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.86);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes splash-sway {
+    0%,
+    100% {
+        transform: rotateY(-13deg) rotateX(4deg) scale(1);
+    }
+    50% {
+        transform: rotateY(13deg) rotateX(-4deg) scale(1.04);
+    }
+}
+
+@keyframes splash-glow-pulse {
+    0%,
+    100% {
+        opacity: 0.55;
+        transform: scale(0.92);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.08);
+    }
+}
+
+@keyframes splash-rise {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .splash-screen,
+    .splash-fade-out {
+        transition: none;
+    }
+    .splash-media,
+    .splash-media--animated,
+    .splash-glow,
+    .splash-logo {
+        animation: none;
+    }
+}
