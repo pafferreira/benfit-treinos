@@ -57,11 +57,14 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'medium' }) =>
         };
     }, [isOpen]);
 
+    // Limite de largura vale só a partir do md: abaixo disso a largura já é
+    // controlada por w-full/max-w-[calc(...)]/sm:w-[90%] (margem garantida no
+    // mobile) — um max-w-* sem prefixo aqui brigaria com esses valores.
     const sizeClasses = {
-        small: 'max-w-sm',
-        medium: 'max-w-md',
-        large: 'max-w-lg',
-        full: 'max-w-full'
+        small: 'md:max-w-sm',
+        medium: 'md:max-w-md',
+        large: 'md:max-w-lg',
+        full: 'md:max-w-[1400px]'
     };
 
     // Ensure modal overlays the global header which uses a high z-index (e.g. header CSS uses z-index:1000).
@@ -72,7 +75,7 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'medium' }) =>
             onClick={handleBackdropClick}
         >
             <div
-                className={`relative w-full max-w-[calc(100vw-2.5rem)] sm:w-[90%] md:w-full ${sizeClasses[size] || 'max-w-lg'} mx-auto bg-white rounded-lg shadow-2xl flex flex-col max-h-[90vh] overflow-x-hidden animate-in zoom-in-95 duration-200 border border-[#dbe3ee]`}
+                className={`relative w-full max-w-[calc(100vw-2.5rem)] sm:w-[90%] md:w-full ${sizeClasses[size] || 'md:max-w-lg'} mx-auto bg-white rounded-lg shadow-2xl flex flex-col max-h-[90vh] overflow-x-hidden animate-in zoom-in-95 duration-200 border border-[#dbe3ee]`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between p-4 border-b border-[#e8eef6] shrink-0">
