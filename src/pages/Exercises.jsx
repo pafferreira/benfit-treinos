@@ -283,14 +283,13 @@ const Exercises = () => {
             </div>
 
             {/* Content Area */}
-            <div className="w-full px-2 sm:px-4 lg:px-6 py-8">
+            <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-0">
                 {filteredExercises.length > 0 ? (
                     viewMode === 'grid' ? (
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 gap-2">
                             {filteredExercises.map(exercise => (
-                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white overflow-hidden transition-all duration-300 flex flex-col md:flex-row h-full cursor-pointer hover:bg-blue-50/40`}>
-                                    {/* Image Container - Larger in single column view */}
-                                    <div className="relative w-full md:w-1/3 aspect-[4/3] md:aspect-auto bg-gray-50 overflow-hidden">
+                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className="group relative flex gap-4 bg-white/90 border border-gray-200/80 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden cursor-pointer p-3 sm:p-4">
+                                    <div className="relative w-32 h-32 sm:w-36 sm:h-36 shrink-0 overflow-hidden rounded-xl bg-gray-100">
                                         <img
                                             src={exercise.image_url ?
                                                 (exercise.image_url.startsWith('http') ? exercise.image_url :
@@ -303,58 +302,45 @@ const Exercises = () => {
                                                 e.target.src = 'https://via.placeholder.com/400x300?text=Sem+Imagem';
                                             }}
                                         />
-                                        {/* Overlay Actions */}
-                                        {(isAdmin || isPersonal) && (
-                                            <div className="absolute top-2 right-2 flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                                                <Tooltip content="Excluir Exercício">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
-                                                        className="bg-white/90 backdrop-blur-sm hover:bg-white text-red-500 p-2 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
+                                    </div>
+
+                                    <div className="flex flex-1 flex-col justify-between min-w-0">
+                                        <h3 className="text-base sm:text-lg font-bold leading-tight text-gray-900">
+                                            {exercise.name}
+                                        </h3>
+
+                                        <span className="mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+                                            <Package size={12} className="text-gray-500" />
+                                            {exercise.equipment}
+                                        </span>
+
+                                        {exercise.tags && exercise.tags.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                                {exercise.tags.map(tag => (
+                                                    <span
+                                                        key={tag}
+                                                        className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-blue-600"
                                                     >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </Tooltip>
+                                                        {tag}
+                                                    </span>
+                                                ))}
                                             </div>
                                         )}
+                                    </div>
 
-                                        {/* Muscle Badges — um por grupo trabalhado */}
-                                        <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1 pointer-events-none">
-                                            {getExerciseMuscleGroups(exercise).map((group, i) => (
-                                                <span
-                                                    key={group}
-                                                    className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/90 backdrop-blur-sm text-gray-800 shadow-sm border border-gray-200/50"
+                                    {(isAdmin || isPersonal) && (
+                                        <div className="absolute bottom-3 right-3 z-10">
+                                            <Tooltip content="Excluir Exercício">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
+                                                    aria-label="Excluir exercício"
+                                                    className="bg-white/90 backdrop-blur-sm hover:bg-white text-red-500 p-2 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
                                                 >
-                                                    {i === 0 && <Target size={12} className="mr-1 text-blue-500" />}
-                                                    {group}
-                                                </span>
-                                            ))}
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </Tooltip>
                                         </div>
-                                    </div>
-
-                                    {/* Card Content */}
-                                    <div className="p-0 flex flex-col flex-1 gap-5">
-                                        <div className="flex justify-between items-start">
-                                            <h3 className="text-xl font-bold text-gray-900 leading-tight">
-                                                {exercise.name}
-                                            </h3>
-                                        </div>
-
-                                        <p className="text-sm text-gray-500 line-clamp-2 md:line-clamp-3">
-                                            {(Array.isArray(exercise.instructions) ? exercise.instructions.join(' ') : exercise.instructions || 'Sem instruções.')}
-                                        </p>
-
-                                        <div className="mt-auto pt-4 flex items-center gap-3">
-                                            <span className="inline-flex items-center text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
-                                                <Package size={14} className="mr-2 text-gray-500" />
-                                                {exercise.equipment}
-                                            </span>
-                                            {exercise.tags && exercise.tags.length > 0 && (
-                                                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg uppercase tracking-wide">
-                                                    {exercise.tags[0]}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
