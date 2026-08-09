@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import './SplashScreen.css';
 
 const SPLASH_SESSION_KEY = 'benfit_splash_shown';
-// halter-spin.webm/mp4 tem 2300ms — a splash fica visível esse tanto + folga
-// antes do fade, pra dar tempo do giro do halter terminar.
-const SPLASH_DURATION = 2800;
+// Versão estendida com freeze final — manter visível o tempo do vídeo (5s)
+// antes do fade para o halter real ficar nítido no final.
+const SPLASH_DURATION = 5000;
 const FADE_DURATION = 300;
 
 // Fonte do halter animado.
@@ -75,8 +75,8 @@ const SplashScreen = () => {
                             loop
                             playsInline
                         >
-                            <source src="/splash/halter-spin.webm" type="video/webm" />
-                            <source src="/splash/halter-spin.mp4" type="video/mp4" />
+                            <source src="/splash/halter-spin2-5s-final.webm" type="video/webm" />
+                            <source src="/splash/halter-spin2-5s-final.mp4" type="video/mp4" />
                         </video>
                     ) : (
                         <img
