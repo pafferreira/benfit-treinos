@@ -449,8 +449,8 @@ const AICoach = () => {
         if (wasFirst) setIsFirstMessage(false);
 
         try {
-            if (uid) {
-                supabaseHelpers.saveChatMessage(uid, 'user', text, convId).catch(() => {});
+            if (uid && convId) {
+                await supabaseHelpers.saveChatMessage(uid, 'user', text, convId);
                 if (convId) supabaseHelpers.touchConversation(convId).catch(() => {});
             }
 
@@ -458,10 +458,12 @@ const AICoach = () => {
             const localAnswer = tryLocalResponse(text, structuredContext);
 
             let responseText;
+            let responseProvider = null;
             let directAnswer = null;
 
             if (localAnswer) {
                 responseText = localAnswer;
+                responseProvider = 'local';
                 console.log('[Benfit Coach] Respondido localmente (sem Gemini).');
             } else {
                 // ── Nível 2: Busca no shared knowledge + memórias ─
@@ -497,6 +499,7 @@ const AICoach = () => {
 
                 if (directAnswer) {
                     responseText = directAnswer;
+                    responseProvider = 'shared_knowledge';
                     console.log(`[Benfit Coach] Respondido via shared knowledge (${directResults.length} resultado(s), sem Gemini).`);
                 } else {
                     // ── Nível 3: Gemini com contexto de memórias ──
@@ -526,15 +529,22 @@ const AICoach = () => {
                         contextText ? `\n## MEMÓRIAS:\n${contextText}` : '',
                     ].filter(Boolean).join('\n\n---\n\n');
 
-                    responseText = await chatWithBenfit(text, fullContext);
+                    const aiResponse = await chatWithBenfit(text, fullContext, convId);
+                    responseText = aiResponse.text;
+                    responseProvider = aiResponse.provider;
                 }
+            }
+
+            if (uid && convId && (localAnswer || directAnswer)) {
+                await supabaseHelpers.saveChatMessage(uid, 'assistant', responseText, convId, {
+                    provider: responseProvider,
+                });
             }
 
             const aiMsg = { id: Date.now() + 1, sender: 'ai', text: responseText };
             setMessages(prev => [...prev, aiMsg]);
 
             if (uid) {
-                supabaseHelpers.saveChatMessage(uid, 'assistant', responseText, convId).catch(() => {});
                 // Só armazena conversas ricas que passaram pelo Gemini
                 if (!localAnswer && !directAnswer) {
                     maybeStoreConversation(uid, text, responseText).catch(() => {});

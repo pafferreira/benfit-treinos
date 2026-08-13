@@ -695,14 +695,18 @@ export const supabaseHelpers = {
     },
 
     // ── AI Chat History ────────────────────────────────────────────
-    async saveChatMessage(userId, role, content, conversationId = null) {
+    async saveChatMessage(userId, role, content, conversationId = null, metadata = {}) {
         const { data, error } = await supabase
             .from('b_ai_chat_history')
             .insert({
                 user_id: userId,
                 role: role,
                 content: content,
-                ...(conversationId ? { conversation_id: conversationId } : {})
+                ...(conversationId ? { conversation_id: conversationId } : {}),
+                ...(metadata.provider ? { provider: metadata.provider } : {}),
+                ...(Array.isArray(metadata.providerParts)
+                    ? { provider_parts: metadata.providerParts }
+                    : {})
             })
             .select()
             .single()

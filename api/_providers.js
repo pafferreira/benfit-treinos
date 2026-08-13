@@ -45,7 +45,36 @@ const GEMINI_THINKING = process.env.GEMINI_THINKING_LEVEL || 'low';
 const isFallbackError = (status) =>
     status === 400 || status === 429 || status === 402 || status === 403 || status >= 500;
 
-async function callGemini({ prompt, systemPrompt }) {
+export const toGeminiContents = (messages) => messages.map(message => ({
+    role: message.role === 'assistant' ? 'model' : 'user',
+    parts: message.role === 'assistant'
+        && message.provider === 'gemini'
+        && Array.isArray(message.providerParts)
+        ? message.providerParts
+        : [{ text: message.content }],
+}));
+
+export const toOpenAIMessages = (messages, systemPrompt) => [
+    { role: 'system', content: systemPrompt },
+    ...messages.map(message => ({
+        role: message.role === 'assistant' ? 'assistant' : 'user',
+        content: message.content,
+    })),
+];
+
+export const parseGeminiResponse = (data) => {
+    const parts = data?.candidates?.[0]?.content?.parts;
+    if (!Array.isArray(parts)) return { text: '', providerParts: null };
+
+    const text = parts
+        .filter(part => part?.thought !== true && typeof part?.text === 'string')
+        .map(part => part.text)
+        .join('');
+
+    return { text, providerParts: parts };
+};
+
+async function callGemini({ messages, systemPrompt }) {
     const key = process.env.GEMINI_API_KEY;
     if (!key) return { skip: true };
     const res = await fetch(
@@ -55,7 +84,7 @@ async function callGemini({ prompt, systemPrompt }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 system_instruction: { parts: [{ text: systemPrompt }] },
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                contents: toGeminiContents(messages),
                 generationConfig: {
                     thinkingConfig: { thinkingLevel: GEMINI_THINKING },
                 },
@@ -67,11 +96,11 @@ async function callGemini({ prompt, systemPrompt }) {
         return { error: true, status: res.status, body };
     }
     const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
-    return { text, provider: 'gemini' };
+    const { text, providerParts } = parseGeminiResponse(data);
+    return { text, provider: 'gemini', providerParts };
 }
 
-async function callOpenAICompatible({ prompt, systemPrompt, baseUrl, apiKey, model, providerName }) {
+async function callOpenAICompatible({ messages, systemPrompt, baseUrl, apiKey, model, providerName }) {
     if (!apiKey) return { skip: true };
     const res = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
@@ -81,10 +110,7 @@ async function callOpenAICompatible({ prompt, systemPrompt, baseUrl, apiKey, mod
         },
         body: JSON.stringify({
             model,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: prompt },
-            ],
+            messages: toOpenAIMessages(messages, systemPrompt),
         }),
     });
     if (!res.ok) {
@@ -95,18 +121,18 @@ async function callOpenAICompatible({ prompt, systemPrompt, baseUrl, apiKey, mod
     return { text: data?.choices?.[0]?.message?.content || '', provider: providerName };
 }
 
-export async function chatWithFallback({ prompt, systemPrompt = SYSTEM_PROMPT }) {
+export async function chatWithFallback({ messages, systemPrompt = SYSTEM_PROMPT }) {
     const providers = [
-        () => callGemini({ prompt, systemPrompt }),
+        () => callGemini({ messages, systemPrompt }),
         () => callOpenAICompatible({
-            prompt, systemPrompt,
+            messages, systemPrompt,
             baseUrl: 'https://api.openai.com/v1',
             apiKey: process.env.OPENAI_API_KEY,
             model: 'gpt-4o-mini',
             providerName: 'openai',
         }),
         () => callOpenAICompatible({
-            prompt, systemPrompt,
+            messages, systemPrompt,
             baseUrl: 'https://api.groq.com/openai/v1',
             apiKey: process.env.GROQ_API_KEY,
             model: 'llama-3.3-70b-versatile',

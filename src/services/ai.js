@@ -1,10 +1,20 @@
 // Cliente dos endpoints de AI (Vercel Functions em /api).
 // As chaves ficam no servidor; o fallback Gemini → OpenAI → Groq é transparente.
+import { supabase } from '../lib/supabase';
 
-const postJson = async (url, payload) => {
+const postJson = async (url, payload, { authenticated = false } = {}) => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (authenticated) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            throw new Error('Sessão expirada. Entre novamente para conversar com o Coach.');
+        }
+        headers.Authorization = `Bearer ${session.access_token}`;
+    }
+
     const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
@@ -28,10 +38,15 @@ export const generateConversationTitle = async (firstMessage) => {
     }
 };
 
-export const chatWithBenfit = async (userMessage, context) => {
-    const { text, provider } = await postJson('/api/chat', { message: userMessage, context });
+export const chatWithBenfit = async (userMessage, context, conversationId) => {
+    const result = await postJson('/api/chat', {
+        message: userMessage,
+        context,
+        conversationId,
+    }, { authenticated: true });
+    const { provider } = result;
     if (provider && provider !== 'gemini') {
         console.log(`[Benfit Coach] Resposta via fallback: ${provider}`);
     }
-    return text;
+    return result;
 };
