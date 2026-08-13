@@ -33,21 +33,32 @@ Se o aluno perguntar sobre qualquer outro assunto (política, tecnologia, receit
 - Quando sugerir exercícios, prefira os que constam no catálogo de exercícios disponíveis no contexto.
 - Nunca invente dados — se não souber, peça mais informações ao aluno.`;
 
-// Erros que justificam tentar o próximo provedor (quota, rate limit, indisponível)
+// Modelo configurável por env para permitir rollback sem novo deploy de código.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+// minimal | low | medium | high — "low" mantém raciocínio suficiente para
+// orientação de treino sem o custo de latência dos níveis altos.
+const GEMINI_THINKING = process.env.GEMINI_THINKING_LEVEL || 'low';
+
+// Erros que justificam tentar o próximo provedor (quota, rate limit, indisponível).
+// O 400 entra aqui de propósito: se um modelo novo rejeitar o formato do payload,
+// o aluno recebe resposta do OpenAI em vez de ver a cadeia inteira falhar.
 const isFallbackError = (status) =>
-    status === 429 || status === 402 || status === 403 || status >= 500;
+    status === 400 || status === 429 || status === 402 || status === 403 || status >= 500;
 
 async function callGemini({ prompt, systemPrompt }) {
     const key = process.env.GEMINI_API_KEY;
     if (!key) return { skip: true };
     const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`,
         {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 system_instruction: { parts: [{ text: systemPrompt }] },
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: {
+                    thinkingConfig: { thinkingLevel: GEMINI_THINKING },
+                },
             }),
         }
     );
@@ -110,8 +121,14 @@ export async function chatWithFallback({ prompt, systemPrompt = SYSTEM_PROMPT })
             if (result.skip) continue;
             if (result.error) {
                 errors.push({ status: result.status, body: result.body?.slice(0, 300) });
-                if (isFallbackError(result.status)) continue;
-                break; // erro não recuperável (ex: 400 prompt inválido)
+                if (isFallbackError(result.status)) {
+                    // Visível nos logs: um 400 recorrente indica payload incompatível
+                    // com o modelo, não erro pontual. Não deixe passar silencioso.
+                    console.warn(`[AI] Provedor falhou (${result.status}), tentando próximo:`,
+                        result.body?.slice(0, 200));
+                    continue;
+                }
+                break; // erro realmente não recuperável
             }
             if (result.text) return result;
             errors.push({ status: 'empty', body: 'resposta vazia' });
