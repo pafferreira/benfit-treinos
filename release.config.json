@@ -1,0 +1,8 @@
+{
+  "version_file": "package.json",
+  "checks": [
+    "npm test",
+    "npm run build"
+  ],
+  "tag_prefix": "v"
+}
