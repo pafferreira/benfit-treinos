@@ -1,3 +1,5 @@
+import { ChatHttpError, getBearerToken, requireUser } from './_conversation-history.js';
+
 // Embedding é sempre Gemini: o banco usa vector(3072) indexado com
 // gemini-embedding-2 — outro provedor geraria espaço vetorial incompatível.
 export default async function handler(req, res) {
@@ -8,6 +10,15 @@ export default async function handler(req, res) {
     const { text } = req.body || {};
     if (!text || typeof text !== 'string') {
         return res.status(400).json({ error: 'Campo "text" é obrigatório' });
+    }
+
+    try {
+        await requireUser(getBearerToken(req));
+    } catch (error) {
+        if (error instanceof ChatHttpError) {
+            return res.status(error.status).json({ error: error.message });
+        }
+        throw error;
     }
 
     const key = process.env.GEMINI_API_KEY;
@@ -21,7 +32,7 @@ export default async function handler(req, res) {
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: { parts: [{ text }] } }),
+                body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 8000) }] } }),
             }
         );
 

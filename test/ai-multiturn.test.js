@@ -8,11 +8,32 @@ import {
     normalizeHistoryRows,
 } from '../api/_conversation-history.js';
 import chatHandler from '../api/chat.js';
+import embeddingHandler from '../api/embedding.js';
 import {
+    CLAUDE_MODELS,
+    parseClaudeResponse,
     parseGeminiResponse,
+    resolveClaudeModel,
+    toClaudeMessages,
     toGeminiContents,
     toOpenAIMessages,
 } from '../api/_providers.js';
+
+const fakeResponse = () => {
+    const response = {
+        statusCode: null,
+        body: null,
+        status(code) {
+            this.statusCode = code;
+            return this;
+        },
+        json(body) {
+            this.body = body;
+            return this;
+        },
+    };
+    return response;
+};
 
 test('usa uma janela de doze mensagens', () => {
     assert.equal(CHAT_HISTORY_LIMIT, 12);
@@ -132,4 +153,54 @@ test('ignora linhas inválidas do histórico', () => {
         { role: 'user', content: 'entra', provider_parts: { text: 'formato inválido' } },
         { role: 'assistant', content: null },
     ]), [{ role: 'user', content: 'entra', provider: null, providerParts: null }]);
+});
+
+test('exige login para gerar título de conversa', async () => {
+    const response = fakeResponse();
+    await chatHandler({ method: 'POST', headers: {}, body: { message: 'Treino de perna', mode: 'title' } }, response);
+    assert.equal(response.statusCode, 401);
+});
+
+test('exige login para gerar embedding', async () => {
+    const response = fakeResponse();
+    await embeddingHandler({ method: 'POST', headers: {}, body: { text: 'supino' } }, response);
+    assert.equal(response.statusCode, 401);
+});
+
+test('resolve o modelo do Claude pela família ou pelo ID completo', () => {
+    assert.equal(resolveClaudeModel(undefined), CLAUDE_MODELS.haiku);
+    assert.equal(resolveClaudeModel('Opus'), CLAUDE_MODELS.opus);
+    assert.equal(resolveClaudeModel(' sonnet '), CLAUDE_MODELS.sonnet);
+    assert.equal(resolveClaudeModel('claude-futuro-9'), 'claude-futuro-9');
+});
+
+test('começa a conversa do Claude pela mensagem do usuário', () => {
+    assert.deepEqual(toClaudeMessages([
+        { role: 'assistant', content: 'resposta antiga', provider: 'gemini', providerParts: [{ text: 'x' }] },
+        { role: 'user', content: 'Oi' },
+        { role: 'assistant', content: 'Olá!' },
+        { role: 'user', content: 'E agora?' },
+    ]), [
+        { role: 'user', content: 'Oi' },
+        { role: 'assistant', content: 'Olá!' },
+        { role: 'user', content: 'E agora?' },
+    ]);
+});
+
+test('lê só os blocos de texto da resposta do Claude', () => {
+    const parsed = parseClaudeResponse({
+        stop_reason: 'end_turn',
+        content: [
+            { type: 'thinking', thinking: '' },
+            { type: 'text', text: 'Faça 3x10 ' },
+            { type: 'text', text: 'com 20 kg.' },
+        ],
+    });
+    assert.deepEqual(parsed, { text: 'Faça 3x10 com 20 kg.', refused: false });
+});
+
+test('responde com educação quando o Claude recusa', () => {
+    const parsed = parseClaudeResponse({ stop_reason: 'refusal', content: [] });
+    assert.equal(parsed.refused, true);
+    assert.match(parsed.text, /treino/);
 });

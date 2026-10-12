@@ -39,10 +39,10 @@ const RICH_KEYWORDS = [
 
 // Palavras que indicam converse TRIVIAL (saudação, confirmação básica)
 const TRIVIAL_PATTERNS = [
-    /^(ok|okay|ótimo|legal|entendido|certo|sim|não|claro|beleza)[\.\!\?]?\s*$/i,
-    /^(obrigado|obrigada|valeu|vlw|thanks)[\.\!\?]?\s*$/i,
-    /^(oi|olá|bom dia|boa tarde|boa noite)[\.\!\?]?\s*$/i,
-    /^(até|tchau|até logo|flw)[\.\!\?]?\s*$/i,
+    /^(ok|okay|ótimo|legal|entendido|certo|sim|não|claro|beleza)[.!?]?\s*$/i,
+    /^(obrigado|obrigada|valeu|vlw|thanks)[.!?]?\s*$/i,
+    /^(oi|olá|bom dia|boa tarde|boa noite)[.!?]?\s*$/i,
+    /^(até|tchau|até logo|flw)[.!?]?\s*$/i,
 ];
 
 /**

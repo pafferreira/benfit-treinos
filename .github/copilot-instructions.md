@@ -1,11 +1,11 @@
 ## Guia rápido para agentes de codificação (PAF / Paulão / Affonso)
 
-Este repositório é um app React + Vite que usa Supabase (BD + Auth) como backend principal e chama a OpenAI no cliente para a funcionalidade AICoach. Abaixo está um playbook prático para que um agente seja produtivo rapidamente.
+Este repositório é um app React + Vite que usa Supabase (BD + Auth) como backend principal e um Coach de IA servido por Vercel Functions em `api/`. Abaixo está um playbook prático para que um agente seja produtivo rapidamente.
 
 ### Visão geral da arquitetura
 - Frontend: React + Vite. Entrada: `src/main.jsx`. Rotas em `src/App.jsx`.
 - Dados & Auth: Supabase (cliente em `src/lib/supabase.js`) — atenção a Row-Level Security (RLS) e ao shape das tabelas.
-- AI: Wrapper em `src/services/openai.js` que constrói o SYSTEM_PROMPT (em Português) e envia mensagens ao modelo.
+- AI: `api/_prompt.js` tem o único prompt do Coach; `api/_providers.js` chama Claude → OpenAI → Gemini (fallback); `src/services/ai.js` é o cliente. Chaves só no servidor.
 
 ### Comandos essenciais
 - Desenvolvimento (HMR): `npm run dev`
@@ -15,7 +15,7 @@ Este repositório é um app React + Vite que usa Supabase (BD + Auth) como backe
 
 Variáveis de ambiente (arquivo `.env` na raiz):
 - `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` — obrigatórias para operações com Supabase.
-- `VITE_OPENAI_API_KEY` — usado em `src/services/openai.js`. OBS: hoje a chave é usada no browser (`dangerouslyAllowBrowser: true`) — preferir um proxy/endpoint servidor para produção.
+- IA (servidor, nunca `VITE_`): `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`; opcionais `BENFIT_AI_MODEL` (haiku | sonnet | opus | ID completo) e `BENFIT_AI_EFFORT` (low | medium | high).
 
 ### Pontos críticos / integração (verificar antes de editar)
 - `src/lib/supabase.js` — contém `supabase` e `supabaseHelpers` (getAllExercises, getAllWorkouts, createWorkout, updateWorkout, etc.).
@@ -27,7 +27,7 @@ Variáveis de ambiente (arquivo `.env` na raiz):
   - Registram logs detalhados no console (úteis para debugging).
   - Em falha do Supabase, fazem fallback para `src/data/exercises.js` e `src/data/workouts.js` — preserve esse comportamento.
 
-- `src/services/openai.js` — constrói mensagens incluindo um SYSTEM_PROMPT longo em Português. Exige atenção de segurança (não deixar chaves expostas em PRs).
+- `api/_prompt.js` — perfil e regras de segurança do Benfit Coach. Mudança de tom ou escopo é feita só aqui.
 
 -- Tabelas administrativas: usar prefixo `z_`
 - Há tabelas com prefixo `z_` reservadas para controle de usuários e sistemas (permissões, roles e dados operacionais). Não misture alterações nessas tabelas com as tabelas de domínio (`b_`); ao tocar em `z_` verifique `database/` e documente a mudança no PR.
@@ -45,7 +45,7 @@ Variáveis de ambiente (arquivo `.env` na raiz):
 1. Sempre verificar `package.json` scripts antes de adicionar novos comandos.
 2. Ao modificar `supabaseHelpers`: escreva a função no `supabase.js`, re-use nas hooks em `src/hooks/` e preserve a estratégia de erro -> fallback.
 3. Para alterações em rotas/páginas, atualize `src/App.jsx` e garanta que componentes em `src/pages/` suportem o novo shape dos dados.
-4. Ao tocar em `src/services/openai.js`, substitua o uso direto da chave por um proxy quando possível; documente claramente a mudança no PR.
+4. Ao tocar na IA, mantenha as chaves no servidor (`api/`) e o prompt único em `api/_prompt.js`.
 5. Não crie migrations diretas no código cliente — use os scripts em `database/` e documente alterações de schema.
 
 ### Checklist curto (PR / mudanças rápidas)
@@ -57,7 +57,7 @@ Variáveis de ambiente (arquivo `.env` na raiz):
 
 ### Exemplos práticos (onde olhar)
 - Ler workouts com shape esperado: `supabaseHelpers.getAllWorkouts()` + transformação em `useWorkouts` (ver `src/hooks/useSupabase.js`).
-- Adicionar um endpoint/feature AI: revisar `src/services/openai.js` e criar um proxy serverless se for produção.
+- Adicionar um endpoint/feature AI: criar em `api/`, exigir login com `requireUser` de `api/_conversation-history.js`.
 
 ### Testes e segurança
 - Não há testes automáticos no repositório; ao criar lógica crítica (helpers, transforms) acrescente um script de verificação local (node + jest/mocks) e documente como executar.

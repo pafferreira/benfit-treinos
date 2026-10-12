@@ -1,20 +1,20 @@
 // Cliente dos endpoints de AI (Vercel Functions em /api).
-// As chaves ficam no servidor; o fallback Gemini → OpenAI → Groq é transparente.
+// As chaves ficam no servidor; o fallback Claude → OpenAI → Gemini é transparente.
+// Todos os endpoints exigem o usuário logado.
 import { supabase } from '../lib/supabase';
 
-const postJson = async (url, payload, { authenticated = false } = {}) => {
-    const headers = { 'Content-Type': 'application/json' };
-    if (authenticated) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-            throw new Error('Sessão expirada. Entre novamente para conversar com o Coach.');
-        }
-        headers.Authorization = `Bearer ${session.access_token}`;
+const postJson = async (url, payload) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+        throw new Error('Sessão expirada. Entre novamente para conversar com o Coach.');
     }
 
     const res = await fetch(url, {
         method: 'POST',
-        headers,
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
@@ -43,10 +43,18 @@ export const chatWithBenfit = async (userMessage, context, conversationId) => {
         message: userMessage,
         context,
         conversationId,
-    }, { authenticated: true });
-    const { provider } = result;
-    if (provider && provider !== 'gemini') {
-        console.log(`[Benfit Coach] Resposta via fallback: ${provider}`);
+    });
+    if (result.provider && result.provider !== 'anthropic') {
+        console.warn(`[Benfit Coach] Resposta via fallback: ${result.provider}`);
     }
     return result;
+};
+
+// 1 = útil, -1 = não ajudou, null = remove a avaliação.
+export const rateCoachMessage = async (messageId, feedback) => {
+    const { error } = await supabase
+        .from('b_ai_chat_history')
+        .update({ feedback })
+        .eq('id', messageId);
+    if (error) throw error;
 };

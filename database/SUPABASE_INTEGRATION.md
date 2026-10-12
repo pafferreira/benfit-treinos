@@ -80,7 +80,6 @@ Edite o arquivo `.env` na raiz do projeto:
 ```env
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
-VITE_OPENAI_API_KEY=sua-chave-openai-aqui
 ```
 
 **Onde encontrar:**
