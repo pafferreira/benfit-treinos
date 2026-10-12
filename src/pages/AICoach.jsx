@@ -359,15 +359,20 @@ const AICoach = () => {
     };
 
     // ── Avaliação 👍/👎 das respostas do Coach ─────────────────────
-    const handleFeedback = async (msg, value) => {
+    // As gravações de cada mensagem rodam em fila: cliques rápidos (👍 e logo 👎)
+    // chegam ao banco na mesma ordem em que aparecem na tela.
+    const feedbackQueueRef = useRef(new Map());
+    const handleFeedback = (msg, value) => {
         const feedback = msg.feedback === value ? null : value;
         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, feedback } : m));
-        try {
-            await rateCoachMessage(msg.dbId, feedback);
-        } catch (e) {
+        const previous = feedbackQueueRef.current.get(msg.dbId) || Promise.resolve();
+        const next = previous.then(() => rateCoachMessage(msg.dbId, feedback)).catch(e => {
             console.error('[Feedback] Falha ao salvar avaliação:', e?.message);
-            setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, feedback: msg.feedback } : m));
-        }
+            if (feedbackQueueRef.current.get(msg.dbId) === next) {
+                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, feedback: msg.feedback } : m));
+            }
+        });
+        feedbackQueueRef.current.set(msg.dbId, next);
     };
 
     // ── Compartilha resposta na base de conhecimento ──────────────
