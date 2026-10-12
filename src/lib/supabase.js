@@ -1981,6 +1981,23 @@ export const supabaseHelpers = {
     },
 
     // Buscar exercícios concluídos em uma sessão específica
+    // Última sessão de treino iniciada pelo usuário (vinculada a um plano),
+    // usada para destacar onde ele parou.
+    async getLastWorkoutSession(userId) {
+        if (!userId) return null;
+        const { data, error } = await supabase
+            .from('b_workout_sessions')
+            .select('id, workout_id, workout_day_id, started_at, ended_at')
+            .eq('user_id', userId)
+            .not('workout_id', 'is', null)
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) throw error;
+        return data || null;
+    },
+
     async getSessionExercises(sessionId) {
         const { data, error } = await supabase
             .from('b_session_logs')
