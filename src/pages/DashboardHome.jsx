@@ -154,7 +154,8 @@ const DashboardHome = () => {
         const scroller = section.closest('.layout-content');
         if (scroller) {
             const top = scroller.scrollTop + section.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 12;
-            scroller.scrollTo({ top, behavior: 'smooth' });
+            const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            scroller.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
         }
         setHighlightExplore(false);
         clearTimeout(highlightTimerRef.current);
