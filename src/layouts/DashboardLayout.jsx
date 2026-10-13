@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Salad, BarChart2, User } from 'lucide-react';
+import { Home, BarChart2, User } from 'lucide-react';
+import { BowlPlateIcon } from '../components/icons/BenfitIcons';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { CoachProvider } from '../context/CoachProvider';
 import CoachButton from '../components/CoachButton';
@@ -295,7 +296,7 @@ const DashboardLayoutContent = () => {
                         onClick={() => handleNav('/dieta')}
                         data-tooltip="Dieta"
                     >
-                        <Salad size={24} />
+                        <BowlPlateIcon size={24} />
                         <span>Dieta</span>
                     </button>
                     <button

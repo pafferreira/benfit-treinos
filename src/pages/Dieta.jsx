@@ -1,4 +1,5 @@
-import { Salad, MessageCircle, ChevronRight } from 'lucide-react';
+import { MessageCircle, ChevronRight } from 'lucide-react';
+import { BowlPlateIcon } from '../components/icons/BenfitIcons';
 import { useCoach, useCoachScreen } from '../context/coach';
 import './Dieta.css';
 
@@ -24,7 +25,7 @@ const Dieta = () => {
     return (
         <div className="dieta-page">
             <section className="dieta-hero">
-                <div className="dieta-hero-icon"><Salad size={26} /></div>
+                <div className="dieta-hero-icon"><BowlPlateIcon size={26} /></div>
                 <div>
                     <h2 className="dieta-hero-title">Pratos com foto e macros estão chegando</h2>
                     <p className="dieta-hero-text">

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Send, Bot, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil, ThumbsUp, ThumbsDown, Maximize2, MapPin } from 'lucide-react';
+import { Send, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil, ThumbsUp, ThumbsDown, Maximize2, MapPin } from 'lucide-react';
+import { RobotCoachIcon } from '../components/icons/BenfitIcons';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
 import { chatWithBenfit, generateConversationTitle, generateEmbedding, rateCoachMessage } from '../services/ai';
@@ -815,7 +816,7 @@ const AICoach = ({ variant = 'page' }) => {
                     messages.map((msg) => (
                         <div key={msg.id} className={`message ${msg.sender}`}>
                             <div className="message-avatar">
-                                {msg.sender === 'ai' ? <Bot size={18} /> : <User size={18} />}
+                                {msg.sender === 'ai' ? <RobotCoachIcon size={18} /> : <User size={18} />}
                             </div>
                             <div className="message-bubble">
                                 {renderText(msg.text)}
@@ -857,7 +858,7 @@ const AICoach = ({ variant = 'page' }) => {
                 )}
                 {isTyping && (
                     <div className="message ai">
-                        <div className="message-avatar"><Bot size={18} /></div>
+                        <div className="message-avatar"><RobotCoachIcon size={18} /></div>
                         <div className="message-bubble typing-indicator">
                             Buscando seu histórico e pensando...
                         </div>

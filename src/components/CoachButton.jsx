@@ -1,4 +1,4 @@
-import { Bot } from 'lucide-react';
+import { RobotCoachIcon } from './icons/BenfitIcons';
 import { useCoach } from '../context/coach';
 import './CoachSheet.css';
 
@@ -13,7 +13,7 @@ const CoachButton = ({ className = '' }) => {
             aria-label="Abrir Benfit Coach"
             title="Benfit Coach"
         >
-            <Bot size={20} />
+            <RobotCoachIcon size={20} />
         </button>
     );
 };
