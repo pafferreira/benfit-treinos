@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, ClipboardList, Play, BarChart2, User } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
@@ -258,7 +258,9 @@ const DashboardLayoutContent = () => {
                         : { paddingTop: mainPaddingTop }
                     }
                 >
-                    <Outlet />
+                    <Suspense fallback={null}>
+                        <Outlet />
+                    </Suspense>
                 </main>
 
                 {/* Bottom Navigation */}

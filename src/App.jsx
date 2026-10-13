@@ -1,29 +1,33 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import DashboardLayout from './layouts/DashboardLayout'
 import DashboardHome from './pages/DashboardHome'
 import Workouts from './pages/Workouts'
-import WorkoutEditor from './pages/WorkoutEditor'
-import WorkoutPlan from './pages/WorkoutPlan'
-import WorkoutDayDetails from './pages/WorkoutDayDetails'
-import Exercises from './pages/Exercises'
-import Profile from './pages/Profile'
-import AICoach from './pages/AICoach'
-import MeuTreino from './pages/MeuTreino'
 import Login from './pages/Login'
-import ResetPassword from './pages/ResetPassword'
-import SupabaseDiagnostic from './pages/SupabaseDiagnostic'
-import AdminUsers from './pages/AdminUsers'
-import ActivityHistoryPage from './pages/ActivityHistoryPage'
-import SharedKnowledge from './pages/SharedKnowledge'
 import './App.css'
 import ToastContainer from './components/ToastContainer'
 import SplashScreen from './components/SplashScreen'
+
+// Páginas fora do caminho inicial (login → home → treinos) carregam sob demanda.
+const WorkoutEditor = lazy(() => import('./pages/WorkoutEditor'))
+const WorkoutPlan = lazy(() => import('./pages/WorkoutPlan'))
+const WorkoutDayDetails = lazy(() => import('./pages/WorkoutDayDetails'))
+const Exercises = lazy(() => import('./pages/Exercises'))
+const Profile = lazy(() => import('./pages/Profile'))
+const AICoach = lazy(() => import('./pages/AICoach'))
+const MeuTreino = lazy(() => import('./pages/MeuTreino'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const SupabaseDiagnostic = lazy(() => import('./pages/SupabaseDiagnostic'))
+const AdminUsers = lazy(() => import('./pages/AdminUsers'))
+const ActivityHistoryPage = lazy(() => import('./pages/ActivityHistoryPage'))
+const SharedKnowledge = lazy(() => import('./pages/SharedKnowledge'))
 
 function App() {
   return (
     <BrowserRouter>
       <SplashScreen />
       <ToastContainer />
+      <Suspense fallback={null}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/diagnostic" element={<SupabaseDiagnostic />} />
@@ -47,6 +51,7 @@ function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }
