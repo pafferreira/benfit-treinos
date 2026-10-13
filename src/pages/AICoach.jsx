@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Bot, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
-import { chatWithBenfit, generateConversationTitle, generateEmbedding } from '../services/ai';
+import { chatWithBenfit, generateConversationTitle, generateEmbedding, rateCoachMessage } from '../services/ai';
 import { buildUserContext, buildExerciseStats } from '../services/context';
 import { useUserRole } from '../hooks/useSupabase';
 import './AICoach.css';
@@ -43,17 +43,7 @@ const MUSCLE_GROUPS = [
 const INITIAL_MESSAGE = {
     id: 'initial',
     sender: 'ai',
-    text: 'Olá! Sou o **Benfit Coach** 🏋️\n\nTenho acesso ao seu histórico completo de treinos e metas. Pergunte qualquer coisa — sobre sua evolução, cargas, recuperação ou planejamento!'
-};
-
-// ── Helpers de contexto local (evita chamadas ao Gemini) ─────────
-const extractSection = (context, header) => {
-    const marker = `## ${header}`;
-    const idx = context.indexOf(marker);
-    if (idx === -1) return null;
-    const after = context.slice(idx + marker.length).trim();
-    const nextIdx = after.indexOf('\n## ');
-    return (nextIdx !== -1 ? after.slice(0, nextIdx) : after).trim() || null;
+    text: 'Olá! Sou o **Benfit Coach** 🏋️\n\nConheço seus treinos recentes, suas metas e o catálogo Benfit. Pergunte sobre exercícios, cargas, recuperação ou alimentação.'
 };
 
 // Formata resultados do shared knowledge como resposta direta ao usuário
@@ -104,28 +94,6 @@ const formatSharedKnowledgeResponse = (results) => {
     return parts.length > 0 ? parts.join('\n') : null;
 };
 
-// Tenta responder localmente sem consumir tokens do Gemini
-// Apenas para fatos simples de perfil/metas — exercícios vão para Gemini + shared knowledge
-const tryLocalResponse = (text, context) => {
-    if (!context || context.includes('Nenhum dado estruturado')) return null;
-    const lower = text.toLowerCase();
-
-    // Metas (apenas consultas diretas, não perguntas sobre estratégia)
-    if (/\b(meta|metas|objetivo|objetivos)\b/.test(lower) && !/\b(como|alcançar|atingir|melhorar)\b/.test(lower)) {
-        const content = extractSection(context, 'Metas Ativas');
-        if (content) return `**Suas metas ativas:**\n\n${content}\n\n_Quer estratégias para alcançar alguma delas? Me pergunte!_`;
-        return 'Você ainda não tem metas cadastradas no app. Que tal definir uma agora?';
-    }
-
-    // Perfil
-    if (/\b(meu perfil|meu peso|minha altura|minha idade|meus dados)\b/.test(lower)) {
-        const content = extractSection(context, 'Perfil do Aluno');
-        if (content) return `**Seu perfil:**\n\n${content}`;
-    }
-
-    return null; // Vai para o Gemini + busca semântica
-};
-
 // Detecta perguntas que devem buscar no catálogo de exercícios compartilhado
 const SHARED_KNOWLEDGE_PATTERNS = [
     /exerc[ií]cio/i,
@@ -144,7 +112,7 @@ const isSharedKnowledgeQuery = (text) =>
     SHARED_KNOWLEDGE_PATTERNS.some(p => p.test(text));
 
 // Detecta perguntas sobre o histórico PESSOAL do aluno — nunca responder
-// com o catálogo; precisa dos dados agregados do banco + Gemini
+// com o catálogo; precisa dos dados agregados do banco
 const PERSONAL_HISTORY_PATTERNS = [
     /\b(eu\s+)?(fiz|realizei|executei|treinei|completei)\b/i,
     /\bquant[oa]s?\s+(vezes|exerc[íi]cios|s[ée]ries|treinos|sess[õo]es)\b.*\b(fiz|meu|minha|tenho)\b/i,
@@ -298,7 +266,8 @@ const AICoach = () => {
             const msgs = await supabaseHelpers.getConversationMessages(convId);
             if (msgs?.length > 0) {
                 setMessages([INITIAL_MESSAGE, ...msgs.map(m => ({
-                    id: m.id, sender: m.role === 'user' ? 'user' : 'ai', text: m.content
+                    id: m.id, dbId: m.id, sender: m.role === 'user' ? 'user' : 'ai',
+                    text: m.content, feedback: m.feedback ?? null,
                 }))]);
                 setIsFirstMessage(false);
             } else {
@@ -389,6 +358,23 @@ const AICoach = () => {
         await sendMessage(`Exercícios de ${muscle.name}`);
     };
 
+    // ── Avaliação 👍/👎 das respostas do Coach ─────────────────────
+    // As gravações de cada mensagem rodam em fila: cliques rápidos (👍 e logo 👎)
+    // chegam ao banco na mesma ordem em que aparecem na tela.
+    const feedbackQueueRef = useRef(new Map());
+    const handleFeedback = (msg, value) => {
+        const feedback = msg.feedback === value ? null : value;
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, feedback } : m));
+        const previous = feedbackQueueRef.current.get(msg.dbId) || Promise.resolve();
+        const next = previous.then(() => rateCoachMessage(msg.dbId, feedback)).catch(e => {
+            console.error('[Feedback] Falha ao salvar avaliação:', e?.message);
+            if (feedbackQueueRef.current.get(msg.dbId) === next) {
+                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, feedback: msg.feedback } : m));
+            }
+        });
+        feedbackQueueRef.current.set(msg.dbId, next);
+    };
+
     // ── Compartilha resposta na base de conhecimento ──────────────
     const handleShareToKnowledge = async (msg) => {
         const [sharingId] = [msg.id];
@@ -454,104 +440,78 @@ const AICoach = () => {
                 if (convId) supabaseHelpers.touchConversation(convId).catch(() => {});
             }
 
-            // ── Nível 1: Resposta local (metas/perfil, sem rede) ──
-            const localAnswer = tryLocalResponse(text, structuredContext);
+            // ── Busca no conhecimento compartilhado + memórias do aluno ──
+            let userMemories = [];
+            let sharedResults = [];
+            if (uid) {
+                const result = await searchHybridMemory(
+                    uid, text, 0.25, 10,
+                    isSharedKnowledgeQuery(text) ? ['exercise', 'workout_template', 'fitness_tip', 'faq'] : null
+                );
+                userMemories = result.userMemories;
+                sharedResults = result.sharedResults;
+            }
+
+            // Pergunta sobre histórico pessoal? Nunca responder com catálogo —
+            // busca estatísticas agregadas de todo o histórico para o Coach
+            const isPersonalHistory = isPersonalHistoryQuery(text);
+            let exerciseStats = null;
+            if (isPersonalHistory && uid) {
+                exerciseStats = await buildExerciseStats(uid).catch(() => null);
+            }
+
+            // Resposta direta do catálogo APENAS para o seletor de músculos
+            // ("Exercícios de X") — qualquer pergunta livre vai ao Coach,
+            // que usa o catálogo como contexto e responde de forma natural.
+            const isMusclePickerQuery = /^Exercícios de /.test(text);
+            const directResults = (isMusclePickerQuery && !isPersonalHistory)
+                ? sharedResults.filter(r => r.similarity >= DIRECT_SIMILARITY_THRESHOLD)
+                : [];
+            const directAnswer = directResults.length > 0
+                ? formatSharedKnowledgeResponse(directResults)
+                : null;
 
             let responseText;
-            let responseProvider = null;
-            let directAnswer = null;
+            let responseId = null;
 
-            if (localAnswer) {
-                responseText = localAnswer;
-                responseProvider = 'local';
-                console.log('[Benfit Coach] Respondido localmente (sem Gemini).');
+            if (directAnswer) {
+                responseText = directAnswer;
+                if (uid && convId) {
+                    const saved = await supabaseHelpers.saveChatMessage(uid, 'assistant', responseText, convId, {
+                        provider: 'shared_knowledge',
+                    });
+                    responseId = saved?.id || null;
+                }
             } else {
-                // ── Nível 2: Busca no shared knowledge + memórias ─
-                let userMemories = [];
-                let sharedResults = [];
+                const memoriesText = userMemories.map((m, i) => {
+                    const dateStr = m.metadata?.date ? new Date(m.metadata.date).toLocaleDateString('pt-BR') : '';
+                    return `[${i + 1}] ${dateStr}: ${m.content}`;
+                }).join('\n');
+                const sharedText = sharedResults.map((r, i) => `[${i + 1}] ${r.content}`).join('\n');
+
+                // O perfil e as regras do Coach ficam no prompt do servidor;
+                // aqui vão só os dados do aluno.
+                const fullContext = [
+                    structuredContext,
+                    exerciseStats,
+                    sharedText ? `## Base de conhecimento Benfit (trechos relacionados à pergunta)\n${sharedText}` : '',
+                    memoriesText ? `## Memórias de conversas anteriores\n${memoriesText}` : '',
+                ].filter(Boolean).join('\n\n');
+
+                const aiResponse = await chatWithBenfit(text, fullContext, convId);
+                responseText = aiResponse.text;
+                responseId = aiResponse.messageId || null;
+
                 if (uid) {
-                    const result = await searchHybridMemory(
-                        uid, text, 0.25, 10,
-                        isSharedKnowledgeQuery(text) ? ['exercise', 'workout_template', 'fitness_tip', 'faq'] : null
-                    );
-                    userMemories = result.userMemories;
-                    sharedResults = result.sharedResults;
-                }
-
-                // Pergunta sobre histórico pessoal? Nunca responder com catálogo —
-                // busca estatísticas agregadas de todo o histórico e vai ao Gemini
-                const isPersonalHistory = isPersonalHistoryQuery(text);
-                let exerciseStats = null;
-                if (isPersonalHistory && uid) {
-                    exerciseStats = await buildExerciseStats(uid).catch(() => null);
-                }
-
-                // Resposta direta do catálogo APENAS para o seletor de músculos
-                // ("Exercícios de X") — qualquer pergunta livre vai ao Gemini,
-                // que usa o catálogo como contexto e responde de forma natural.
-                const isMusclePickerQuery = /^Exercícios de /.test(text);
-                const directResults = (isMusclePickerQuery && !isPersonalHistory)
-                    ? sharedResults.filter(r => r.similarity >= DIRECT_SIMILARITY_THRESHOLD)
-                    : [];
-                directAnswer = directResults.length > 0
-                    ? formatSharedKnowledgeResponse(directResults)
-                    : null;
-
-                if (directAnswer) {
-                    responseText = directAnswer;
-                    responseProvider = 'shared_knowledge';
-                    console.log(`[Benfit Coach] Respondido via shared knowledge (${directResults.length} resultado(s), sem Gemini).`);
-                } else {
-                    // ── Nível 3: Gemini com contexto de memórias ──
-                    let contextText = '';
-                    if (userMemories.length > 0) {
-                        contextText = userMemories.map((m, i) => {
-                            const dateStr = m.metadata?.date ? new Date(m.metadata.date).toLocaleDateString('pt-BR') : '';
-                            const typeLabel = m.metadata?.type === 'workout' ? '🏋️ Treino'
-                                : m.metadata?.type === 'goal' ? '🎯 Meta'
-                                : m.metadata?.type === 'conversation' ? '💬 Conversa anterior'
-                                : '📌 Registro';
-                            return `[${i + 1}] ${typeLabel} ${dateStr}: ${m.content}`;
-                        }).join('\n');
-                    }
-                    // Resultados fracos (<0.40) ainda entram como contexto para o Gemini
-                    const weakSharedText = sharedResults.length > 0
-                        ? sharedResults.map((r, i) => `[${i + 1}] 📚 ${r.content}`).join('\n')
-                        : '';
-
-                    const instructions = `Você é o Benfit Coach. Use os dados do aluno e o contexto abaixo para responder de forma direta e motivadora. Se não souber, peça mais informações.`;
-
-                    const fullContext = [
-                        instructions,
-                        structuredContext ? `### DADOS DO ALUNO:\n${structuredContext}` : '',
-                        exerciseStats || '',
-                        weakSharedText ? `\n## CATÁLOGO BENFIT:\n${weakSharedText}` : '',
-                        contextText ? `\n## MEMÓRIAS:\n${contextText}` : '',
-                    ].filter(Boolean).join('\n\n---\n\n');
-
-                    const aiResponse = await chatWithBenfit(text, fullContext, convId);
-                    responseText = aiResponse.text;
-                    responseProvider = aiResponse.provider;
+                    maybeStoreConversation(uid, text, responseText)
+                        .catch(err => console.warn('[Benfit Coach] Memória não salva:', err?.message));
                 }
             }
 
-            if (uid && convId && (localAnswer || directAnswer)) {
-                await supabaseHelpers.saveChatMessage(uid, 'assistant', responseText, convId, {
-                    provider: responseProvider,
-                });
-            }
-
-            const aiMsg = { id: Date.now() + 1, sender: 'ai', text: responseText };
+            const aiMsg = { id: responseId || Date.now() + 1, dbId: responseId, sender: 'ai', text: responseText };
             setMessages(prev => [...prev, aiMsg]);
 
-            if (uid) {
-                // Só armazena conversas ricas que passaram pelo Gemini
-                if (!localAnswer && !directAnswer) {
-                    maybeStoreConversation(uid, text, responseText).catch(() => {});
-                }
-            }
-
-            // Título imediato (palavras-chave da mensagem) + refinamento via Gemini
+            // Título imediato (palavras-chave da mensagem) + refinamento pelo Coach
             if (wasFirst && convId && uid) {
                 const quickTitle = text
                     .split(' ')
@@ -766,6 +726,26 @@ const AICoach = () => {
                             </div>
                             <div className="message-bubble">
                                 {renderText(msg.text)}
+                                {msg.sender === 'ai' && msg.dbId && (
+                                    <div className="coach-feedback" role="group" aria-label="Avaliar resposta">
+                                        <button
+                                            className={`coach-feedback-btn ${msg.feedback === 1 ? 'active' : ''}`}
+                                            onClick={() => handleFeedback(msg, 1)}
+                                            aria-label="Resposta útil"
+                                            aria-pressed={msg.feedback === 1}
+                                        >
+                                            <ThumbsUp size={12} />
+                                        </button>
+                                        <button
+                                            className={`coach-feedback-btn ${msg.feedback === -1 ? 'active' : ''}`}
+                                            onClick={() => handleFeedback(msg, -1)}
+                                            aria-label="Resposta não ajudou"
+                                            aria-pressed={msg.feedback === -1}
+                                        >
+                                            <ThumbsDown size={12} />
+                                        </button>
+                                    </div>
+                                )}
                                 {canShare && msg.sender === 'ai' && msg.id !== 'initial' && (
                                     <button
                                         className={`share-to-kb-btn ${msg.shared ? 'shared' : ''}`}

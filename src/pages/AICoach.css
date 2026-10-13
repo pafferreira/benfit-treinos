@@ -882,6 +882,46 @@
     color: #4ADE80;
 }
 
+/* ── Avaliação 👍/👎 das respostas ───────────────────────────── */
+.coach-feedback {
+    display: inline-flex;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+}
+
+.coach-feedback-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.coach-feedback-btn:hover {
+    color: var(--color-primary);
+    border-color: #BFDBFE;
+}
+
+.coach-feedback-btn.active {
+    color: var(--color-primary);
+    background: #EFF6FF;
+    border-color: #BFDBFE;
+}
+
+.dark .coach-feedback-btn.active {
+    background: #1E3A5F;
+    border-color: var(--color-primary);
+    color: #93C5FD;
+}
+
 /* ── Animação de entrada das bolhas ──────────────────────────── */
 @keyframes slideIn {
     from {

@@ -1,9 +1,11 @@
 import { chatWithFallback, SYSTEM_PROMPT } from './_providers.js';
+import { TITLE_PROMPT } from './_prompt.js';
 import {
     buildConversationMessages,
     ChatHttpError,
     getBearerToken,
     loadConversationSession,
+    requireUser,
     saveAssistantResponse,
 } from './_conversation-history.js';
 
@@ -18,35 +20,38 @@ export default async function handler(req, res) {
     }
 
     try {
-        let systemPrompt = SYSTEM_PROMPT;
-        let messages;
+        const accessToken = getBearerToken(req);
 
         if (mode === 'title') {
-            systemPrompt = 'Você gera títulos curtos para conversas de fitness.';
-            messages = [{
-                role: 'user',
-                content: `Crie um título curto (máximo 35 caracteres) em português para uma conversa de fitness que começou com a seguinte pergunta do usuário:\n\n"${message}"\n\nResponda APENAS com o título, sem aspas, sem pontuação no final, sem explicações.`,
-            }];
-        } else {
-            const accessToken = getBearerToken(req);
-            const session = await loadConversationSession({ accessToken, conversationId });
-            messages = buildConversationMessages({ history: session.history, message, context });
-
-            const result = await chatWithFallback({ messages, systemPrompt });
-            await saveAssistantResponse({
-                supabase: session.supabase,
-                userId: session.user.id,
-                conversationId,
-                text: result.text,
-                provider: result.provider,
-                providerParts: result.providerParts,
+            await requireUser(accessToken);
+            const { text, provider } = await chatWithFallback({
+                systemPrompt: TITLE_PROMPT,
+                messages: [{ role: 'user', content: `Primeira mensagem da conversa:\n\n"${message.slice(0, 500)}"` }],
             });
-
-            return res.status(200).json({ text: result.text, provider: result.provider });
+            return res.status(200).json({ text, provider });
         }
 
-        const { text, provider } = await chatWithFallback({ messages, systemPrompt });
-        return res.status(200).json({ text, provider });
+        const session = await loadConversationSession({ accessToken, conversationId });
+        const messages = buildConversationMessages({ history: session.history, message, context });
+
+        const result = await chatWithFallback({ messages, systemPrompt: SYSTEM_PROMPT });
+        const messageId = await saveAssistantResponse({
+            supabase: session.supabase,
+            userId: session.user.id,
+            conversationId,
+            text: result.text,
+            provider: result.provider,
+            model: result.model,
+            usage: result.usage,
+            providerParts: result.providerParts,
+        });
+
+        return res.status(200).json({
+            text: result.text,
+            provider: result.provider,
+            model: result.model,
+            messageId,
+        });
     } catch (error) {
         if (error instanceof ChatHttpError) {
             return res.status(error.status).json({ error: error.message });

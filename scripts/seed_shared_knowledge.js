@@ -9,11 +9,10 @@
  * Requer no .env:
  *   VITE_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
- *   VITE_GEMINI_API_KEY
+ *   GEMINI_API_KEY
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -26,11 +25,11 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 // ── Validação de ambiente ─────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const GEMINI_API_KEY = process.env.VITE_GEMINI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GEMINI_API_KEY) {
     console.error('[Seed] Erro: variáveis de ambiente ausentes.');
-    console.error('  Necessário: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, VITE_GEMINI_API_KEY');
+    console.error('  Necessário: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY');
     process.exit(1);
 }
 
@@ -39,15 +38,23 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false }
 });
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const embeddingModel = genAI.getGenerativeModel({ model: 'gemini-embedding-2-preview' });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Mesmo modelo de /api/embedding: os vetores precisam estar no mesmo espaço.
 async function embedText(text) {
-    const result = await embeddingModel.embedContent(text);
-    return result.embedding.values;
+    const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${GEMINI_API_KEY}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: { parts: [{ text }] } }),
+        }
+    );
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const data = await res.json();
+    return data.embedding.values;
 }
 
 /**

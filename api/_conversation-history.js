@@ -79,6 +79,20 @@ const createAuthenticatedClient = (accessToken) => {
     });
 };
 
+// Valida o token do Supabase e devolve o usuário logado com um cliente que
+// respeita o RLS dele. Usado por todos os endpoints de AI.
+export const requireUser = async (accessToken) => {
+    if (!accessToken) {
+        throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Coach.');
+    }
+    const supabase = createAuthenticatedClient(accessToken);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+    if (authError || !user) {
+        throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Coach.');
+    }
+    return { supabase, user };
+};
+
 export const loadConversationSession = async ({ accessToken, conversationId }) => {
     if (!accessToken) {
         throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Coach.');
@@ -87,11 +101,7 @@ export const loadConversationSession = async ({ accessToken, conversationId }) =
         throw new ChatHttpError(400, 'Campo "conversationId" inválido');
     }
 
-    const supabase = createAuthenticatedClient(accessToken);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
-    if (authError || !user) {
-        throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Coach.');
-    }
+    const { supabase, user } = await requireUser(accessToken);
 
     const { data: conversation, error: conversationError } = await supabase
         .from('b_ai_conversations')
@@ -132,9 +142,11 @@ export const saveAssistantResponse = async ({
     conversationId,
     text,
     provider,
+    model,
+    usage,
     providerParts,
 }) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('b_ai_chat_history')
         .insert({
             user_id: userId,
@@ -142,10 +154,17 @@ export const saveAssistantResponse = async ({
             role: 'assistant',
             content: text,
             provider,
+            model: model || null,
+            input_tokens: usage?.input_tokens ?? null,
+            output_tokens: usage?.output_tokens ?? null,
             provider_parts: Array.isArray(providerParts) ? providerParts : null,
-        });
+        })
+        .select('id')
+        .single();
 
     if (error) {
+        console.error('[api/chat] Falha ao salvar resposta:', error.message);
         throw new ChatHttpError(500, 'A resposta foi gerada, mas não pôde ser salva no histórico');
     }
+    return data.id;
 };
