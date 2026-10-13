@@ -1,0 +1,107 @@
+/* ── Botão do Coach nos cabeçalhos ───────────────────────────── */
+.coach-launch-btn {
+    height: 2.5rem;
+    width: 2.5rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    border: 1px solid rgba(var(--color-primary-rgb), 0.25);
+    background: rgba(var(--color-secondary-rgb), 0.1);
+    color: var(--color-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.coach-launch-btn:hover {
+    background: rgba(var(--color-secondary-rgb), 0.18);
+}
+
+.coach-launch-btn:active {
+    transform: scale(0.94);
+}
+
+/* ── Painel deslizante ───────────────────────────────────────── */
+.coach-sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 200;
+}
+
+.coach-sheet-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.coach-sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 72%;
+    background: var(--color-card-light);
+    border-top-left-radius: var(--radius-2xl);
+    border-top-right-radius: var(--radius-2xl);
+    box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.18);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateY(105%);
+    visibility: hidden;
+    transition: transform 0.3s ease, height 0.3s ease, visibility 0s linear 0.3s;
+    z-index: 201;
+}
+
+.coach-sheet.open {
+    transform: translateY(0);
+    visibility: visible;
+    transition: transform 0.3s ease, height 0.3s ease, visibility 0s;
+}
+
+.coach-sheet.tall {
+    height: 94%;
+}
+
+.coach-sheet-handle {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem 0 0.25rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.coach-sheet-handle span {
+    width: 2.5rem;
+    height: 0.3rem;
+    border-radius: 9999px;
+    background: #CBD5E1;
+}
+
+.coach-sheet-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.coach-sheet-loading {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--color-subtext-light);
+    font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .coach-sheet,
+    .coach-sheet.open,
+    .coach-sheet-overlay {
+        transition: none;
+    }
+}

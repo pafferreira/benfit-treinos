@@ -8,35 +8,41 @@
 ---
 
 **Projeto:** Benfit Treinos
-**Gerado:** 2026-02-12 18:57:21
-**Categoria:** Dashboard Analítico
+**Gerado:** 2026-02-12 18:57:21 · **Atualizado:** 2026-10-13 (v2: alinhado ao app real, tokens em `src/index.css`)
+**Categoria:** App mobile de treino (tema claro)
 
 ---
 
 ## Regras Globais
 
+> Fonte da verdade: as variáveis CSS de `src/index.css`. Use sempre a variável, nunca o hex solto.
+
 ### Paleta de Cores
 
 | Papel | Hex | Variável CSS |
 |------|-----|--------------|
-| Primária | `#0F172A` | `--color-primary` |
-| Secundária | `#1E293B` | `--color-secondary` |
-| CTA/Acento | `#22C55E` | `--color-cta` |
-| Fundo | `#020617` | `--color-background` |
-| Texto | `#F8FAFC` | `--color-text` |
+| Primária (marca, títulos, ações) | `#034EA2` | `--color-primary` (`--color-primary-rgb`) |
+| Secundária (gradientes, realces) | `#008ACF` | `--color-secondary` (`--color-secondary-rgb`) |
+| Acento | `#F59E0B` | `--color-accent` |
+| Sucesso | `#10B981` | `--color-success` |
+| Perigo | `#EF4444` | `--color-danger` |
+| Fundo do app | `#F3F4F6` | `--color-background-light` / `--color-bg-app` |
+| Card | `#FFFFFF` | `--color-card-light` |
+| Texto | `#231F20` | `--color-text-main` |
+| Texto secundário | `#4B5563` | `--color-subtext-light` |
 
-**Observação de cor:** Fundo escuro + indicadores positivos em verde
+**Observação de cor:** tema claro; cartões brancos sobre cinza claro; destaque principal em gradiente `--color-primary → --color-secondary` (banner do Início, Dieta). Variantes escuras existem nos tokens (`*-dark`), mas o app força o tema claro.
 
 ### Tipografia
 
-- **Fonte de título:** Fira Code
-- **Fonte do corpo:** Fira Sans
-- **Tom:** dashboard, dados, análise, código, técnico, preciso
-- **Google Fonts:** [Fira Code + Fira Sans](https://fonts.google.com/share?selection.family=Fira+Code:wght@400;500;600;700|Fira+Sans:wght@300;400;500;600;700)
+- **Fonte principal:** Nunito (fallback Inter, system-ui)
+- **Pesos:** 400 corpo, 600/700 rótulos, 800 títulos
+- **Tom:** parceiro, direto, motivador
 
-**Import CSS:**
+**Import CSS (já em `src/index.css`):**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
 ```
 
 ### Variáveis de Espaçamento
@@ -154,21 +160,16 @@
 
 ## Diretrizes de Estilo
 
-**Estilo:** Dashboard Data-Denso
+**Estilo:** App mobile, cartões arredondados (`--radius-xl` / `--radius-2xl`), sombras leves, uma ação principal clara por tela.
 
-**Palavras-chave:** Vários gráficos/widgets, tabelas de dados, cartões KPI, padding mínimo, layout em grade, economia de espaço, máxima visibilidade de dados
+**Efeitos-chave:** cabeçalho e barra inferior somem ao rolar para baixo e voltam ao rolar para cima; transições curtas (0,2–0,3 s); respeitar `prefers-reduced-motion`.
 
-**Indicado para:** Dashboards de business intelligence, análise financeira, relatórios empresariais, dashboards operacionais, data warehousing
+### Padrão de Página (v2)
 
-**Efeitos-chave:** Tooltips ao passar o mouse, zoom no gráfico ao clicar, realce de linha ao passar o mouse, animações suaves em filtros, indicadores de carregamento de dados
-
-### Padrão de Página
-
-**Nome do padrão:** Video-First Hero
-
-- **Estratégia de conversão:** Vídeo aumenta engajamento em ~86%. Adicionar legendas para acessibilidade. Comprimir vídeo para performance.
-- **Posicionamento do CTA:** Sobreposição no vídeo (centro/inferior) + seção inferior
-- **Ordem das seções:** 1. Hero com vídeo de fundo, 2. Sobreposição de funcionalidades-chave, 3. Seção de benefícios, 4. CTA
+- **Cabeçalho fixo:** título + subtítulo da tela à esquerda; à direita, botão do **Benfit Coach** (ícone de robô), nome/perfil e avatar.
+- **Barra inferior:** 4 abas iguais: Início · Dieta · Exercícios · Perfil. **Sem botão central flutuante**: a ação principal de cada tela fica dentro da própria tela (ex.: "Começar treino" no card Treino de hoje, "+ Novo" no topo das listas).
+- **Benfit Coach:** abre num painel que sobe de baixo, sobre a tela atual, com o contexto dela ("Vendo: …") e sugestões de pergunta; pode expandir para a página `/coach`. Telas com cabeçalho próprio (sessão do dia, histórico) também mostram o botão do Coach.
+- **Início:** banner em gradiente com saudação + Treino de hoje → semana (calendário + números) → Meus planos → Explorar planos (carrossel) → dica que abre o Coach.
 
 ---
 

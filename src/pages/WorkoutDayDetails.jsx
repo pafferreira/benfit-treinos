@@ -9,6 +9,8 @@ import Modal from '../components/Modal';
 import { supabaseHelpers } from '../lib/supabase';
 import { cacheGet, cacheInvalidate, swr } from '../lib/dataCache';
 import { saveToMemory } from '../services/memory';
+import CoachButton from '../components/CoachButton';
+import { useCoachScreen } from '../context/coach';
 import './WorkoutDayDetails.css';
 
 const FEELING_MICROCOPY = {
@@ -386,6 +388,21 @@ const WorkoutDayDetails = () => {
         }
     };
 
+    const activeName = workoutExercises[activeExerciseIndex]?.b_exercises?.name || null;
+    const dayLabel = day ? (day.day_name || `Dia ${day.day_number}`) : null;
+    useCoachScreen(workout && day ? {
+        label: `${dayLabel} · ${workout.title}`,
+        details: [
+            `O aluno está na sessão de treino "${dayLabel}" do plano "${workout.title}".`,
+            `Exercícios: ${workoutExercises.map(e => e.b_exercises?.name || 'Exercício').join(', ')}.`,
+            `Feitos: ${completedExercises.length} de ${workoutExercises.length}.`,
+            activeName ? `Exercício aberto agora: ${activeName}.` : '',
+        ].filter(Boolean).join('\n'),
+        suggestions: activeName
+            ? [`Como fazer ${activeName} corretamente?`, `Que exercício substitui ${activeName}?`, 'Quanto descansar entre as séries?']
+            : ['Quanto descansar entre as séries?', 'Como aquecer para este treino?'],
+    } : null);
+
     if (loading) {
         return <SkeletonWorkouts />;
     }
@@ -416,6 +433,7 @@ const WorkoutDayDetails = () => {
                     <h1 className="workout-day-title">{day.day_name || `Dia ${day.day_number}`}</h1>
                     <p className="workout-day-subtitle">{workout.title}</p>
                 </div>
+                <CoachButton className="workout-day-coach-btn" />
             </div>
 
 

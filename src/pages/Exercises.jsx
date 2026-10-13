@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
-import { useAction } from '../context/ActionContext';
+import { useCoachScreen } from '../context/coach';
 import { supabaseHelpers, getExerciseMuscleGroups } from '../lib/supabase';
 import { Search, Plus, Edit2, Trash2, Target, Package, LayoutGrid, List, Dumbbell, Filter, X } from 'lucide-react';
 import ExerciseModal from '../components/ExerciseModal';
@@ -11,21 +11,6 @@ import Tooltip from '../components/Tooltip';
 const Exercises = () => {
     const { exercises, loading, error, reload } = useExercises();
     const { isAdmin, isPersonal, isUser } = useUserRole();
-    const { setAction } = useAction();
-
-    useEffect(() => {
-        if (isAdmin || isPersonal) {
-            setAction({
-                icon: <Plus />,
-                label: 'Novo Exercício',
-                onClick: () => handleCreateExercise(),
-                visible: true
-            });
-        } else {
-            setAction(null); // Reset to default (Coach IA)
-        }
-        return () => setAction(null);
-    }, [isAdmin, isPersonal, setAction]);
     const [searchTerm, setSearchTerm] = useState('');
     const [muscleFilter, setMuscleFilter] = useState('all');
     const [equipmentFilter, setEquipmentFilter] = useState('all');
@@ -64,6 +49,15 @@ const Exercises = () => {
             equipmentTypes: uniqueEquipment.size
         };
     }, [filteredExercises]);
+
+    const muscleLabel = muscleFilter === 'all' ? null : muscleFilter;
+    useCoachScreen({
+        label: muscleLabel ? `Exercícios de ${muscleLabel}` : 'Biblioteca de exercícios',
+        details: `O aluno está na biblioteca de exercícios${muscleLabel ? `, filtrando por ${muscleLabel}` : ''}.`,
+        suggestions: muscleLabel
+            ? [`Quais os melhores exercícios de ${muscleLabel}?`, `Monte uma sequência de ${muscleLabel} para hoje`]
+            : ['Que exercícios fazer sem equipamento?', 'Como escolher exercícios para hipertrofia?'],
+    });
 
     const filterOptions = useMemo(() => {
         const muscles = [...new Set(exercises.flatMap(getExerciseMuscleGroups))].sort();
@@ -183,6 +177,15 @@ const Exercises = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     {/* Stats Compact Row */}
                     <div className="flex items-center gap-3 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                        {(isAdmin || isPersonal) && (
+                            <button
+                                type="button"
+                                onClick={handleCreateExercise}
+                                className="order-last ml-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-sm font-bold text-blue-700 hover:bg-blue-100 transition-colors whitespace-nowrap"
+                            >
+                                <Plus size={16} /> Novo
+                            </button>
+                        )}
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50/50 rounded-lg border border-blue-100/50 whitespace-nowrap">
                             <span className="text-sm font-bold text-blue-700">{stats.total}</span>
                             <span className="text-xs font-medium text-blue-500 uppercase">Exercícios</span>

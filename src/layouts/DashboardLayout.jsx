@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, ClipboardList, Play, BarChart2, User } from 'lucide-react';
+import { Home, Salad, BarChart2, User } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
-import { ActionProvider, useAction } from '../context/ActionContext';
+import { CoachProvider } from '../context/CoachProvider';
+import CoachButton from '../components/CoachButton';
+import CoachSheet from '../components/CoachSheet';
 import { useUserRole } from '../hooks/useSupabase';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import './DashboardLayout.css';
@@ -106,9 +108,9 @@ const DashboardLayoutContent = () => {
 
         switch (pathname) {
             case '/treinos':
-                return { title: 'Meus Treinos', subtitle: 'Seus programas personalizados' };
-            case '/meu-treino':
-                return { title: 'Meu Treino', subtitle: 'Seu treino de hoje' };
+                return { title: 'Planos', subtitle: 'Escolha e gerencie seus programas' };
+            case '/dieta':
+                return { title: 'Dieta', subtitle: 'Alimentação a favor do treino' };
             case '/exercicios':
                 return { title: 'Exercícios', subtitle: 'Biblioteca completa' };
             case '/coach':
@@ -131,10 +133,9 @@ const DashboardLayoutContent = () => {
         navigate(path);
     };
 
-    const { action } = useAction(); // Consume context
-
     const isActive = (path) => {
-        if (path === '/' && location.pathname === '/') return true;
+        // Planos ficam dentro do Início desde a v2.
+        if (path === '/' && (location.pathname === '/' || location.pathname.startsWith('/treino'))) return true;
         if (path !== '/' && location.pathname.startsWith(path)) return true;
         return false;
     };
@@ -225,6 +226,7 @@ const DashboardLayoutContent = () => {
 
                     {/* User Info Container */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {location.pathname !== '/coach' && <CoachButton />}
 
                         <div className="header-user-info">
                             <span className="header-user-name">{userName}</span>
@@ -284,29 +286,13 @@ const DashboardLayoutContent = () => {
                         <span>Início</span>
                     </button>
                     <button
-                        className={`nav-btn ${isActive('/treinos') ? 'active' : ''}`}
-                        onClick={() => handleNav('/treinos')}
-                        data-tooltip="Meus Planos"
+                        className={`nav-btn ${isActive('/dieta') ? 'active' : ''}`}
+                        onClick={() => handleNav('/dieta')}
+                        data-tooltip="Dieta"
                     >
-                        <ClipboardList size={24} />
-                        <span>Planos</span>
+                        <Salad size={24} />
+                        <span>Dieta</span>
                     </button>
-
-                    <button
-                        className="fab-btn"
-                        onClick={() => {
-                            if (action && action.onClick) {
-                                action.onClick();
-                            } else {
-                                handleNav('/coach');
-                            }
-                        }}
-                        data-tooltip={action?.label || "Benfit Coach"}
-                        style={{ display: (location.pathname === '/' || action?.visible) ? 'flex' : 'none' }}
-                    >
-                        {action?.icon ? action.icon : <Play size={28} fill="currentColor" />}
-                    </button>
-
                     <button
                         className={`nav-btn ${isActive('/exercicios') ? 'active' : ''}`}
                         onClick={() => handleNav('/exercicios')}
@@ -324,6 +310,9 @@ const DashboardLayoutContent = () => {
                         <span>Perfil</span>
                     </button>
                 </nav>
+
+                {/* Benfit Coach sobre qualquer tela */}
+                {location.pathname !== '/coach' && <CoachSheet />}
             </div>
         </div>
     );
@@ -331,9 +320,9 @@ const DashboardLayoutContent = () => {
 
 const DashboardLayout = () => {
     return (
-        <ActionProvider>
+        <CoachProvider>
             <DashboardLayoutContent />
-        </ActionProvider>
+        </CoachProvider>
     );
 };
 

@@ -5,6 +5,8 @@ import { ChevronLeft } from 'lucide-react';
 import { useUserRole } from '../hooks/useSupabase';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import ActivityHistory from '../components/ActivityHistory';
+import CoachButton from '../components/CoachButton';
+import { useCoachScreen } from '../context/coach';
 import './ActivityHistoryPage.css';
 
 const ActivityHistoryPage = () => {
@@ -14,6 +16,12 @@ const ActivityHistoryPage = () => {
     const [isHeaderStuck, setIsHeaderStuck] = useState(false);
     const [finalizedDates, setFinalizedDates] = useState([]);
     const [doneDates, setDoneDates] = useState([]);
+
+    useCoachScreen({
+        label: 'Histórico de atividades',
+        details: 'O aluno está vendo o histórico completo de treinos (calendário e sessões).',
+        suggestions: ['Como foi minha evolução no último mês?', 'Estou treinando com frequência suficiente?'],
+    });
 
     useEffect(() => {
         const handleScroll = (e) => {
@@ -86,6 +94,7 @@ const ActivityHistoryPage = () => {
                         <h1 className="page-header-title">Histórico de Atividades</h1>
                         <p className="page-header-subtitle">Visão completa da sua jornada.</p>
                     </div>
+                    <CoachButton className="page-header-coach-btn" />
                 </div>
             </div>
 
