@@ -213,7 +213,12 @@ const DashboardLayoutContent = () => {
 
     return (
         <div className="dashboard-layout">
-            <div className={`mobile-container ${(!showInterface && !isCustomHeaderRoute) ? 'ui-hidden' : ''}`}>
+            <div
+                className={`mobile-container ${(!showInterface && !isCustomHeaderRoute) ? 'ui-hidden' : ''}`}
+                // O container tem overflow hidden, mas âncoras e foco ainda podem rolá-lo e
+                // deslocar o cabeçalho e o rodapé; quem rola é só o .layout-content.
+                onScroll={(e) => { if (e.target === e.currentTarget && e.currentTarget.scrollTop) e.currentTarget.scrollTop = 0; }}
+            >
                 <a href="#main-content" className="skip-link">
                     Pular para o conteúdo principal
                 </a>
