@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Calendar, Clock, Layers, Timer, Flame, Activity } from 'lucide-react';
+import { ChevronLeft, Calendar, Clock, Layers, Timer, Flame, Activity, ChevronDown } from 'lucide-react';
 import RestTimer from '../components/RestTimer';
 import SessionExerciseItem from '../components/SessionExerciseItem';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -11,6 +11,9 @@ import { cacheGet, cacheInvalidate, swr } from '../lib/dataCache';
 import { saveToMemory } from '../services/memory';
 import CoachButton from '../components/CoachButton';
 import { useCoachScreen } from '../context/coach';
+import BodyMap, { MuscleChips } from '../components/BodyMap';
+import { useExerciseMuscleMap } from '../hooks/useSupabase';
+import { summarizeMuscles } from '../lib/muscles';
 import './WorkoutDayDetails.css';
 
 const FEELING_MICROCOPY = {
@@ -388,6 +391,14 @@ const WorkoutDayDetails = () => {
         }
     };
 
+    const muscleMap = useExerciseMuscleMap();
+    // Quanto cada músculo pesa na sessão (principal = 1, auxiliar = 0,5).
+    const dayMuscles = useMemo(
+        () => summarizeMuscles(workoutExercises.map(e => e.b_exercises).filter(Boolean), muscleMap),
+        [workoutExercises, muscleMap]
+    );
+    const dayMusclesText = dayMuscles.map(m => `${m.muscle.nome} ${m.pct}%`).join(', ');
+
     const activeName = workoutExercises[activeExerciseIndex]?.b_exercises?.name || null;
     const dayLabel = day ? (day.day_name || `Dia ${day.day_number}`) : null;
     useCoachScreen(workout && day ? {
@@ -395,6 +406,7 @@ const WorkoutDayDetails = () => {
         details: [
             `O aluno está na sessão de treino "${dayLabel}" do plano "${workout.title}".`,
             `Exercícios: ${workoutExercises.map(e => e.b_exercises?.name || 'Exercício').join(', ')}.`,
+            dayMusclesText ? `Músculos do dia: ${dayMusclesText}.` : '',
             `Feitos: ${completedExercises.length} de ${workoutExercises.length}.`,
             activeName ? `Exercício aberto agora: ${activeName}.` : '',
         ].filter(Boolean).join('\n'),
@@ -468,6 +480,23 @@ const WorkoutDayDetails = () => {
                         )}
                     </div>
                 </div>
+            )}
+
+            {dayMuscles.length > 0 && (
+                <details className="day-muscles-card">
+                    <summary>
+                        <span className="day-muscles-title">Músculos de hoje</span>
+                        <MuscleChips muscles={dayMuscles.slice(0, 3).map(m => ({ slug: m.slug, pct: m.pct }))} />
+                        <ChevronDown size={18} className="day-muscles-chevron" />
+                    </summary>
+                    <div className="day-muscles-body">
+                        <BodyMap
+                            compact
+                            muscles={dayMuscles.map(m => ({ slug: m.slug, papel: m.pct >= 15 ? 'principal' : 'secundario' }))}
+                        />
+                        <MuscleChips muscles={dayMuscles.map(m => ({ slug: m.slug, pct: m.pct }))} />
+                    </div>
+                </details>
             )}
 
             <section className="workout-day-panel">

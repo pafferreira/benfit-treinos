@@ -1,0 +1,116 @@
+.bodymap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 22rem;
+    margin: 0 auto;
+}
+
+.bodymap--compact {
+    max-width: 13rem;
+}
+
+.bodymap-view {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.bodymap-view svg {
+    width: 100%;
+    height: auto;
+}
+
+.bodymap-view figcaption {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-subtext-light);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 0.25rem;
+}
+
+.bodymap-base {
+    fill: #EEF2F7;
+    stroke: #CBD5E1;
+    stroke-width: 1.5;
+}
+
+.bodymap-muscle {
+    stroke: #ffffff;
+    stroke-width: 1.2;
+    transition: fill-opacity 0.2s ease;
+}
+
+.bodymap-muscle.is-clickable {
+    cursor: pointer;
+}
+
+.bodymap-muscle.is-selected {
+    stroke: var(--color-text-main);
+    stroke-width: 2;
+}
+
+/* Chips de músculo, com a cor fixa de cada um */
+.muscle-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.muscle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--muscle-color) 35%, transparent);
+    background: color-mix(in srgb, var(--muscle-color) 12%, #ffffff);
+    color: var(--color-text-main);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+button.muscle-chip {
+    cursor: pointer;
+}
+
+.muscle-chip.is-selected {
+    background: var(--muscle-color);
+    border-color: var(--muscle-color);
+    color: #ffffff;
+}
+
+.muscle-chip.is-selected .muscle-chip-dot {
+    background: #ffffff;
+}
+
+.muscle-chip--secondary {
+    background: #ffffff;
+}
+
+.muscle-chip-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 9999px;
+    background: var(--muscle-color);
+    flex-shrink: 0;
+}
+
+.muscle-chip strong {
+    font-weight: 800;
+    color: var(--muscle-color);
+}
+
+.muscle-chip.is-selected strong {
+    color: #ffffff;
+}
+
+.muscle-chip em {
+    font-style: normal;
+    font-weight: 500;
+    color: var(--color-subtext-light);
+}

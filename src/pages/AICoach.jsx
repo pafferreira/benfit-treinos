@@ -6,7 +6,8 @@ import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
 import { chatWithBenfit, generateConversationTitle, generateEmbedding, rateCoachMessage } from '../services/ai';
 import { buildUserContext, buildExerciseStats } from '../services/context';
-import { useUserRole } from '../hooks/useSupabase';
+import { useUserRole, useExercises, useExerciseMuscleMap } from '../hooks/useSupabase';
+import CoachExerciseCard from '../components/CoachExerciseCard';
 import { useCoach } from '../context/coach';
 import './AICoach.css';
 
@@ -138,6 +139,8 @@ const formatRelativeDate = (dateStr) => {
 // ── Componente ───────────────────────────────────────────────────
 // variant="page": tela /coach completa. variant="sheet": painel aberto sobre qualquer tela.
 const AICoach = ({ variant = 'page' }) => {
+    const { exercises: libraryExercises } = useExercises();
+    const muscleMap = useExerciseMuscleMap();
     const isSheet = variant === 'sheet';
     const navigate = useNavigate();
     const location = useLocation();
@@ -820,6 +823,9 @@ const AICoach = ({ variant = 'page' }) => {
                             </div>
                             <div className="message-bubble">
                                 {renderText(msg.text)}
+                                {msg.sender === 'ai' && msg.id !== 'initial' && (
+                                    <CoachExerciseCard text={msg.text} exercises={libraryExercises} muscleMap={muscleMap} />
+                                )}
                                 {msg.sender === 'ai' && msg.dbId && (
                                     <div className="coach-feedback" role="group" aria-label="Avaliar resposta">
                                         <button

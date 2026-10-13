@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabaseHelpers } from '../lib/supabase'
-import { cacheGet, cacheInvalidate, cacheSet } from '../lib/dataCache'
+import { cacheGet, cacheInvalidate, cacheSet, swr } from '../lib/dataCache'
 
 const EXERCISES_KEY = 'exercises:all'
 const WORKOUTS_KEY = 'workouts:all'
+const MUSCLE_MAP_KEY = 'exercises:muscleMap'
 
 export const useExercises = () => {
     // Cache warm = lista aparece na hora; a revalidação roda em background.
@@ -44,6 +45,21 @@ export const useExercises = () => {
     }
 
     return { exercises, loading, error, reload }
+}
+
+// Mapa exercício → músculos vindo de b_exercise_muscles. Fica null se a tabela
+// ainda não existir; getExerciseMuscles() (lib/muscles) cai no texto do exercício.
+export const useExerciseMuscleMap = () => {
+    const [muscleMap, setMuscleMap] = useState(() => cacheGet(MUSCLE_MAP_KEY, Infinity)?.value || null)
+
+    useEffect(() => {
+        swr(MUSCLE_MAP_KEY, () => supabaseHelpers.getExerciseMuscleMap(), {
+            maxAge: 5 * 60_000,
+            onData: (value) => setMuscleMap(value),
+        }).catch(() => {})
+    }, [])
+
+    return muscleMap
 }
 
 export const useWorkouts = () => {

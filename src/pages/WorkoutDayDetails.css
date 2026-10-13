@@ -512,3 +512,51 @@ input[type=range]::-webkit-slider-thumb:active {
         transform: translateY(0);
     }
 }
+/* Músculos de hoje (v2, etapa 2B) */
+.day-muscles-card {
+    background: var(--color-card-light);
+    border: 1px solid #dbe3ee;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+}
+
+.day-muscles-card summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 0.875rem;
+    cursor: pointer;
+}
+
+.day-muscles-card summary::-webkit-details-marker {
+    display: none;
+}
+
+.day-muscles-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--color-text-main);
+}
+
+.day-muscles-chevron {
+    margin-left: auto;
+    color: var(--color-subtext-light);
+    transition: transform 0.2s ease;
+}
+
+.day-muscles-card[open] .day-muscles-chevron {
+    transform: rotate(180deg);
+}
+
+.day-muscles-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0 0.875rem 0.875rem;
+}
+
+.day-muscles-card[open] summary .muscle-chips {
+    display: none;
+}
