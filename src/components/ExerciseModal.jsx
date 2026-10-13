@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAvatars } from '../hooks/useSupabase';
+import { supabase } from '../lib/supabase';
 import Modal from './Modal';
 import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Search, Image as ImageIcon, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon } from 'lucide-react';
 import ExerciseUsageTab from './ExerciseUsageTab';
@@ -96,7 +97,6 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
     useEffect(() => {
         const fetchEquipment = async () => {
             try {
-                const { supabase } = await import('../lib/supabase');
                 const { data, error } = await supabase
                     .from('b_exercises')
                     .select('equipment')

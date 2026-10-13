@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, ClipboardList, Play, BarChart2, User } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { ActionProvider, useAction } from '../context/ActionContext';
 import { useUserRole } from '../hooks/useSupabase';
+import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import './DashboardLayout.css';
 
 const DashboardLayoutContent = () => {
@@ -258,7 +259,10 @@ const DashboardLayoutContent = () => {
                         : { paddingTop: mainPaddingTop }
                     }
                 >
-                    <Outlet />
+                    {/* Esqueleto enquanto o código da página chega (rotas carregadas sob demanda). */}
+                    <Suspense fallback={<SkeletonWorkouts />}>
+                        <Outlet />
+                    </Suspense>
                 </main>
 
                 {/* Bottom Navigation */}
