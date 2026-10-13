@@ -750,3 +750,28 @@
     color: var(--color-primary);
     white-space: nowrap;
 }
+
+/* Destaque de "Explorar planos" ao vir de "Escolher meu primeiro plano" */
+.explore-section {
+    border-radius: var(--radius-2xl);
+    transition: background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.explore-section--highlight {
+    background: rgba(var(--color-secondary-rgb), 0.1);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.35);
+    padding: 0.75rem;
+    margin: -0.75rem;
+    animation: explore-pulse 1.3s ease-in-out 2;
+}
+
+@keyframes explore-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.35); }
+    50% { box-shadow: 0 0 0 6px rgba(var(--color-primary-rgb), 0.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .explore-section--highlight {
+        animation: none;
+    }
+}

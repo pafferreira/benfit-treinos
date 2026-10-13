@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Salad, BarChart2, User } from 'lucide-react';
+import { Home, BarChart2, User } from 'lucide-react';
+import { BowlPlateIcon } from '../components/icons/BenfitIcons';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { CoachProvider } from '../context/CoachProvider';
 import CoachButton from '../components/CoachButton';
@@ -213,7 +214,12 @@ const DashboardLayoutContent = () => {
 
     return (
         <div className="dashboard-layout">
-            <div className={`mobile-container ${(!showInterface && !isCustomHeaderRoute) ? 'ui-hidden' : ''}`}>
+            <div
+                className={`mobile-container ${(!showInterface && !isCustomHeaderRoute) ? 'ui-hidden' : ''}`}
+                // O container tem overflow hidden, mas âncoras e foco ainda podem rolá-lo e
+                // deslocar o cabeçalho e o rodapé; quem rola é só o .layout-content.
+                onScroll={(e) => { if (e.target === e.currentTarget && e.currentTarget.scrollTop) e.currentTarget.scrollTop = 0; }}
+            >
                 <a href="#main-content" className="skip-link">
                     Pular para o conteúdo principal
                 </a>
@@ -290,7 +296,7 @@ const DashboardLayoutContent = () => {
                         onClick={() => handleNav('/dieta')}
                         data-tooltip="Dieta"
                     >
-                        <Salad size={24} />
+                        <BowlPlateIcon size={24} />
                         <span>Dieta</span>
                     </button>
                     <button

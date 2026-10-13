@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Dumbbell, Flame, TrendingUp, Activity, ChevronRight, Calendar, Clock,
@@ -135,6 +135,33 @@ const DashboardHome = () => {
     const workoutsById = useMemo(() => new Map(workouts.map(w => [w.id, w])), [workouts]);
     const activeIds = useMemo(() => new Set(plans.map(p => p.workout_id)), [plans]);
     const explorePlans = useMemo(() => workouts.filter(w => !activeIds.has(w.id)), [workouts, activeIds]);
+
+    // Leva o aluno até "Explorar planos" e destaca a seção por alguns segundos.
+    // A rolagem é feita só no conteúdo (.layout-content): um link #âncora rolaria
+    // também o container do app, que tem overflow hidden, e tiraria o rodapé do lugar.
+    const exploreRef = useRef(null);
+    const highlightTimerRef = useRef(null);
+    const [highlightExplore, setHighlightExplore] = useState(false);
+
+    useEffect(() => () => clearTimeout(highlightTimerRef.current), []);
+
+    const goToExplore = () => {
+        const section = exploreRef.current;
+        if (!section) {
+            navigate('/treinos');
+            return;
+        }
+        const scroller = section.closest('.layout-content');
+        if (scroller) {
+            const top = scroller.scrollTop + section.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 12;
+            const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            scroller.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
+        }
+        setHighlightExplore(false);
+        clearTimeout(highlightTimerRef.current);
+        requestAnimationFrame(() => setHighlightExplore(true));
+        highlightTimerRef.current = setTimeout(() => setHighlightExplore(false), 2600);
+    };
 
     const todayPlan = pickTodayPlan(plans, lastSession);
     const todayWorkout = todayPlan ? workoutsById.get(todayPlan.workout_id) : null;
@@ -277,9 +304,9 @@ const DashboardHome = () => {
                         <ChevronRight size={16} /> Abrir {todayTitle}
                     </button>
                 ) : (
-                    <a href="#explorar-planos" className="today-start-btn today-start-btn--inline">
+                    <button type="button" className="today-start-btn today-start-btn--inline" onClick={goToExplore}>
                         <Compass size={16} /> Escolher meu primeiro plano
-                    </a>
+                    </button>
                 )}
                 <div className="welcome-decoration" />
             </section>
@@ -400,7 +427,11 @@ const DashboardHome = () => {
 
             {/* Explorar planos */}
             {explorePlans.length > 0 && (
-                <section className="dash-section" id="explorar-planos">
+                <section
+                    ref={exploreRef}
+                    className={`dash-section explore-section ${highlightExplore ? 'explore-section--highlight' : ''}`}
+                    id="explorar-planos"
+                >
                     <div className="dash-section-header">
                         <h3 className="dash-section-title">
                             <Compass size={18} />
