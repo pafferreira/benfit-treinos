@@ -143,6 +143,20 @@ AS $$
     END;
 $$;
 
+-- Só o gatilho (que roda como dono) chama esta função: ela apaga e regrava
+-- músculos sem checar quem chama, então ninguém mais pode executá-la via RPC.
+REVOKE EXECUTE ON FUNCTION public.benfit_sync_exercise_muscles(UUID, TEXT[]) FROM PUBLIC;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        REVOKE EXECUTE ON FUNCTION public.benfit_sync_exercise_muscles(UUID, TEXT[]) FROM anon;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        REVOKE EXECUTE ON FUNCTION public.benfit_sync_exercise_muscles(UUID, TEXT[]) FROM authenticated;
+    END IF;
+END;
+$$;
+
 -- 4) Gatilho -------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.benfit_exercise_muscles_trigger()
 RETURNS TRIGGER
@@ -159,6 +173,8 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
+REVOKE EXECUTE ON FUNCTION public.benfit_exercise_muscles_trigger() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS b_exercises_sync_muscles ON public.b_exercises;
 CREATE TRIGGER b_exercises_sync_muscles

@@ -13,7 +13,7 @@ import Tooltip from '../components/Tooltip';
 const Exercises = () => {
     const { exercises, loading, error, reload } = useExercises();
     const { isAdmin, isPersonal, isUser } = useUserRole();
-    const muscleMap = useExerciseMuscleMap();
+    const muscleMap = useExerciseMuscleMap(exercises);
     const [searchTerm, setSearchTerm] = useState('');
     const [muscleFilter, setMuscleFilter] = useState('all');
     const [equipmentFilter, setEquipmentFilter] = useState('all');

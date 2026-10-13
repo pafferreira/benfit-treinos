@@ -49,7 +49,9 @@ export const useExercises = () => {
 
 // Mapa exercício → músculos vindo de b_exercise_muscles. Fica null se a tabela
 // ainda não existir; getExerciseMuscles() (lib/muscles) cai no texto do exercício.
-export const useExerciseMuscleMap = () => {
+// `refreshKey`: quando muda (ex.: a lista de exercícios recarregou após uma edição),
+// o mapa é buscado de novo, já com o que o gatilho do banco refez.
+export const useExerciseMuscleMap = (refreshKey) => {
     const [muscleMap, setMuscleMap] = useState(() => cacheGet(MUSCLE_MAP_KEY, Infinity)?.value || null)
 
     useEffect(() => {
@@ -57,7 +59,7 @@ export const useExerciseMuscleMap = () => {
             maxAge: 5 * 60_000,
             onData: (value) => setMuscleMap(value),
         }).catch(() => {})
-    }, [])
+    }, [refreshKey])
 
     return muscleMap
 }
