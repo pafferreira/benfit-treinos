@@ -969,3 +969,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.coach-header-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}

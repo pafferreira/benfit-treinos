@@ -103,9 +103,10 @@ const DashboardHome = () => {
             const [activePlans, dashStats] = await Promise.all([
                 supabaseHelpers.getUserActivePlans(currentUser.id),
                 supabaseHelpers.getDashboardStats(currentUser.id),
+                // Dados opcionais: se falharem, não derrubam planos e números.
                 swr('workouts:lastSession', () => supabaseHelpers.getLastWorkoutSession(currentUser.id), {
                     onData: setLastSession,
-                }),
+                }).catch(err => console.error('Erro ao carregar último treino:', err)),
                 swr('workouts:calendar', async () => {
                     // Mesma lógica do Histórico: finalizados (verde) e só exercícios "Feito" (azul).
                     const res = await supabaseHelpers.getExerciseDoneCalendarDates(currentUser.id);
@@ -115,7 +116,7 @@ const DashboardHome = () => {
                         setFinalizedDates(res.finalizedDates);
                         setDoneDates(res.doneDates);
                     },
-                }),
+                }).catch(err => console.error('Erro ao carregar calendário:', err)),
             ]);
 
             setPlans(activePlans || []);

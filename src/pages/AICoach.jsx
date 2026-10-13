@@ -312,11 +312,12 @@ const AICoach = ({ variant = 'page' }) => {
     }, [currentConvId, setSharedConvId]);
 
     // Pergunta enviada ao abrir o painel (ex.: atalhos da tela de Dieta).
+    // Espera a resposta anterior terminar para não perder a pergunta.
     useEffect(() => {
-        if (!isSheet || !ready || !pendingQuestion) return;
+        if (!isSheet || !ready || !pendingQuestion || isTyping) return;
         consumePendingQuestion();
         sendMessageRef.current?.(pendingQuestion);
-    }, [isSheet, ready, pendingQuestion, consumePendingQuestion]);
+    }, [isSheet, ready, pendingQuestion, isTyping, consumePendingQuestion]);
 
     const handleExpand = () => {
         releaseSheet();
@@ -665,8 +666,9 @@ const AICoach = ({ variant = 'page' }) => {
                     <button
                         className="coach-header-btn"
                         onClick={handleExpand}
+                        disabled={isTyping}
                         aria-label="Abrir em tela cheia"
-                        title="Tela cheia"
+                        title={isTyping ? 'Aguarde a resposta para abrir em tela cheia' : 'Tela cheia'}
                     >
                         <Maximize2 size={17} />
                     </button>
