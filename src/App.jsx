@@ -15,7 +15,7 @@ const WorkoutDayDetails = lazy(() => import('./pages/WorkoutDayDetails'))
 const Exercises = lazy(() => import('./pages/Exercises'))
 const Profile = lazy(() => import('./pages/Profile'))
 const AICoach = lazy(() => import('./pages/AICoach'))
-const MeuTreino = lazy(() => import('./pages/MeuTreino'))
+const Dieta = lazy(() => import('./pages/Dieta'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const SupabaseDiagnostic = lazy(() => import('./pages/SupabaseDiagnostic'))
 const AdminUsers = lazy(() => import('./pages/AdminUsers'))
@@ -39,7 +39,9 @@ function App() {
           <Route path="treinos/:id/editar" element={<WorkoutEditor />} />
           <Route path="treino/:id" element={<WorkoutPlan />} />
           <Route path="treino/:id/dia/:dayId" element={<WorkoutDayDetails />} />
-          <Route path="meu-treino" element={<MeuTreino />} />
+          {/* Meu Treino foi unificado no Início (v2) */}
+          <Route path="meu-treino" element={<Navigate to="/" replace />} />
+          <Route path="dieta" element={<Dieta />} />
           <Route path="exercicios" element={<Exercises />} />
           <Route path="perfil" element={<Profile />} />
           <Route path="historico" element={<ActivityHistoryPage />} />

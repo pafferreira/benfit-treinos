@@ -934,3 +934,43 @@
         transform: translateY(0);
     }
 }
+/* ── Variante painel (Coach aberto sobre qualquer tela) ──────── */
+.page-container.coach-variant-sheet,
+.mobile-container.ui-hidden .page-container.coach-variant-sheet {
+    padding-top: 0;
+    background-color: var(--color-card-light);
+}
+
+.coach-variant-sheet .coach-header,
+.mobile-container.ui-hidden .coach-variant-sheet .coach-header {
+    transform: none;
+}
+
+.coach-variant-sheet .chat-bottom,
+.mobile-container.ui-hidden .coach-variant-sheet .chat-bottom {
+    padding-bottom: 0.5rem;
+}
+
+.coach-screen-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    align-self: center;
+    margin: 0.35rem 0 0.15rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: rgba(var(--color-secondary-rgb), 0.1);
+    flex-shrink: 0;
+    max-width: 90%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.coach-header-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}

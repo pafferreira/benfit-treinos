@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Send, Bot, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Send, Bot, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil, ThumbsUp, ThumbsDown, Maximize2, MapPin } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
 import { chatWithBenfit, generateConversationTitle, generateEmbedding, rateCoachMessage } from '../services/ai';
 import { buildUserContext, buildExerciseStats } from '../services/context';
 import { useUserRole } from '../hooks/useSupabase';
+import { useCoach } from '../context/coach';
 import './AICoach.css';
 
 // ── Constantes ───────────────────────────────────────────────────
@@ -18,7 +19,7 @@ const SUGGESTIONS = [
 
 const QUICK_ACTIONS = [
     { id: 'historico',  icon: CalendarDays, label: 'Histórico',     type: 'navigate',      path: '/historico' },
-    { id: 'treinar',    icon: Play,         label: 'Treinar agora',  type: 'navigate',      path: '/meu-treino' },
+    { id: 'treinar',    icon: Play,         label: 'Treinar agora',  type: 'navigate',      path: '/' },
     { id: 'metas',      icon: Target,       label: 'Minhas metas',   type: 'local',         query: 'Minhas metas ativas' },
     { id: 'exercicios', icon: Dumbbell,     label: 'Exercícios',     type: 'muscle_picker'  },
 ];
@@ -134,8 +135,15 @@ const formatRelativeDate = (dateStr) => {
 };
 
 // ── Componente ───────────────────────────────────────────────────
-const AICoach = () => {
+// variant="page": tela /coach completa. variant="sheet": painel aberto sobre qualquer tela.
+const AICoach = ({ variant = 'page' }) => {
+    const isSheet = variant === 'sheet';
     const navigate = useNavigate();
+    const location = useLocation();
+    const {
+        screen, conversationId: sharedConvId, setConversationId: setSharedConvId,
+        pendingQuestion, consumePendingQuestion, releaseSheet, closeCoach,
+    } = useCoach();
     const { role } = useUserRole();
     const canShare = role === 'admin' || role === 'personal';
 
@@ -166,6 +174,12 @@ const AICoach = () => {
     const currentConvIdRef = useRef(null);
     const textareaRef = useRef(null);
 
+    // Conversa a retomar: o painel continua a última; a página só quando veio do painel ("expandir").
+    const resumeConvIdRef = useRef(isSheet || location.state?.resume ? sharedConvId : null);
+    const loadConversationRef = useRef(null);
+    const sendMessageRef = useRef(null);
+    const [ready, setReady] = useState(false);
+
     // ── Init ─────────────────────────────────────────────────────
     useEffect(() => {
         const init = async () => {
@@ -189,8 +203,14 @@ const AICoach = () => {
                 if (userCtx.status === 'fulfilled' && userCtx.value) {
                     setStructuredContext(userCtx.value);
                 }
+
+                if (resumeConvIdRef.current) {
+                    await loadConversationRef.current?.(resumeConvIdRef.current);
+                }
             } catch (err) {
                 console.error('[Benfit Coach] Erro crítico no init:', err);
+            } finally {
+                setReady(true);
             }
         };
         init();
@@ -281,6 +301,29 @@ const AICoach = () => {
         }
     };
 
+    useEffect(() => {
+        loadConversationRef.current = loadConversation;
+        sendMessageRef.current = sendMessage;
+    });
+
+    // Mantém a conversa atual compartilhada entre o painel e a página /coach.
+    useEffect(() => {
+        if (currentConvId) setSharedConvId(currentConvId);
+    }, [currentConvId, setSharedConvId]);
+
+    // Pergunta enviada ao abrir o painel (ex.: atalhos da tela de Dieta).
+    // Espera a resposta anterior terminar para não perder a pergunta.
+    useEffect(() => {
+        if (!isSheet || !ready || !pendingQuestion || isTyping) return;
+        consumePendingQuestion();
+        sendMessageRef.current?.(pendingQuestion);
+    }, [isSheet, ready, pendingQuestion, isTyping, consumePendingQuestion]);
+
+    const handleExpand = () => {
+        releaseSheet();
+        navigate('/coach', { state: { resume: true } });
+    };
+
     // ── Nova conversa ─────────────────────────────────────────────
     const handleNewConversation = async () => {
         const uid = userIdRef.current || userId;
@@ -305,6 +348,7 @@ const AICoach = () => {
         if (!confirm('Excluir esta conversa?')) return;
         try {
             await supabaseHelpers.deleteConversation(convId);
+            if (convId === sharedConvId) setSharedConvId(null);
             const updated = conversations.filter(c => c.id !== convId);
             setConversations(updated);
             if (currentConvId === convId) {
@@ -341,6 +385,7 @@ const AICoach = () => {
     // ── Quick actions ─────────────────────────────────────────────
     const handleQuickAction = async (action) => {
         if (action.type === 'navigate') {
+            if (isSheet) closeCoach();
             navigate(action.path);
             return;
         }
@@ -491,8 +536,12 @@ const AICoach = () => {
 
                 // O perfil e as regras do Coach ficam no prompt do servidor;
                 // aqui vão só os dados do aluno.
+                const screenText = screen?.details
+                    ? `## Onde o aluno está no app agora\nTela: ${screen.label}\n${screen.details}`
+                    : '';
                 const fullContext = [
                     structuredContext,
+                    screenText,
                     exerciseStats,
                     sharedText ? `## Base de conhecimento Benfit (trechos relacionados à pergunta)\n${sharedText}` : '',
                     memoriesText ? `## Memórias de conversas anteriores\n${memoriesText}` : '',
@@ -596,10 +645,44 @@ const AICoach = () => {
 
     const currentConvTitle = conversations.find(c => c.id === currentConvId)?.title || 'Benfit Coach';
 
+    const suggestions = isSheet && screen?.suggestions?.length ? screen.suggestions : SUGGESTIONS;
+
     return (
-        <div className="page-container">
+        <div className={`page-container ${isSheet ? 'coach-variant-sheet' : ''}`}>
 
             {/* ── Header bar ── */}
+            {isSheet ? (
+            <div className="coach-header">
+                <button
+                    className="coach-header-btn"
+                    onClick={handleNewConversation}
+                    aria-label="Nova conversa"
+                    title="Nova conversa"
+                >
+                    <Plus size={18} />
+                </button>
+                <span className="coach-header-title">{currentConvTitle}</span>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <button
+                        className="coach-header-btn"
+                        onClick={handleExpand}
+                        disabled={isTyping}
+                        aria-label="Abrir em tela cheia"
+                        title={isTyping ? 'Aguarde a resposta para abrir em tela cheia' : 'Tela cheia'}
+                    >
+                        <Maximize2 size={17} />
+                    </button>
+                    <button
+                        className="coach-header-btn"
+                        onClick={closeCoach}
+                        aria-label="Fechar o Coach"
+                        title="Fechar"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+            </div>
+            ) : (
             <div className="coach-header">
                 <button
                     className="coach-header-btn"
@@ -631,11 +714,20 @@ const AICoach = () => {
                     </button>
                 </div>
             </div>
+            )}
+
+            {isSheet && screen?.label && (
+                <div className="coach-screen-chip">
+                    <MapPin size={12} />
+                    <span>Vendo: {screen.label}</span>
+                </div>
+            )}
 
             {/* ── Overlay ── */}
-            {sidebarOpen && <div className="sidebar-overlay" />}
+            {!isSheet && sidebarOpen && <div className="sidebar-overlay" />}
 
             {/* ── Sidebar drawer ── */}
+            {!isSheet && (
             <aside className={`conversations-sidebar ${sidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <span className="sidebar-title">Conversas</span>
@@ -713,6 +805,7 @@ const AICoach = () => {
                     )}
                 </div>
             </aside>
+            )}
 
             {/* ── Mensagens ── */}
             <div className="messages-area" ref={messagesAreaRef}>
@@ -778,7 +871,8 @@ const AICoach = () => {
 
                 {/* Quick Actions + Suggestions — esconde ao digitar */}
                 <div className="chat-chips-area">
-                    {/* Quick Actions */}
+                    {/* Quick Actions (no painel, as sugestões da tela ocupam o espaço) */}
+                    {!isSheet && (
                     <div className="quick-actions">
                         {QUICK_ACTIONS.map(action => {
                             const Icon = action.icon;
@@ -796,6 +890,7 @@ const AICoach = () => {
                             );
                         })}
                     </div>
+                    )}
 
                     {/* Muscle picker */}
                     {showMusclePicker && (
@@ -815,7 +910,7 @@ const AICoach = () => {
 
                     {/* Suggestion chips */}
                     <div className="suggestions">
-                        {SUGGESTIONS.map((s, i) => (
+                        {suggestions.map((s, i) => (
                             <button
                                 key={i}
                                 className="suggestion-chip"

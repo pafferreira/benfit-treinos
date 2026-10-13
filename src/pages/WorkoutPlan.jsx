@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Clock, Layers, Calendar, Flame, Activity } f
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
 import { supabaseHelpers } from '../lib/supabase';
 import { cacheGet, swr } from '../lib/dataCache';
+import { useCoachScreen } from '../context/coach';
 import './WorkoutPlan.css';
 
 const DIFFICULTY_COLOR = {
@@ -105,6 +106,12 @@ const WorkoutPlan = () => {
         sessionStorage.setItem(`benfit_lastVisitedDay_${id}`, day.id);
         navigate(`/treino/${id}/dia/${day.id}`);
     };
+
+    useCoachScreen(workout ? {
+        label: workout.title,
+        details: `O aluno está vendo o plano "${workout.title}" (${workout.difficulty || 'nível não informado'}), com os dias: ${days.map(d => d.day_name || `Dia ${d.day_number}`).join(', ')}.`,
+        suggestions: ['Este plano serve para o meu objetivo?', 'Em que ordem devo fazer os dias?'],
+    } : null);
 
     if (loading) return <SkeletonWorkouts />;
 

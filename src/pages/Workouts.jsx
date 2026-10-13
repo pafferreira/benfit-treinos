@@ -6,7 +6,6 @@ import { Clock, Plus, Dumbbell, History } from 'lucide-react';
 import ActionButton from '../components/ActionButton';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { SkeletonWorkouts } from '../components/SkeletonLoader';
-import MiniCalendar from '../components/MiniCalendar';
 import { cacheGet, cacheInvalidate, swr } from '../lib/dataCache';
 import './Workouts.css';
 
@@ -29,9 +28,6 @@ const Workouts = () => {
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
     const [userActivePlanIds, setUserActivePlanIds] = useState(() => cacheGet('workouts:activePlans')?.value || []);
     const [processingWorkoutId, setProcessingWorkoutId] = useState(null);
-    const cachedCalendar = cacheGet('workouts:calendar')?.value;
-    const [finalizedDates, setFinalizedDates] = useState(cachedCalendar?.finalizedDates || []);
-    const [doneDates, setDoneDates] = useState(cachedCalendar?.doneDates || []);
     const [lastSession, setLastSession] = useState(() => cacheGet('workouts:lastSession')?.value || null);
 
     // Track the plan the user just visited (navigated into and came back from)
@@ -39,7 +35,6 @@ const Workouts = () => {
 
     useEffect(() => {
         loadUserActivePlans();
-        loadCalendarDates();
         loadLastSession();
     }, []);
 
@@ -73,33 +68,6 @@ const Workouts = () => {
             );
         } catch (err) {
             console.error('Erro ao carregar planos ativos:', err);
-        }
-    };
-
-    const loadCalendarDates = async () => {
-        try {
-            await swr(
-                'workouts:calendar',
-                async () => {
-                    const user = await supabaseHelpers.getCurrentUser();
-                    if (!user) return { finalizedDates: [], doneDates: [] };
-                    // Usa a MESMA lógica da tela "Histórico de Atividades", distinguindo
-                    // treinos finalizados de dias com apenas exercícios "Feito".
-                    const res = await supabaseHelpers.getExerciseDoneCalendarDates(user.id);
-                    return {
-                        finalizedDates: res.finalizedDates || [],
-                        doneDates: res.doneDates || [],
-                    };
-                },
-                {
-                    onData: (res) => {
-                        setFinalizedDates(res.finalizedDates);
-                        setDoneDates(res.doneDates);
-                    },
-                }
-            );
-        } catch (err) {
-            console.error('Erro ao carregar calendário de treinos:', err);
         }
     };
 
@@ -216,21 +184,12 @@ const Workouts = () => {
     return (
         <div className="workouts-container">
             <div className="workouts-topbar">
-                <h3 className="section-title">Meus Planos</h3>
+                <h3 className="section-title">Todos os planos</h3>
                 {(isAdmin || isPersonal) && (
                     <button className="new-plan-btn" onClick={handleCreateWorkout}>
                         <Plus size={16} /> Novo Plano
                     </button>
                 )}
-            </div>
-
-            <div className="calendar-section">
-                <MiniCalendar
-                    finalizedDates={finalizedDates}
-                    doneDates={doneDates}
-                    currentDate={new Date()}
-                    onDoubleClick={() => navigate('/historico')}
-                />
             </div>
 
             <div className="plans-grid">
