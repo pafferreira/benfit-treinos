@@ -14,7 +14,7 @@ import './AdminMedia.css';
 const KINDS = {
     image: { label: 'Imagem', icon: ImageIcon },
     poses: { label: 'Duas poses', icon: Footprints },
-    video: { label: 'Vídeo 5 s', icon: Film },
+    video: { label: 'Vídeo', icon: Film },
 };
 
 const TABS = [
