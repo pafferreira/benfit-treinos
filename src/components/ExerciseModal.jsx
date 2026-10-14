@@ -6,7 +6,7 @@ import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Search, Image as Imag
 import ExerciseUsageTab from './ExerciseUsageTab';
 import ExerciseHistoryTab from './ExerciseHistoryTab';
 import BodyMap, { MuscleChips } from './BodyMap';
-import { normalizeMuscleTerms } from '../lib/muscles';
+import { MUSCLES, normalizeMuscleTerms } from '../lib/muscles';
 import './ExerciseModal.css';
 
 const Accordion = ({ title, icon: Icon, children, defaultOpen = false, collapsedPreview = null }) => {
@@ -201,13 +201,10 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         onSave(finalData);
     };
 
+    // Mesmos nomes de b_muscles / src/lib/muscles.js, mais Cardio e Corpo Todo.
     const muscleGroups = [
-        'Peitoral', 'Costas', 'Ombros', 'Trapézio', 'Bíceps', 'Tríceps', 'Antebraço',
-        'Abdômen', 'Lombar', 'Glúteos', 'Glúteo Médio', 'Quadríceps', 'Posterior de Coxa', 'Adutores',
-        'Panturrilha', 'Cardio', 'Corpo Todo',
-        // Termos encontrados nos valores compostos legados (ex: "Pernas / Glúteo",
-        // "Posterior / Lombar") — adicionados pra permitir reclassificação exata.
-        'Pernas', 'Glúteo', 'Posterior'
+        ...MUSCLES.map(m => m.nome),
+        'Cardio', 'Corpo Todo',
     ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
     const legacyGroups = formData.muscle_groups.filter(g => !muscleGroups.includes(g));

@@ -6,10 +6,13 @@
 -- 2) b_exercise_muscles: quais músculos cada exercício trabalha (principal/secundario).
 -- 3) benfit_muscle_slugs(): converte os textos livres atuais ("Pernas / Glúteo",
 --    "Ombros (Posterior)"...) em músculos padrão. Regras iguais às do app.
+-- 3b) Reescreve os textos dos exercícios com os nomes padrão (cópia dos
+--    originais em b_exercises_muscle_backup) e passa a Cadeira Abdutora e a
+--    Abdução no Cross para Glúteo médio.
 -- 4) Gatilho em b_exercises: ao criar ou editar um exercício, refaz os músculos
 --    dele a partir de muscle_groups (ou muscle_group, nos exercícios antigos).
 -- 5) Preenche b_exercise_muscles para todos os exercícios que já existem.
--- No fim, uma consulta mostra o resultado e os exercícios que ficaram sem músculo.
+-- No fim, uma consulta mostra texto antigo, texto novo e os músculos de cada um.
 
 -- 1) Catálogo -----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.b_muscles (
@@ -157,6 +160,111 @@ BEGIN
 END;
 $$;
 
+-- 3b) Padroniza os textos dos exercícios ---------------------------------------
+-- Reescreve muscle_groups/muscle_group com os nomes padrão de b_muscles, para o
+-- cadastro usar o mesmo termo que o app mostra ("Peito" vira "Peitoral",
+-- "Pernas / Glúteo" vira Quadríceps, Glúteos, Posteriores de coxa...).
+-- "Cardio" e "Corpo Todo" continuam como estão (não são um músculo só).
+-- A ordem é mantida, então o músculo principal de cada exercício não muda.
+CREATE OR REPLACE FUNCTION public.benfit_standard_groups(p_groups TEXT[])
+RETURNS TEXT[]
+LANGUAGE plpgsql
+STABLE
+SET search_path = public
+AS $$
+DECLARE
+    term TEXT;
+    part TEXT;
+    s TEXT;
+    label TEXT;
+    plain TEXT;
+    result TEXT[] := ARRAY[]::TEXT[];
+BEGIN
+    FOREACH term IN ARRAY coalesce(p_groups, ARRAY[]::TEXT[]) LOOP
+        FOREACH part IN ARRAY regexp_split_to_array(term, '[/,;]') LOOP
+            part := trim(part);
+            CONTINUE WHEN part = '';
+            plain := translate(lower(part), 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc');
+            IF plain LIKE '%corpo%' OR cardinality(public.benfit_muscle_slugs(part)) = 0 THEN
+                label := CASE
+                    WHEN plain LIKE '%corpo%' THEN 'Corpo Todo'
+                    WHEN plain LIKE '%cardio%' THEN 'Cardio'
+                    ELSE part
+                END;
+                IF NOT label = ANY(result) THEN result := result || label; END IF;
+            ELSE
+                FOREACH s IN ARRAY public.benfit_muscle_slugs(part) LOOP
+                    SELECT m.nome INTO label FROM public.b_muscles m WHERE m.slug = s;
+                    IF NOT label = ANY(result) THEN result := result || label; END IF;
+                END LOOP;
+            END IF;
+        END LOOP;
+    END LOOP;
+    RETURN result;
+END;
+$$;
+
+-- Cópia dos textos originais, feita só na primeira vez (rodar de novo não a
+-- sobrescreve). Serve para comparar no resultado e para desfazer, se preciso.
+CREATE TABLE IF NOT EXISTS public.b_exercises_muscle_backup (
+    exercise_id UUID PRIMARY KEY REFERENCES public.b_exercises(id) ON DELETE CASCADE,
+    muscle_group TEXT,
+    muscle_groups JSONB,
+    saved_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.b_exercises_muscle_backup ENABLE ROW LEVEL SECURITY;
+
+INSERT INTO public.b_exercises_muscle_backup (exercise_id, muscle_group, muscle_groups)
+SELECT e.id, to_jsonb(e) ->> 'muscle_group', to_jsonb(e) -> 'muscle_groups'
+FROM public.b_exercises e
+ON CONFLICT (exercise_id) DO NOTHING;
+
+DO $$
+DECLARE
+    col_type TEXT;
+    has_single BOOLEAN;
+    r RECORD;
+    old_groups TEXT[];
+    new_groups TEXT[];
+    plain_name TEXT;
+BEGIN
+    SELECT data_type INTO col_type FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'b_exercises' AND column_name = 'muscle_groups';
+    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'b_exercises' AND column_name = 'muscle_group')
+    INTO has_single;
+
+    FOR r IN SELECT e.id, e.name, to_jsonb(e) AS data FROM public.b_exercises e LOOP
+        old_groups := public.benfit_exercise_groups(r.data);
+        CONTINUE WHEN cardinality(old_groups) = 0;
+        new_groups := public.benfit_standard_groups(old_groups);
+
+        -- Cadeira Abdutora e Abdução no Cross trabalham o glúteo médio.
+        plain_name := translate(lower(r.name), 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc');
+        IF plain_name LIKE '%abdutor%' OR plain_name LIKE '%abducao%' THEN
+            new_groups := array_replace(new_groups, 'Glúteos', 'Glúteo médio');
+            new_groups := ARRAY(SELECT g FROM unnest(new_groups) WITH ORDINALITY AS u(g, i)
+                                GROUP BY g ORDER BY min(i));
+        END IF;
+        CONTINUE WHEN cardinality(new_groups) = 0;
+
+        IF col_type = 'ARRAY' THEN
+            EXECUTE 'UPDATE public.b_exercises SET muscle_groups = $1 WHERE id = $2
+                     AND muscle_groups IS DISTINCT FROM $1'
+                USING new_groups, r.id;
+        ELSIF col_type = 'jsonb' THEN
+            EXECUTE 'UPDATE public.b_exercises SET muscle_groups = $1 WHERE id = $2
+                     AND muscle_groups IS DISTINCT FROM $1'
+                USING to_jsonb(new_groups), r.id;
+        END IF;
+        IF has_single THEN
+            UPDATE public.b_exercises SET muscle_group = new_groups[1]
+            WHERE id = r.id AND muscle_group IS DISTINCT FROM new_groups[1];
+        END IF;
+    END LOOP;
+END;
+$$;
+
 -- 4) Gatilho -------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.benfit_exercise_muscles_trigger()
 RETURNS TRIGGER
@@ -185,10 +293,15 @@ CREATE TRIGGER b_exercises_sync_muscles
 SELECT public.benfit_sync_exercise_muscles(e.id, public.benfit_exercise_groups(to_jsonb(e)))
 FROM public.b_exercises e;
 
--- Resultado: cada texto atual e os músculos que ele virou (★ = principal).
--- Linhas com "músculos" vazio são exercícios que ficaram sem músculo (ex.: Cardio).
+-- Resultado: texto antigo, texto novo e os músculos que ele virou (★ = principal).
+-- Linhas com "musculos" vazio são exercícios sem músculo (ex.: Cardio).
 SELECT
-    array_to_string(public.benfit_exercise_groups(to_jsonb(e)), ' + ') AS grupos_atuais,
+    coalesce(
+        CASE WHEN jsonb_typeof(b.muscle_groups) = 'array' AND jsonb_array_length(b.muscle_groups) > 0
+             THEN (SELECT string_agg(x, ' + ') FROM jsonb_array_elements_text(b.muscle_groups) x)
+        END,
+        b.muscle_group, '') AS texto_antigo,
+    array_to_string(public.benfit_exercise_groups(to_jsonb(e)), ', ') AS texto_novo,
     count(DISTINCT e.id) AS exercicios,
     coalesce((
         SELECT string_agg(CASE WHEN em.papel = 'principal' THEN '★ ' ELSE '' END || m.nome, ', ' ORDER BY em.papel, m.ordem)
@@ -197,5 +310,6 @@ SELECT
         WHERE em.exercise_id = min(e.id::text)::uuid
     ), '') AS musculos
 FROM public.b_exercises e
-GROUP BY 1
-ORDER BY 2 DESC, 1;
+LEFT JOIN public.b_exercises_muscle_backup b ON b.exercise_id = e.id
+GROUP BY 1, 2
+ORDER BY 3 DESC, 1;
