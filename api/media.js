@@ -20,7 +20,6 @@ import {
 // Tudo roda com o token de quem pediu; as funções do banco conferem as permissões.
 const ACTIONS = new Set(['image', 'poses', 'video', 'video-status']);
 const ADMIN_ONLY = new Set(['poses', 'video']);
-const DAILY_LIMIT = 6;
 
 const loadExercise = async (supabase, exerciseId) => {
     const { data, error } = await supabase
@@ -38,20 +37,13 @@ const isAdminUser = async (supabase, userId) => {
     return data?.role === 'admin';
 };
 
-// Confere antes de gastar com a geração; o banco confere de novo ao salvar.
+// Recusa cedo o que nunca seria permitido; o limite diário fica na reserva do banco.
 const checkAccess = async ({ supabase, user, action, exercise }) => {
     const admin = await isAdminUser(supabase, user.id);
     if (admin) return;
     if (ADMIN_ONLY.has(action)) throw new ChatHttpError(403, 'Só administradores geram animações');
     const ownAiExercise = exercise.created_by_ai && exercise.created_by === user.id && !exercise.image_url;
     if (!ownAiExercise) throw new ChatHttpError(403, 'Sem permissão para gerar esta imagem');
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await supabase
-        .from('b_media')
-        .select('id', { count: 'exact', head: true })
-        .eq('created_by', user.id)
-        .gte('created_at', since);
-    if ((count || 0) >= DAILY_LIMIT) throw new ChatHttpError(429, 'Limite diário de imagens atingido');
 };
 
 // Duas imagens atuais como referência de estilo (as que ficam em exercises/).
@@ -67,13 +59,39 @@ const styleReferences = async (supabase, exerciseId) => {
     return images.filter(Boolean);
 };
 
+const rpcError = (error, fallback) => {
+    console.error('[api/media] Falha no banco:', error.message);
+    const status = { '42501': 403, '54000': 429, '55000': 409, 'P0002': 404 }[error.code] || 500;
+    return new ChatHttpError(status, error.message || fallback);
+};
+
 const submit = async (supabase, payload) => {
     const { data, error } = await supabase.rpc('b_media_submit', payload);
-    if (error) {
-        console.error('[api/media] Falha ao registrar mídia:', error.message);
-        throw new ChatHttpError(error.code === '42501' ? 403 : 500, error.message || 'Não foi possível registrar a mídia');
-    }
+    if (error) throw rpcError(error, 'Não foi possível registrar a mídia');
     return data;
+};
+
+const finish = async (supabase, mediaId, { url = null, frames = null, paths = [], failure = null }) => {
+    const { data, error } = await supabase.rpc('b_media_finish_job', {
+        p_media_id: mediaId, p_url: url, p_frames: frames, p_storage_paths: paths, p_error: failure,
+    });
+    if (error) throw rpcError(error, 'Não foi possível concluir a mídia');
+    return data;
+};
+
+// Imagem e duas poses: reserva a vaga no banco (permissão e limite diário)
+// antes de pagar a geração; qualquer falha depois marca a reserva como "falhou".
+const generateReserved = async (supabase, exercise, kind, prompt, produce) => {
+    const { data: reservation, error } = await supabase.rpc('b_media_reserve', {
+        p_entity_type: 'exercise', p_entity_id: exercise.id, p_kind: kind, p_prompt: prompt,
+    });
+    if (error) throw rpcError(error, 'Não foi possível reservar a geração');
+    try {
+        return await finish(supabase, reservation.id, await produce());
+    } catch (e) {
+        await finish(supabase, reservation.id, { failure: e.message }).catch(() => {});
+        throw e;
+    }
 };
 
 const requireExerciseImage = async (exercise) => {
@@ -84,26 +102,24 @@ const requireExerciseImage = async (exercise) => {
 
 async function handleImage({ supabase, exercise, adjustment }) {
     const prompt = buildImagePrompt(exercise, adjustment);
-    const references = await styleReferences(supabase, exercise.id);
-    const image = await generateImage({ prompt, references });
-    const path = mediaPath(exercise, 'imagem', image.mimeType);
-    const url = await uploadMedia(supabase, path, Buffer.from(image.data, 'base64'), image.mimeType);
-    return submit(supabase, {
-        p_entity_type: 'exercise', p_entity_id: exercise.id, p_kind: 'image',
-        p_url: url, p_frames: null, p_storage_paths: [path], p_prompt: prompt, p_job: null,
+    return generateReserved(supabase, exercise, 'image', prompt, async () => {
+        const references = await styleReferences(supabase, exercise.id);
+        const image = await generateImage({ prompt, references });
+        const path = mediaPath(exercise, 'imagem', image.mimeType);
+        const url = await uploadMedia(supabase, path, Buffer.from(image.data, 'base64'), image.mimeType);
+        return { url, paths: [path] };
     });
 }
 
 async function handlePoses({ supabase, exercise, adjustment }) {
     const reference = await requireExerciseImage(exercise);
     const prompts = ['start', 'end'].map(pose => buildPosePrompt(exercise, pose, adjustment));
-    const images = await Promise.all(prompts.map(prompt => generateImage({ prompt, references: [reference] })));
-    const paths = images.map((image, i) => mediaPath(exercise, i === 0 ? 'pose-inicio' : 'pose-fim', image.mimeType));
-    const urls = await Promise.all(images.map((image, i) =>
-        uploadMedia(supabase, paths[i], Buffer.from(image.data, 'base64'), image.mimeType)));
-    return submit(supabase, {
-        p_entity_type: 'exercise', p_entity_id: exercise.id, p_kind: 'poses',
-        p_url: null, p_frames: urls, p_storage_paths: paths, p_prompt: prompts.join('\n---\n'), p_job: null,
+    return generateReserved(supabase, exercise, 'poses', prompts.join('\n---\n'), async () => {
+        const images = await Promise.all(prompts.map(prompt => generateImage({ prompt, references: [reference] })));
+        const paths = images.map((image, i) => mediaPath(exercise, i === 0 ? 'pose-inicio' : 'pose-fim', image.mimeType));
+        const frames = await Promise.all(images.map((image, i) =>
+            uploadMedia(supabase, paths[i], Buffer.from(image.data, 'base64'), image.mimeType)));
+        return { frames, paths };
     });
 }
 
@@ -120,7 +136,8 @@ async function handleVideo({ supabase, exercise, adjustment }) {
 async function handleVideoStatus({ supabase, mediaId }) {
     const { data: media, error } = await supabase.from('b_media').select('*').eq('id', mediaId).maybeSingle();
     if (error || !media) throw new ChatHttpError(404, 'Mídia não encontrada');
-    if (media.status !== 'gerando') return media;
+    // Só vídeo tem operação no Veo; imagem e poses "gerando" concluem sozinhas.
+    if (media.status !== 'gerando' || media.kind !== 'video' || !media.job) return media;
 
     const result = await checkVideo({ job: media.job });
     if (!result.done) return media;
@@ -139,11 +156,7 @@ async function handleVideoStatus({ supabase, mediaId }) {
             failure = e.message;
         }
     }
-    const { data, error: finishError } = await supabase.rpc('b_media_finish_job', {
-        p_media_id: media.id, p_url: url, p_storage_paths: paths, p_error: failure,
-    });
-    if (finishError) throw new ChatHttpError(500, finishError.message);
-    return data;
+    return finish(supabase, media.id, { url, paths, failure });
 }
 
 export default async function handler(req, res) {

@@ -475,7 +475,15 @@ const AICoach = ({ variant = 'page' }) => {
                         },
                     }));
                 })
-                .catch(err => console.warn('[Benfit Coach] Imagem do exercício não gerada:', err?.message));
+                .catch(err => {
+                    console.warn('[Benfit Coach] Imagem do exercício não gerada:', err?.message);
+                    window.dispatchEvent(new CustomEvent('app-toast', {
+                        detail: {
+                            message: `A imagem de "${action.name}" não foi gerada. Tente de novo nos detalhes do exercício.`,
+                            type: 'error',
+                        },
+                    }));
+                });
         });
     };
 

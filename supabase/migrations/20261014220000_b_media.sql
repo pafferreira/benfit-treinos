@@ -8,7 +8,8 @@
 --    aprovação de um admin; desligada, entra no ar na hora. O admin troca a
 --    chave na tela "Aprovar mídias".
 -- 3) b_media: fila única de mídias (exercícios agora, pratos na etapa 2D).
--- 4) Funções: enviar mídia para a fila, concluir vídeo, aprovar/rejeitar e
+-- 4) Funções: reservar e concluir a geração, enviar vídeo para a fila,
+--    aprovar/rejeitar e
 --    criar exercício pelo Coach. A tabela só muda por elas.
 
 -- 1) Colunas novas em b_exercises --------------------------------------------
@@ -110,8 +111,10 @@ END;
 $$;
 
 -- Quem pode pedir mídia: admin para qualquer exercício; os demais só a
--- imagem do exercício que o Coach criou para eles e que ainda não tem imagem,
--- com limite de 6 pedidos por dia.
+-- imagem do exercício que o Coach criou para eles, que ainda não tem imagem
+-- nem outra em preparação, com limite de 6 pedidos por dia. A trava por
+-- usuário faz pedidos simultâneos esperarem a vez, então o limite vale mesmo
+-- com chamadas em paralelo.
 CREATE OR REPLACE FUNCTION public.b_media_check_access(p_entity_type TEXT, p_entity_id UUID, p_kind TEXT)
 RETURNS VOID
 LANGUAGE plpgsql SECURITY DEFINER
@@ -138,9 +141,17 @@ BEGIN
         RETURN;
     END IF;
 
+    PERFORM pg_advisory_xact_lock(2001, hashtext(auth.uid()::text));
+
     IF p_kind <> 'image' OR NOT ex.created_by_ai OR ex.created_by IS DISTINCT FROM auth.uid()
        OR COALESCE(ex.image_url, '') <> '' THEN
         RAISE EXCEPTION 'Sem permissão para gerar esta mídia' USING ERRCODE = '42501';
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM public.b_media
+               WHERE entity_type = p_entity_type AND entity_id = p_entity_id
+                 AND status IN ('gerando', 'pendente')) THEN
+        RAISE EXCEPTION 'A imagem deste exercício já está em preparação' USING ERRCODE = '55000';
     END IF;
 
     SELECT count(*) INTO recent FROM public.b_media
@@ -209,11 +220,45 @@ BEGIN
 END;
 $$;
 
--- Conclui um vídeo que estava "gerando": com arquivo vai para a fila (ou no ar),
--- com erro fica "falhou".
+-- Reserva a vaga antes de chamar a IA (imagem e duas poses): a linha nasce
+-- "gerando" e conta no limite diário, então a cobrança da IA só acontece
+-- depois que o pedido passou pelas permissões e pelo limite. Reservas de mais
+-- de 10 minutos que nunca concluíram viram "falhou".
+CREATE OR REPLACE FUNCTION public.b_media_reserve(
+    p_entity_type TEXT,
+    p_entity_id UUID,
+    p_kind TEXT,
+    p_prompt TEXT
+)
+RETURNS public.b_media
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    m public.b_media;
+BEGIN
+    IF auth.uid() IS NOT NULL THEN
+        UPDATE public.b_media SET status = 'falhou', error = 'Geração interrompida'
+        WHERE created_by = auth.uid() AND status = 'gerando' AND job IS NULL
+          AND created_at < now() - INTERVAL '10 minutes';
+    END IF;
+
+    PERFORM public.b_media_check_access(p_entity_type, p_entity_id, p_kind);
+
+    INSERT INTO public.b_media (entity_type, entity_id, kind, prompt, status, created_by)
+    VALUES (p_entity_type, p_entity_id, p_kind, left(p_prompt, 4000), 'gerando', auth.uid())
+    RETURNING * INTO m;
+    RETURN m;
+END;
+$$;
+
+-- Conclui uma mídia "gerando" (reserva de imagem/poses ou vídeo do Veo): com
+-- arquivo vai para a fila (ou no ar), com erro fica "falhou".
+DROP FUNCTION IF EXISTS public.b_media_finish_job(UUID, TEXT, TEXT[], TEXT);
 CREATE OR REPLACE FUNCTION public.b_media_finish_job(
     p_media_id UUID,
     p_url TEXT,
+    p_frames TEXT[],
     p_storage_paths TEXT[],
     p_error TEXT DEFAULT NULL
 )
@@ -231,11 +276,12 @@ BEGIN
     IF m.status <> 'gerando' THEN
         RETURN m;
     END IF;
-    IF NOT public.b_media_valid_url(p_url) THEN
+    IF NOT public.b_media_valid_url(p_url)
+       OR EXISTS (SELECT 1 FROM unnest(COALESCE(p_frames, '{}')) f WHERE NOT public.b_media_valid_url(f)) THEN
         RAISE EXCEPTION 'Arquivo fora do armazenamento do app' USING ERRCODE = '22023';
     END IF;
 
-    IF p_url IS NULL THEN
+    IF p_url IS NULL AND COALESCE(array_length(p_frames, 1), 0) < 2 THEN
         UPDATE public.b_media SET status = 'falhou', error = left(COALESCE(p_error, 'Falha na geração'), 500)
         WHERE id = p_media_id RETURNING * INTO m;
         RETURN m;
@@ -243,6 +289,7 @@ BEGIN
 
     UPDATE public.b_media
     SET url = p_url,
+        frames = p_frames,
         storage_paths = storage_paths || COALESCE(p_storage_paths, '{}'),
         status = CASE WHEN public.b_media_approval_on() THEN 'pendente' ELSE 'aprovada' END,
         reviewed_at = CASE WHEN public.b_media_approval_on() THEN NULL ELSE now() END
@@ -320,6 +367,8 @@ BEGIN
     END IF;
 
     IF NOT public.is_admin() THEN
+        -- Pedidos simultâneos do mesmo usuário esperam a vez: o limite vale em paralelo.
+        PERFORM pg_advisory_xact_lock(2002, hashtext(auth.uid()::text));
         SELECT count(*) INTO recent FROM public.b_exercises
         WHERE created_by = auth.uid() AND created_by_ai AND created_at > now() - INTERVAL '1 day';
         IF recent >= 3 THEN
@@ -367,7 +416,8 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.b_media_apply(UUID) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.b_media_check_access(TEXT, UUID, TEXT) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.b_media_submit(TEXT, UUID, TEXT, TEXT, TEXT[], TEXT[], TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.b_media_finish_job(UUID, TEXT, TEXT[], TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.b_media_reserve(TEXT, UUID, TEXT, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.b_media_finish_job(UUID, TEXT, TEXT[], TEXT[], TEXT) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.b_media_review(UUID, TEXT) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.b_create_ai_exercise(JSONB) FROM PUBLIC;
 DO $$
@@ -376,7 +426,8 @@ BEGIN
         REVOKE EXECUTE ON FUNCTION public.b_media_apply(UUID) FROM anon;
         REVOKE EXECUTE ON FUNCTION public.b_media_check_access(TEXT, UUID, TEXT) FROM anon;
         REVOKE EXECUTE ON FUNCTION public.b_media_submit(TEXT, UUID, TEXT, TEXT, TEXT[], TEXT[], TEXT, TEXT) FROM anon;
-        REVOKE EXECUTE ON FUNCTION public.b_media_finish_job(UUID, TEXT, TEXT[], TEXT) FROM anon;
+        REVOKE EXECUTE ON FUNCTION public.b_media_reserve(TEXT, UUID, TEXT, TEXT) FROM anon;
+        REVOKE EXECUTE ON FUNCTION public.b_media_finish_job(UUID, TEXT, TEXT[], TEXT[], TEXT) FROM anon;
         REVOKE EXECUTE ON FUNCTION public.b_media_review(UUID, TEXT) FROM anon;
         REVOKE EXECUTE ON FUNCTION public.b_create_ai_exercise(JSONB) FROM anon;
     END IF;
@@ -384,7 +435,8 @@ BEGIN
         REVOKE EXECUTE ON FUNCTION public.b_media_apply(UUID) FROM authenticated;
         REVOKE EXECUTE ON FUNCTION public.b_media_check_access(TEXT, UUID, TEXT) FROM authenticated;
         GRANT EXECUTE ON FUNCTION public.b_media_submit(TEXT, UUID, TEXT, TEXT, TEXT[], TEXT[], TEXT, TEXT) TO authenticated;
-        GRANT EXECUTE ON FUNCTION public.b_media_finish_job(UUID, TEXT, TEXT[], TEXT) TO authenticated;
+        GRANT EXECUTE ON FUNCTION public.b_media_reserve(TEXT, UUID, TEXT, TEXT) TO authenticated;
+        GRANT EXECUTE ON FUNCTION public.b_media_finish_job(UUID, TEXT, TEXT[], TEXT[], TEXT) TO authenticated;
         GRANT EXECUTE ON FUNCTION public.b_media_review(UUID, TEXT) TO authenticated;
         GRANT EXECUTE ON FUNCTION public.b_create_ai_exercise(JSONB) TO authenticated;
         GRANT EXECUTE ON FUNCTION public.b_media_approval_on() TO authenticated;

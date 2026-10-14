@@ -40,7 +40,7 @@ const MediaPreview = ({ media, exercise }) => {
         return (
             <div className="am-preview am-preview-wait">
                 <Loader2 size={22} className="animate-spin" />
-                <span>Gerando o vídeo. Pode levar alguns minutos.</span>
+                <span>{media.kind === 'video' ? 'Gerando o vídeo. Pode levar alguns minutos.' : 'Gerando…'}</span>
             </div>
         );
     }
@@ -199,7 +199,7 @@ const AdminMedia = () => {
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
 
     // Vídeos em geração: confere a cada 15 s enquanto a tela está aberta.
-    const generatingIds = items.filter(m => m.status === 'gerando').map(m => m.id).join(',');
+    const generatingIds = items.filter(m => m.status === 'gerando' && m.kind === 'video').map(m => m.id).join(',');
     useEffect(() => {
         if (!generatingIds) return undefined;
         const tick = async () => {

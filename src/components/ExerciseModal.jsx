@@ -7,6 +7,7 @@ import ExerciseUsageTab from './ExerciseUsageTab';
 import ExerciseHistoryTab from './ExerciseHistoryTab';
 import BodyMap, { MuscleChips } from './BodyMap';
 import ExerciseAnimation from './ExerciseAnimation';
+import { requestMedia } from '../services/media';
 import { MUSCLES, normalizeMuscleTerms } from '../lib/muscles';
 import './ExerciseModal.css';
 
@@ -60,6 +61,9 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
 
     const [tagInput, setTagInput] = useState('');
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+    // Exercício criado pelo Coach sem imagem: quem pediu pode tentar gerar de novo.
+    const [retryOwner, setRetryOwner] = useState(null);
+    const [generatingImage, setGeneratingImage] = useState(false);
     const [equipmentTypes, setEquipmentTypes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('Todas');
@@ -207,6 +211,36 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         ...MUSCLES.map(m => m.nome),
         'Cardio', 'Corpo Todo',
     ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    const imagePending = Boolean(exercise?.created_by_ai && !exercise?.image_url);
+    useEffect(() => {
+        if (!imagePending) return undefined;
+        let active = true;
+        supabase.auth.getSession().then(({ data }) => {
+            if (active) setRetryOwner(data?.session?.user?.id || null);
+        });
+        return () => { active = false; };
+    }, [imagePending]);
+    const canRetryImage = imagePending && retryOwner && retryOwner === exercise?.created_by;
+
+    const retryImage = async () => {
+        setGeneratingImage(true);
+        try {
+            const media = await requestMedia('image', { exerciseId: exercise.id });
+            window.dispatchEvent(new CustomEvent('app-toast', {
+                detail: {
+                    message: media?.status === 'aprovada'
+                        ? 'Imagem pronta. Ela aparece ao abrir o exercício de novo.'
+                        : 'Imagem gerada. Ela aparece depois da aprovação.',
+                    type: 'success',
+                },
+            }));
+        } catch (err) {
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: err.message, type: 'error' } }));
+        } finally {
+            setGeneratingImage(false);
+        }
+    };
 
     const hasAnimation = Boolean(exercise?.animation_url)
         || (Array.isArray(exercise?.animation_frames) && exercise.animation_frames.length >= 2);
@@ -535,6 +569,18 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                     </button>
                                 )}
                             </div>
+                            )}
+
+                            {readOnly && canRetryImage && (
+                                <button
+                                    type="button"
+                                    onClick={retryImage}
+                                    disabled={generatingImage}
+                                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-[#034EA2] hover:bg-blue-100 disabled:opacity-60"
+                                >
+                                    <ImageIcon size={16} />
+                                    {generatingImage ? 'Gerando imagem…' : 'Gerar imagem com a IA'}
+                                </button>
                             )}
 
 
