@@ -9,7 +9,7 @@ import BodyMap, { MuscleChips } from './BodyMap';
 import { MUSCLES, normalizeMuscleTerms } from '../lib/muscles';
 import './ExerciseModal.css';
 
-const Accordion = ({ title, icon: Icon, children, defaultOpen = false, collapsedPreview = null }) => {
+const Accordion = ({ title, icon: Icon, children, defaultOpen = false, collapsedPreview = null, bodyClassName = 'p-4' }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
@@ -32,7 +32,7 @@ const Accordion = ({ title, icon: Icon, children, defaultOpen = false, collapsed
             </button>
 
             {isOpen && (
-                <div className="p-4 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200">
+                <div className={`${bodyClassName} border-t border-gray-100 animate-in slide-in-from-top-2 duration-200`}>
                     {children}
                 </div>
             )}
@@ -320,6 +320,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                 title="Grupos Musculares"
                                 icon={Target}
                                 defaultOpen={false}
+                                bodyClassName="px-2 py-3"
                                 collapsedPreview={
                                     formData.muscle_groups.length > 0 ? (
                                         formData.muscle_groups.map(group => (
@@ -333,7 +334,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                 }
                             >
                                 <div>
-                                    <p className="text-xs text-gray-400 mb-3">
+                                    <p className="text-xs text-gray-400 mb-3 px-1">
                                         {!readOnly && <span className="text-red-500 font-semibold">* </span>}
                                         {readOnly
                                             ? 'Grupos trabalhados por este exercício'
@@ -368,7 +369,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                         </div>
                                     )}
 
-                                    <div className={`grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2 p-3 rounded-xl border ${readOnly ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
                                         {muscleGroups.map(group => {
                                             const checked = formData.muscle_groups.includes(group);
                                             const isPrimary = formData.muscle_groups[0] === group;
