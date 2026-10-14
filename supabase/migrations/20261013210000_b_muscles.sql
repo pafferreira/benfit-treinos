@@ -4,7 +4,7 @@
 -- 1) b_muscles: catálogo dos 15 músculos padrão, com cor fixa e vista do corpo.
 --    Mesma lista de src/lib/muscles.js; mantenha as duas iguais.
 -- 2) b_exercise_muscles: quais músculos cada exercício trabalha (principal/secundario).
--- 3) benfit_muscle_slugs(): converte os textos livres atuais ("Pernas / Glúteo",
+-- 3) b_muscle_slugs(): converte os textos livres atuais ("Pernas / Glúteo",
 --    "Ombros (Posterior)"...) em músculos padrão. Regras iguais às do app.
 -- 3b) Reescreve os textos dos exercícios com os nomes padrão (cópia dos
 --    originais em b_exercises_muscle_backup) e passa a Cadeira Abdutora e a
@@ -13,6 +13,15 @@
 --    dele a partir de muscle_groups (ou muscle_group, nos exercícios antigos).
 -- 5) Preenche b_exercise_muscles para todos os exercícios que já existem.
 -- No fim, uma consulta mostra texto antigo, texto novo e os músculos de cada um.
+
+-- 0) Limpeza: versões anteriores desta query usavam o prefixo "benfit_" nas
+-- funções. Todo objeto do banco usa "b_"; remove as antigas, se existirem
+-- (CASCADE leva junto o gatilho antigo, recriado mais abaixo).
+DROP FUNCTION IF EXISTS public.benfit_exercise_muscles_trigger() CASCADE;
+DROP FUNCTION IF EXISTS public.benfit_sync_exercise_muscles(UUID, TEXT[]);
+DROP FUNCTION IF EXISTS public.benfit_standard_groups(TEXT[]);
+DROP FUNCTION IF EXISTS public.benfit_exercise_groups(JSONB);
+DROP FUNCTION IF EXISTS public.benfit_muscle_slugs(TEXT);
 
 -- 1) Catálogo -----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.b_muscles (
@@ -73,7 +82,7 @@ CREATE POLICY "ExerciseMuscles_AdminPersonalWrite" ON public.b_exercise_muscles
     WITH CHECK (EXISTS (SELECT 1 FROM public.b_users WHERE id = auth.uid() AND role IN ('admin', 'personal')));
 
 -- 3) Texto livre → músculos padrão -------------------------------------------
-CREATE OR REPLACE FUNCTION public.benfit_muscle_slugs(term TEXT)
+CREATE OR REPLACE FUNCTION public.b_muscle_slugs(term TEXT)
 RETURNS TEXT[]
 LANGUAGE sql
 IMMUTABLE
@@ -103,7 +112,7 @@ $$;
 
 -- Refaz os músculos de um exercício a partir da lista de grupos.
 -- O primeiro músculo encontrado é o principal; os outros são secundários.
-CREATE OR REPLACE FUNCTION public.benfit_sync_exercise_muscles(p_exercise_id UUID, p_groups TEXT[])
+CREATE OR REPLACE FUNCTION public.b_sync_exercise_muscles(p_exercise_id UUID, p_groups TEXT[])
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -118,7 +127,7 @@ BEGIN
     DELETE FROM public.b_exercise_muscles WHERE exercise_id = p_exercise_id;
     FOREACH term IN ARRAY coalesce(p_groups, ARRAY[]::TEXT[]) LOOP
         FOREACH part IN ARRAY regexp_split_to_array(term, '[/,;]') LOOP
-            FOREACH slug IN ARRAY public.benfit_muscle_slugs(part) LOOP
+            FOREACH slug IN ARRAY public.b_muscle_slugs(part) LOOP
                 INSERT INTO public.b_exercise_muscles (exercise_id, muscle_slug, papel)
                 VALUES (p_exercise_id, slug, CASE WHEN pos = 0 THEN 'principal' ELSE 'secundario' END)
                 ON CONFLICT (exercise_id, muscle_slug) DO NOTHING;
@@ -131,7 +140,7 @@ $$;
 
 -- Grupos do exercício: muscle_groups (lista) quando existir; senão muscle_group.
 -- Lido via jsonb para funcionar mesmo se a coluna muscle_groups não existir.
-CREATE OR REPLACE FUNCTION public.benfit_exercise_groups(row_data JSONB)
+CREATE OR REPLACE FUNCTION public.b_exercise_groups(row_data JSONB)
 RETURNS TEXT[]
 LANGUAGE sql
 IMMUTABLE
@@ -148,14 +157,14 @@ $$;
 
 -- Só o gatilho (que roda como dono) chama esta função: ela apaga e regrava
 -- músculos sem checar quem chama, então ninguém mais pode executá-la via RPC.
-REVOKE EXECUTE ON FUNCTION public.benfit_sync_exercise_muscles(UUID, TEXT[]) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.b_sync_exercise_muscles(UUID, TEXT[]) FROM PUBLIC;
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-        REVOKE EXECUTE ON FUNCTION public.benfit_sync_exercise_muscles(UUID, TEXT[]) FROM anon;
+        REVOKE EXECUTE ON FUNCTION public.b_sync_exercise_muscles(UUID, TEXT[]) FROM anon;
     END IF;
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-        REVOKE EXECUTE ON FUNCTION public.benfit_sync_exercise_muscles(UUID, TEXT[]) FROM authenticated;
+        REVOKE EXECUTE ON FUNCTION public.b_sync_exercise_muscles(UUID, TEXT[]) FROM authenticated;
     END IF;
 END;
 $$;
@@ -166,7 +175,7 @@ $$;
 -- "Pernas / Glúteo" vira Quadríceps, Glúteos, Posteriores de coxa...).
 -- "Cardio" e "Corpo Todo" continuam como estão (não são um músculo só).
 -- A ordem é mantida, então o músculo principal de cada exercício não muda.
-CREATE OR REPLACE FUNCTION public.benfit_standard_groups(p_groups TEXT[])
+CREATE OR REPLACE FUNCTION public.b_standard_muscle_groups(p_groups TEXT[])
 RETURNS TEXT[]
 LANGUAGE plpgsql
 STABLE
@@ -185,7 +194,7 @@ BEGIN
             part := trim(part);
             CONTINUE WHEN part = '';
             plain := translate(lower(part), 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc');
-            IF plain LIKE '%corpo%' OR cardinality(public.benfit_muscle_slugs(part)) = 0 THEN
+            IF plain LIKE '%corpo%' OR cardinality(public.b_muscle_slugs(part)) = 0 THEN
                 label := CASE
                     WHEN plain LIKE '%corpo%' THEN 'Corpo Todo'
                     WHEN plain LIKE '%cardio%' THEN 'Cardio'
@@ -193,7 +202,7 @@ BEGIN
                 END;
                 IF NOT label = ANY(result) THEN result := result || label; END IF;
             ELSE
-                FOREACH s IN ARRAY public.benfit_muscle_slugs(part) LOOP
+                FOREACH s IN ARRAY public.b_muscle_slugs(part) LOOP
                     SELECT m.nome INTO label FROM public.b_muscles m WHERE m.slug = s;
                     IF NOT label = ANY(result) THEN result := result || label; END IF;
                 END LOOP;
@@ -235,9 +244,9 @@ BEGIN
     INTO has_single;
 
     FOR r IN SELECT e.id, e.name, to_jsonb(e) AS data FROM public.b_exercises e LOOP
-        old_groups := public.benfit_exercise_groups(r.data);
+        old_groups := public.b_exercise_groups(r.data);
         CONTINUE WHEN cardinality(old_groups) = 0;
-        new_groups := public.benfit_standard_groups(old_groups);
+        new_groups := public.b_standard_muscle_groups(old_groups);
 
         -- Cadeira Abdutora e Abdução no Cross trabalham o glúteo médio.
         plain_name := translate(lower(r.name), 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc');
@@ -266,7 +275,7 @@ END;
 $$;
 
 -- 4) Gatilho -------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.benfit_exercise_muscles_trigger()
+CREATE OR REPLACE FUNCTION public.b_exercise_muscles_trigger()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -274,23 +283,23 @@ SET search_path = public
 AS $$
 BEGIN
     IF TG_OP = 'UPDATE'
-       AND public.benfit_exercise_groups(to_jsonb(NEW)) IS NOT DISTINCT FROM public.benfit_exercise_groups(to_jsonb(OLD)) THEN
+       AND public.b_exercise_groups(to_jsonb(NEW)) IS NOT DISTINCT FROM public.b_exercise_groups(to_jsonb(OLD)) THEN
         RETURN NEW;
     END IF;
-    PERFORM public.benfit_sync_exercise_muscles(NEW.id, public.benfit_exercise_groups(to_jsonb(NEW)));
+    PERFORM public.b_sync_exercise_muscles(NEW.id, public.b_exercise_groups(to_jsonb(NEW)));
     RETURN NEW;
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.benfit_exercise_muscles_trigger() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.b_exercise_muscles_trigger() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS b_exercises_sync_muscles ON public.b_exercises;
 CREATE TRIGGER b_exercises_sync_muscles
     AFTER INSERT OR UPDATE ON public.b_exercises
-    FOR EACH ROW EXECUTE FUNCTION public.benfit_exercise_muscles_trigger();
+    FOR EACH ROW EXECUTE FUNCTION public.b_exercise_muscles_trigger();
 
 -- 5) Preenche os exercícios existentes ----------------------------------------
-SELECT public.benfit_sync_exercise_muscles(e.id, public.benfit_exercise_groups(to_jsonb(e)))
+SELECT public.b_sync_exercise_muscles(e.id, public.b_exercise_groups(to_jsonb(e)))
 FROM public.b_exercises e;
 
 -- Resultado: texto antigo, texto novo e os músculos que ele virou (★ = principal).
@@ -301,7 +310,7 @@ SELECT
              THEN (SELECT string_agg(x, ' + ') FROM jsonb_array_elements_text(b.muscle_groups) x)
         END,
         b.muscle_group, '') AS texto_antigo,
-    array_to_string(public.benfit_exercise_groups(to_jsonb(e)), ', ') AS texto_novo,
+    array_to_string(public.b_exercise_groups(to_jsonb(e)), ', ') AS texto_novo,
     count(DISTINCT e.id) AS exercicios,
     coalesce((
         SELECT string_agg(CASE WHEN em.papel = 'principal' THEN '★ ' ELSE '' END || m.nome, ', ' ORDER BY em.papel, m.ordem)

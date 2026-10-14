@@ -37,7 +37,7 @@ const plain = (text) => String(text || '')
     .trim();
 
 // Converte um texto livre de grupo muscular ("Pernas / Glúteo", "Ombros (Posterior)")
-// em músculos padrão. Regras espelhadas na função benfit_muscle_slugs() do SQL.
+// em músculos padrão. Regras espelhadas na função b_muscle_slugs() do SQL.
 export const slugsForTerm = (term) => {
     const t = plain(term);
     if (!t) return [];
