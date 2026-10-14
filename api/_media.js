@@ -144,29 +144,53 @@ export async function generateImage({ prompt, references = [], fetchImpl = fetch
 
 // O Veo leva alguns minutos: aqui só começa a geração e devolve a operação.
 // Primeiro e último quadro iguais (a imagem do exercício) deixam o loop sem salto.
+// Formatos aceitos variam entre versões do Veo na Gemini API: tenta do mais
+// completo (mesmo quadro no início e no fim, para o loop fechar) ao mais simples.
+// Pedido recusado (400) não é cobrado, então vale tentar a próxima variante.
+export const videoRequestVariants = ({ prompt, image }) => {
+    const inline = { inlineData: { mimeType: image.mimeType, data: image.data } };
+    const encoded = { bytesBase64Encoded: image.data, mimeType: image.mimeType };
+    const negativePrompt = 'text, captions, camera movement, zoom, extra people, distorted anatomy, extra limbs';
+    return [
+        // Interpolação (primeiro e último quadro) exige 8 s no Veo 3.1.
+        { instances: [{ prompt, image: inline, lastFrame: inline }],
+            parameters: { aspectRatio: '16:9', durationSeconds: 8, negativePrompt } },
+        { instances: [{ prompt, image: inline }],
+            parameters: { aspectRatio: '16:9', durationSeconds: VIDEO_SECONDS, negativePrompt } },
+        { instances: [{ prompt, image: encoded }],
+            parameters: { aspectRatio: '16:9', durationSeconds: VIDEO_SECONDS } },
+    ];
+};
+
+const veoErrorMessage = (text) => {
+    try {
+        return JSON.parse(text)?.error?.message || text;
+    } catch {
+        return text;
+    }
+};
+
 export async function startVideo({ prompt, image, fetchImpl = fetch }) {
     const key = geminiKey();
-    const frame = { bytesBase64Encoded: image.data, mimeType: image.mimeType };
-    const res = await fetchImpl(`${GEMINI_BASE}/models/${VIDEO_MODEL}:predictLongRunning`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify({
-            instances: [{ prompt, image: frame, lastFrame: frame }],
-            parameters: {
-                aspectRatio: '16:9',
-                durationSeconds: VIDEO_SECONDS,
-                negativePrompt: 'text, captions, camera movement, zoom, extra people, distorted anatomy, extra limbs',
-            },
-        }),
-    });
-    if (!res.ok) {
-        const body = (await res.text()).slice(0, 300);
-        console.warn('[api/media] Falha ao iniciar vídeo:', res.status, body);
-        throw new ChatHttpError(502, `Não foi possível iniciar o vídeo (${res.status})`);
+    let lastStatus = 0;
+    let lastMessage = '';
+    for (const body of videoRequestVariants({ prompt, image })) {
+        const res = await fetchImpl(`${GEMINI_BASE}/models/${VIDEO_MODEL}:predictLongRunning`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+            body: JSON.stringify(body),
+        });
+        if (res.ok) {
+            const operation = await res.json();
+            if (!operation?.name) throw new ChatHttpError(502, 'O Veo não devolveu a operação do vídeo');
+            return { job: operation.name, model: VIDEO_MODEL };
+        }
+        lastStatus = res.status;
+        lastMessage = veoErrorMessage((await res.text()).slice(0, 500)).slice(0, 300);
+        console.warn('[api/media] Falha ao iniciar vídeo:', res.status, lastMessage);
+        if (res.status !== 400) break;
     }
-    const operation = await res.json();
-    if (!operation?.name) throw new ChatHttpError(502, 'O Veo não devolveu a operação do vídeo');
-    return { job: operation.name, model: VIDEO_MODEL };
+    throw new ChatHttpError(502, `Não foi possível iniciar o vídeo (${lastStatus}): ${lastMessage}`);
 }
 
 // done=false: ainda gerando. done=true: uri do vídeo ou erro.

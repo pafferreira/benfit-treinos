@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import process from 'node:process';
 
 import {
     buildImagePrompt,
@@ -8,6 +9,7 @@ import {
     mediaPath,
     parseImageResponse,
     parseVideoOperation,
+    startVideo,
 } from '../api/_media.js';
 import { COACH_TOOLS, MUSCLE_NAMES, createToolRunner } from '../api/_coach-tools.js';
 import { MUSCLES } from '../src/lib/muscles.js';
@@ -117,4 +119,32 @@ test('api/media valida método, ação e sessão', async () => {
     res = fakeResponse();
     await mediaHandler({ method: 'POST', headers: {}, body: { action: 'image', exerciseId: 'e1' } }, res);
     assert.equal(res.statusCode, 401);
+});
+
+test('startVideo tenta formatos mais simples quando o Veo recusa com 400', async () => {
+    process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'teste';
+    const bodies = [];
+    const fetchImpl = async (_url, init) => {
+        bodies.push(JSON.parse(init.body));
+        if (bodies.length < 3) {
+            return { ok: false, status: 400, text: async () => JSON.stringify({ error: { message: 'formato recusado' } }) };
+        }
+        return { ok: true, json: async () => ({ name: 'operations/abc' }) };
+    };
+    const result = await startVideo({ prompt: 'p', image: { mimeType: 'image/png', data: 'AAA' }, fetchImpl });
+    assert.equal(result.job, 'operations/abc');
+    assert.equal(bodies.length, 3);
+    assert.equal(bodies[0].parameters.durationSeconds, 8);
+    assert.deepEqual(bodies[0].instances[0].lastFrame, { inlineData: { mimeType: 'image/png', data: 'AAA' } });
+    assert.equal(bodies[1].instances[0].lastFrame, undefined);
+    assert.equal(bodies[2].instances[0].image.bytesBase64Encoded, 'AAA');
+});
+
+test('startVideo mostra a mensagem do Veo quando nenhum formato serve', async () => {
+    process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'teste';
+    const fetchImpl = async () => ({ ok: false, status: 400, text: async () => JSON.stringify({ error: { message: 'billing required' } }) });
+    await assert.rejects(
+        startVideo({ prompt: 'p', image: { mimeType: 'image/png', data: 'AAA' }, fetchImpl }),
+        err => err.status === 502 && /\(400\): billing required/.test(err.message),
+    );
 });
