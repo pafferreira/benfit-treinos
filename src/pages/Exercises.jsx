@@ -6,6 +6,7 @@ import { Search, Plus, Trash2, Target, Package, LayoutGrid, List, Dumbbell, Filt
 import MuscleExplorer from '../components/MuscleExplorer';
 import { MUSCLES, MUSCLE_BY_SLUG, getExerciseMuscles } from '../lib/muscles';
 import ExerciseModal from '../components/ExerciseModal';
+import { exerciseImageUrl, DEFAULT_EXERCISE_IMAGE } from '../lib/exerciseImage';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { Skeleton } from '../components/Skeleton';
 import Tooltip from '../components/Tooltip';
@@ -339,15 +340,12 @@ const Exercises = () => {
                                         <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className="group relative flex gap-4 bg-white/90 border border-gray-200/80 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden cursor-pointer p-3 sm:p-4">
                                             <div className="relative w-32 h-32 sm:w-36 sm:h-36 shrink-0 overflow-hidden rounded-xl bg-gray-100">
                                                 <img
-                                                    src={exercise.image_url ?
-                                                        (exercise.image_url.startsWith('http') ? exercise.image_url :
-                                                            `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/exercises/${exercise.image_url}`)
-                                                        : (exercise.video_url || 'https://via.placeholder.com/400x300')}
+                                                    src={exerciseImageUrl(exercise) || DEFAULT_EXERCISE_IMAGE}
                                                     alt={exercise.name}
                                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                                     onError={(e) => {
                                                         e.target.onerror = null;
-                                                        e.target.src = 'https://via.placeholder.com/400x300?text=Sem+Imagem';
+                                                        e.target.src = DEFAULT_EXERCISE_IMAGE;
                                                     }}
                                                 />
                                             </div>
@@ -398,15 +396,12 @@ const Exercises = () => {
                                         <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white p-0 transition-all flex items-center gap-4 w-full cursor-pointer hover:bg-blue-50/40`}>
                                             <div className="h-16 w-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden relative">
                                                 <img
-                                                    src={exercise.image_url ?
-                                                        (exercise.image_url.startsWith('http') ? exercise.image_url :
-                                                            `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/exercises/${exercise.image_url}`)
-                                                        : (exercise.video_url || 'https://via.placeholder.com/150')}
+                                                    src={exerciseImageUrl(exercise) || DEFAULT_EXERCISE_IMAGE}
                                                     alt={exercise.name}
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => {
                                                         e.target.onerror = null;
-                                                        e.target.src = 'https://via.placeholder.com/150';
+                                                        e.target.src = DEFAULT_EXERCISE_IMAGE;
                                                     }}
                                                 />
                                             </div>

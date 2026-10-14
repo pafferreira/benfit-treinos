@@ -6,6 +6,7 @@ import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Search, Image as Imag
 import ExerciseUsageTab from './ExerciseUsageTab';
 import ExerciseHistoryTab from './ExerciseHistoryTab';
 import BodyMap, { MuscleChips } from './BodyMap';
+import ExerciseAnimation from './ExerciseAnimation';
 import { MUSCLES, normalizeMuscleTerms } from '../lib/muscles';
 import './ExerciseModal.css';
 
@@ -206,6 +207,9 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         ...MUSCLES.map(m => m.nome),
         'Cardio', 'Corpo Todo',
     ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    const hasAnimation = Boolean(exercise?.animation_url)
+        || (Array.isArray(exercise?.animation_frames) && exercise.animation_frames.length >= 2);
 
     const legacyGroups = formData.muscle_groups.filter(g => !muscleGroups.includes(g));
     // Músculos padrão (etapa 2B) a partir dos grupos marcados: o mapa acompanha a edição.
@@ -492,7 +496,16 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                 Visualização
                             </h3>
 
-                            {/* Image Preview Area */}
+                            {/* Animação de execução (etapa 2C): só na consulta; na edição fica a imagem. */}
+                            {readOnly && hasAnimation ? (
+                                <ExerciseAnimation
+                                    videoUrl={exercise.animation_url}
+                                    frames={exercise.animation_frames}
+                                    poster={formData.image_url}
+                                    alt={formData.name}
+                                    className="border border-gray-200"
+                                />
+                            ) : (
                             <div className="relative aspect-video w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden border border-gray-200 group">
                                 {formData.image_url ? (
                                     <img
@@ -503,7 +516,9 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
                                         <ImageIcon size={48} className="mb-2 opacity-50" />
-                                        <span className="text-xs">Sem imagem selecionada</span>
+                                        <span className="text-xs">
+                                            {exercise?.created_by_ai ? 'Imagem em preparação pelo Coach' : 'Sem imagem selecionada'}
+                                        </span>
                                     </div>
                                 )}
 
@@ -520,6 +535,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                     </button>
                                 )}
                             </div>
+                            )}
 
 
                             {/* Avatar Selector (Collapsible) - Only if NOT readOnly */}

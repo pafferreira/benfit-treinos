@@ -91,30 +91,54 @@ const getAnthropicClient = () => {
     return anthropicClient;
 };
 
-async function callClaude({ messages, systemPrompt }) {
+// Ferramentas do Coach (só no Claude): cada rodada de tool_use executa as
+// ferramentas e devolve o resultado, até a resposta final em texto.
+const MAX_TOOL_ROUNDS = 3;
+
+async function callClaude({ messages, systemPrompt, tools, runTool }) {
     if (!process.env.ANTHROPIC_API_KEY) return { skip: true };
     const model = resolveClaudeModel(process.env.BENFIT_AI_MODEL);
+    const useTools = Array.isArray(tools) && tools.length > 0 && typeof runTool === 'function';
+    const conversation = toClaudeMessages(messages);
+    const usage = { input_tokens: 0, output_tokens: 0 };
+    const actions = [];
     try {
-        const response = await getAnthropicClient().messages.create({
-            model,
-            max_tokens: 8000,
-            output_config: { effort: CLAUDE_EFFORT },
-            // O perfil do Coach é fixo: fica em cache e barateia as mensagens seguintes.
-            system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
-            messages: toClaudeMessages(messages),
-        });
-        const { text } = parseClaudeResponse(response);
-        return {
-            text,
-            provider: 'anthropic',
-            model: response.model || model,
-            usage: {
-                input_tokens: (response.usage?.input_tokens || 0)
-                    + (response.usage?.cache_read_input_tokens || 0)
-                    + (response.usage?.cache_creation_input_tokens || 0),
-                output_tokens: response.usage?.output_tokens || 0,
-            },
-        };
+        for (let round = 0; ; round++) {
+            const response = await getAnthropicClient().messages.create({
+                model,
+                max_tokens: 8000,
+                output_config: { effort: CLAUDE_EFFORT },
+                // O perfil do Coach é fixo: fica em cache e barateia as mensagens seguintes.
+                system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+                ...(useTools ? { tools } : {}),
+                messages: conversation,
+            });
+            usage.input_tokens += (response.usage?.input_tokens || 0)
+                + (response.usage?.cache_read_input_tokens || 0)
+                + (response.usage?.cache_creation_input_tokens || 0);
+            usage.output_tokens += response.usage?.output_tokens || 0;
+
+            const toolUses = (response.content || []).filter(block => block.type === 'tool_use');
+            if (useTools && response.stop_reason === 'tool_use' && toolUses.length > 0 && round < MAX_TOOL_ROUNDS) {
+                const results = [];
+                for (const block of toolUses) {
+                    const outcome = await runTool(block.name, block.input || {});
+                    if (outcome.action) actions.push(outcome.action);
+                    results.push({
+                        type: 'tool_result',
+                        tool_use_id: block.id,
+                        content: outcome.content,
+                        ...(outcome.isError ? { is_error: true } : {}),
+                    });
+                }
+                conversation.push({ role: 'assistant', content: response.content });
+                conversation.push({ role: 'user', content: results });
+                continue;
+            }
+
+            const { text } = parseClaudeResponse(response);
+            return { text, provider: 'anthropic', model: response.model || model, usage, actions };
+        }
     } catch (error) {
         if (error instanceof Anthropic.APIError && typeof error.status === 'number') {
             return { error: true, status: error.status, body: error.message };
@@ -188,13 +212,13 @@ async function callGemini({ messages, systemPrompt }) {
     };
 }
 
-export async function chatWithFallback({ messages, systemPrompt = SYSTEM_PROMPT }) {
+export async function chatWithFallback({ messages, systemPrompt = SYSTEM_PROMPT, tools, runTool }) {
     const providers = [callClaude, callOpenAI, callGemini];
 
     const errors = [];
     for (const call of providers) {
         try {
-            const result = await call({ messages, systemPrompt });
+            const result = await call({ messages, systemPrompt, tools, runTool });
             if (result.skip) continue;
             if (result.error) {
                 errors.push({ status: result.status, body: result.body?.slice(0, 300) });

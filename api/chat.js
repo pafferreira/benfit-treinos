@@ -1,5 +1,6 @@
 import { chatWithFallback, SYSTEM_PROMPT } from './_providers.js';
 import { TITLE_PROMPT } from './_prompt.js';
+import { COACH_TOOLS, createToolRunner } from './_coach-tools.js';
 import {
     buildConversationMessages,
     ChatHttpError,
@@ -34,7 +35,12 @@ export default async function handler(req, res) {
         const session = await loadConversationSession({ accessToken, conversationId });
         const messages = buildConversationMessages({ history: session.history, message, context });
 
-        const result = await chatWithFallback({ messages, systemPrompt: SYSTEM_PROMPT });
+        const result = await chatWithFallback({
+            messages,
+            systemPrompt: SYSTEM_PROMPT,
+            tools: COACH_TOOLS,
+            runTool: createToolRunner(session.supabase),
+        });
         const messageId = await saveAssistantResponse({
             supabase: session.supabase,
             userId: session.user.id,
@@ -51,6 +57,7 @@ export default async function handler(req, res) {
             provider: result.provider,
             model: result.model,
             messageId,
+            actions: result.actions || [],
         });
     } catch (error) {
         if (error instanceof ChatHttpError) {

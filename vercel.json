@@ -1,4 +1,9 @@
 {
+    "functions": {
+        "api/media.js": {
+            "maxDuration": 120
+        }
+    },
     "rewrites": [
         {
             "source": "/(.*)",

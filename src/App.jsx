@@ -19,6 +19,7 @@ const Dieta = lazy(() => import('./pages/Dieta'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const SupabaseDiagnostic = lazy(() => import('./pages/SupabaseDiagnostic'))
 const AdminUsers = lazy(() => import('./pages/AdminUsers'))
+const AdminMedia = lazy(() => import('./pages/AdminMedia'))
 const ActivityHistoryPage = lazy(() => import('./pages/ActivityHistoryPage'))
 const SharedKnowledge = lazy(() => import('./pages/SharedKnowledge'))
 
@@ -49,6 +50,7 @@ function App() {
           <Route path="coach" element={<AICoach />} />
           <Route path="diagnostic" element={<SupabaseDiagnostic />} />
           <Route path="admin/users" element={<AdminUsers />} />
+          <Route path="admin/midias" element={<AdminMedia />} />
           <Route path="conhecimento" element={<SharedKnowledge />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

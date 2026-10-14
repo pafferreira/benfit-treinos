@@ -6,3 +6,6 @@ export const exerciseImageUrl = (exercise) => {
         ? url
         : `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/exercises/${url}`;
 };
+
+// Silhueta padrão: exercício sem imagem aprovada (ex.: recém-criado pelo Coach).
+export const DEFAULT_EXERCISE_IMAGE = '/exercicios/exerc_generico_3.png';

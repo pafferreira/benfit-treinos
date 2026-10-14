@@ -1,0 +1,73 @@
+/* Tela "Aprovar mídias" (v2, etapa 2C). Tokens reais do app: azul #034EA2/#008ACF, fundo #F3F4F6. */
+.am-page { padding: 1rem 1rem 6rem; display: flex; flex-direction: column; gap: 1rem; }
+.am-header { display: flex; align-items: center; gap: 0.75rem; }
+.am-header h1 { font-size: 1.5rem; font-weight: 700; color: #034EA2; line-height: 1.2; }
+.am-header p { font-size: 0.85rem; color: #6B7280; }
+.am-back { padding: 0.5rem; margin-left: -0.5rem; border-radius: 999px; color: #9CA3AF; }
+.am-back:hover { background: #F3F4F6; color: #4B5563; }
+
+.am-panel { background: #fff; border: 1px solid #E5E7EB; border-radius: 1rem; padding: 0.9rem; display: flex; flex-direction: column; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+.am-panel-title { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; font-weight: 700; color: #374151; }
+.am-switch-row { flex-direction: row; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.am-switch-row strong { font-size: 0.9rem; color: #1F2937; }
+.am-switch-row p { font-size: 0.78rem; color: #6B7280; margin-top: 0.15rem; }
+.am-switch { position: relative; width: 2.9rem; height: 1.6rem; border-radius: 999px; background: #D1D5DB; flex-shrink: 0; transition: background 0.2s; }
+.am-switch span { position: absolute; top: 0.2rem; left: 0.2rem; width: 1.2rem; height: 1.2rem; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.2s; }
+.am-switch.is-on { background: #034EA2; }
+.am-switch.is-on span { transform: translateX(1.3rem); }
+
+.am-input { width: 100%; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.6rem 0.75rem; font-size: 0.85rem; resize: vertical; }
+.am-input:focus, .am-adjust textarea:focus { outline: none; border-color: #008ACF; box-shadow: 0 0 0 3px rgba(0, 138, 207, 0.15); }
+.am-gen-buttons { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: 0.5rem; }
+.am-hint { font-size: 0.72rem; color: #9CA3AF; }
+
+.am-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.55rem 0.75rem; border-radius: 0.75rem; border: 1px solid #E5E7EB; background: #fff; color: #374151; font-size: 0.82rem; font-weight: 600; min-height: 2.5rem; transition: background 0.15s, border-color 0.15s; }
+.am-btn:hover:not(:disabled) { border-color: #008ACF; color: #034EA2; }
+.am-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.am-btn-primary { background: #034EA2; border-color: #034EA2; color: #fff; }
+.am-btn-primary:hover:not(:disabled) { background: #023d80; color: #fff; }
+.am-btn-approve { background: #16A34A; border-color: #16A34A; color: #fff; }
+.am-btn-approve:hover:not(:disabled) { background: #15803D; border-color: #15803D; color: #fff; }
+.am-btn-reject { color: #DC2626; }
+.am-btn-reject:hover:not(:disabled) { border-color: #DC2626; color: #B91C1C; }
+
+.am-tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid #E5E7EB; }
+.am-tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; white-space: nowrap; padding: 0.55rem 0.25rem; font-size: 0.85rem; font-weight: 600; color: #6B7280; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.am-tab-count { min-width: 1.25rem; padding: 0 0.35rem; border-radius: 999px; background: #E5E7EB; color: #4B5563; font-size: 0.7rem; line-height: 1.25rem; }
+.am-tabs button.is-active .am-tab-count { background: #034EA2; color: #fff; }
+.am-tabs button.is-active { color: #034EA2; border-bottom-color: #034EA2; }
+
+.am-empty { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 2rem 1rem; color: #9CA3AF; font-size: 0.9rem; }
+.am-list { display: flex; flex-direction: column; gap: 0.9rem; }
+
+.am-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 1rem; padding: 0.9rem; display: flex; flex-direction: column; gap: 0.7rem; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+.am-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+.am-card-title { font-size: 1rem; font-weight: 700; color: #111827; line-height: 1.25; }
+.am-card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; font-size: 0.75rem; color: #6B7280; margin-top: 0.2rem; }
+.am-chip { display: inline-flex; padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.68rem; font-weight: 600; }
+.am-chip-ai { background: #E0F2FE; color: #0369A1; }
+
+.am-status { flex-shrink: 0; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; }
+.am-status-pendente { background: #FEF3C7; color: #92400E; }
+.am-status-gerando { background: #E0F2FE; color: #0369A1; }
+.am-status-aprovada { background: #DCFCE7; color: #166534; }
+.am-status-rejeitada { background: #F3F4F6; color: #4B5563; }
+.am-status-falhou { background: #FEE2E2; color: #991B1B; }
+
+.am-compare { display: grid; grid-template-columns: 1fr; gap: 0.6rem; }
+.am-compare figure { display: flex; flex-direction: column; gap: 0.3rem; margin: 0; }
+.am-compare figcaption { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; }
+.am-compare figure:last-child { max-width: 60%; }
+.am-preview { width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #fff; border: 1px solid #E5E7EB; border-radius: 0.75rem; }
+.am-preview-current { opacity: 0.9; }
+.am-preview-wait { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; color: #0369A1; font-size: 0.8rem; text-align: center; padding: 0.75rem; background: #F0F9FF; }
+
+.am-error { font-size: 0.8rem; color: #B91C1C; background: #FEF2F2; border-radius: 0.6rem; padding: 0.5rem 0.65rem; }
+.am-link { display: inline-flex; align-items: center; gap: 0.25rem; align-self: flex-start; font-size: 0.78rem; font-weight: 600; color: #008ACF; }
+.am-prompt { white-space: pre-wrap; font-size: 0.72rem; line-height: 1.45; color: #4B5563; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 0.6rem; padding: 0.6rem; max-height: 12rem; overflow: auto; }
+.am-adjust { display: flex; flex-direction: column; gap: 0.3rem; }
+.am-adjust label { font-size: 0.78rem; font-weight: 600; color: #374151; }
+.am-adjust textarea { width: 100%; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.5rem 0.7rem; font-size: 0.85rem; }
+.am-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.am-actions .am-btn { flex: 1 1 6.5rem; }
+.am-preview-empty { color: #9CA3AF; background: #F9FAFB; }

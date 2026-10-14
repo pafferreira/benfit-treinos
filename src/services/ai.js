@@ -3,7 +3,7 @@
 // Todos os endpoints exigem o usuário logado.
 import { supabase } from '../lib/supabase';
 
-const postJson = async (url, payload) => {
+export const postJson = async (url, payload) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
         throw new Error('Sessão expirada. Entre novamente para conversar com o Coach.');

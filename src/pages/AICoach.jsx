@@ -5,6 +5,7 @@ import { RobotCoachIcon } from '../components/icons/BenfitIcons';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
 import { chatWithBenfit, generateConversationTitle, generateEmbedding, rateCoachMessage } from '../services/ai';
+import { requestMedia } from '../services/media';
 import { buildUserContext, buildExerciseStats } from '../services/context';
 import { useUserRole, useExercises, useExerciseMuscleMap } from '../hooks/useSupabase';
 import CoachExerciseCard from '../components/CoachExerciseCard';
@@ -139,7 +140,7 @@ const formatRelativeDate = (dateStr) => {
 // ── Componente ───────────────────────────────────────────────────
 // variant="page": tela /coach completa. variant="sheet": painel aberto sobre qualquer tela.
 const AICoach = ({ variant = 'page' }) => {
-    const { exercises: libraryExercises } = useExercises();
+    const { exercises: libraryExercises, reload: reloadExercises } = useExercises();
     const muscleMap = useExerciseMuscleMap();
     const isSheet = variant === 'sheet';
     const navigate = useNavigate();
@@ -455,6 +456,29 @@ const AICoach = ({ variant = 'page' }) => {
         }
     };
 
+    // Exercício novo criado pelo Coach (etapa 2C): atualiza o catálogo para o
+    // cartão aparecer e pede a imagem em segundo plano.
+    const handleCoachActions = (actions) => {
+        const created = (actions || []).filter(a => a?.type === 'exercise_created' && !a.existing);
+        if (created.length === 0) return;
+        reloadExercises();
+        created.forEach(action => {
+            requestMedia('image', { exerciseId: action.exerciseId })
+                .then(media => {
+                    reloadExercises();
+                    window.dispatchEvent(new CustomEvent('app-toast', {
+                        detail: {
+                            message: media?.status === 'aprovada'
+                                ? `Imagem de "${action.name}" pronta.`
+                                : `Imagem de "${action.name}" gerada. Ela aparece depois da aprovação.`,
+                            type: 'success',
+                        },
+                    }));
+                })
+                .catch(err => console.warn('[Benfit Coach] Imagem do exercício não gerada:', err?.message));
+        });
+    };
+
     // ── Envia mensagem (core, reutilizável) ───────────────────────
     const sendMessage = async (text) => {
         if (!text?.trim() || isTyping) return;
@@ -554,6 +578,7 @@ const AICoach = ({ variant = 'page' }) => {
                 const aiResponse = await chatWithBenfit(text, fullContext, convId);
                 responseText = aiResponse.text;
                 responseId = aiResponse.messageId || null;
+                handleCoachActions(aiResponse.actions);
 
                 if (uid) {
                     maybeStoreConversation(uid, text, responseText)
