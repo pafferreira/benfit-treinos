@@ -368,7 +368,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                         </div>
                                     )}
 
-                                    <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl border ${readOnly ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
+                                    <div className={`grid grid-cols-2 gap-2 p-3 rounded-xl border ${readOnly ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
                                         {muscleGroups.map(group => {
                                             const checked = formData.muscle_groups.includes(group);
                                             const isPrimary = formData.muscle_groups[0] === group;
@@ -388,7 +388,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                                         disabled={readOnly}
                                                         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/30 shrink-0"
                                                     />
-                                                    <span className="truncate">{group}</span>
+                                                    <span className="leading-tight">{group}</span>
                                                     {isPrimary && formData.muscle_groups.length > 1 && (
                                                         <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-blue-500">
                                                             1º
