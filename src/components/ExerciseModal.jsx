@@ -5,6 +5,8 @@ import Modal from './Modal';
 import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Search, Image as ImageIcon, Youtube, List, Tag, Dumbbell, Target, Weight, Video as VideoIcon } from 'lucide-react';
 import ExerciseUsageTab from './ExerciseUsageTab';
 import ExerciseHistoryTab from './ExerciseHistoryTab';
+import BodyMap, { MuscleChips } from './BodyMap';
+import { MUSCLES, normalizeMuscleTerms } from '../lib/muscles';
 import './ExerciseModal.css';
 
 const Accordion = ({ title, icon: Icon, children, defaultOpen = false, collapsedPreview = null }) => {
@@ -199,16 +201,15 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         onSave(finalData);
     };
 
+    // Mesmos nomes de b_muscles / src/lib/muscles.js, mais Cardio e Corpo Todo.
     const muscleGroups = [
-        'Peitoral', 'Costas', 'Ombros', 'Trapézio', 'Bíceps', 'Tríceps', 'Antebraço',
-        'Abdômen', 'Lombar', 'Glúteos', 'Quadríceps', 'Posterior de Coxa', 'Adutores',
-        'Panturrilha', 'Cardio', 'Corpo Todo',
-        // Termos encontrados nos valores compostos legados (ex: "Pernas / Glúteo",
-        // "Posterior / Lombar") — adicionados pra permitir reclassificação exata.
-        'Pernas', 'Glúteo', 'Posterior'
+        ...MUSCLES.map(m => m.nome),
+        'Cardio', 'Corpo Todo',
     ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
     const legacyGroups = formData.muscle_groups.filter(g => !muscleGroups.includes(g));
+    // Músculos padrão (etapa 2B) a partir dos grupos marcados: o mapa acompanha a edição.
+    const workedMuscles = normalizeMuscleTerms(formData.muscle_groups);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={readOnly ? 'Detalhes do Exercício' : (exercise?.id ? 'Editar Exercício' : 'Novo Exercício')} size="full">
@@ -258,6 +259,16 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
 
                     {/* Left Column: Form Fields (8 cols) */}
                     <div className="flex flex-col gap-6">
+
+                        {workedMuscles.length > 0 && (
+                            <section className="exercise-muscles-card">
+                                <h4 className="exercise-muscles-title">
+                                    <Target size={16} /> Músculos trabalhados
+                                </h4>
+                                <BodyMap muscles={workedMuscles} compact />
+                                <MuscleChips muscles={workedMuscles} />
+                            </section>
+                        )}
 
                         {/* Collapsible Sections (Persianas) */}
                         <div className="space-y-4">

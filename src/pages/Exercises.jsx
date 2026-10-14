@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useExercises, useUserRole } from '../hooks/useSupabase';
+import { useExercises, useUserRole, useExerciseMuscleMap } from '../hooks/useSupabase';
 import { useCoachScreen } from '../context/coach';
 import { supabaseHelpers, getExerciseMuscleGroups } from '../lib/supabase';
-import { Search, Plus, Edit2, Trash2, Target, Package, LayoutGrid, List, Dumbbell, Filter, X } from 'lucide-react';
+import { Search, Plus, Trash2, Target, Package, LayoutGrid, List, Dumbbell, Filter, X, PersonStanding } from 'lucide-react';
+import MuscleExplorer from '../components/MuscleExplorer';
+import { MUSCLES, MUSCLE_BY_SLUG, getExerciseMuscles } from '../lib/muscles';
 import ExerciseModal from '../components/ExerciseModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { Skeleton } from '../components/Skeleton';
@@ -11,6 +13,7 @@ import Tooltip from '../components/Tooltip';
 const Exercises = () => {
     const { exercises, loading, error, reload } = useExercises();
     const { isAdmin, isPersonal, isUser } = useUserRole();
+    const muscleMap = useExerciseMuscleMap(exercises);
     const [searchTerm, setSearchTerm] = useState('');
     const [muscleFilter, setMuscleFilter] = useState('all');
     const [equipmentFilter, setEquipmentFilter] = useState('all');
@@ -20,7 +23,9 @@ const Exercises = () => {
     const [viewMode, setViewMode] = useState(() => localStorage.getItem('exercises-view') || 'grid');
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
-    const filteredExercises = useMemo(() => {
+    // Busca e equipamento valem para todas as vistas; o filtro de músculo
+    // (músculos padrão da etapa 2B) não se aplica no "Por músculo", que já seleciona um.
+    const searchedExercises = useMemo(() => {
         return exercises.filter(exercise => {
             const groups = getExerciseMuscleGroups(exercise);
             const q = searchTerm.trim().toLowerCase();
@@ -31,16 +36,20 @@ const Exercises = () => {
                 (exercise.tags || []).join(' '),
                 (Array.isArray(exercise.instructions) ? exercise.instructions.join(' ') : exercise.instructions || '')
             ].some(field => (field || '').toString().toLowerCase().includes(q));
-            // Basta o exercício conter o grupo filtrado — não precisa ser o principal
-            const matchesMuscle = muscleFilter === 'all' || groups.includes(muscleFilter);
             const matchesEquipment = equipmentFilter === 'all' || exercise.equipment === equipmentFilter;
 
-            return matchesSearch && matchesMuscle && matchesEquipment;
+            return matchesSearch && matchesEquipment;
         });
-    }, [exercises, searchTerm, muscleFilter, equipmentFilter]);
+    }, [exercises, searchTerm, equipmentFilter]);
+
+    // Basta o exercício trabalhar o músculo filtrado — não precisa ser o principal
+    const filteredExercises = useMemo(() => {
+        if (muscleFilter === 'all') return searchedExercises;
+        return searchedExercises.filter(ex => getExerciseMuscles(ex, muscleMap).some(m => m.slug === muscleFilter));
+    }, [searchedExercises, muscleFilter, muscleMap]);
 
     const stats = useMemo(() => {
-        const uniqueMuscles = new Set(filteredExercises.flatMap(getExerciseMuscleGroups));
+        const uniqueMuscles = new Set(filteredExercises.flatMap(ex => getExerciseMuscles(ex, muscleMap).map(m => m.slug)));
         const uniqueEquipment = new Set(filteredExercises.map(ex => ex.equipment));
 
         return {
@@ -48,22 +57,23 @@ const Exercises = () => {
             muscleGroups: uniqueMuscles.size,
             equipmentTypes: uniqueEquipment.size
         };
-    }, [filteredExercises]);
+    }, [filteredExercises, muscleMap]);
 
-    const muscleLabel = muscleFilter === 'all' ? null : muscleFilter;
+    const muscleLabel = muscleFilter === 'all' ? null : (MUSCLE_BY_SLUG[muscleFilter]?.nome || null);
     useCoachScreen({
         label: muscleLabel ? `Exercícios de ${muscleLabel}` : 'Biblioteca de exercícios',
-        details: `O aluno está na biblioteca de exercícios${muscleLabel ? `, filtrando por ${muscleLabel}` : ''}.`,
+        details: `O aluno está na biblioteca de exercícios${viewMode === 'muscles' ? ', na vista "Explorar por músculo"' : ''}${muscleLabel ? `, olhando ${muscleLabel} (${filteredExercises.map(ex => ex.name).slice(0, 12).join(', ')})` : ''}.`,
         suggestions: muscleLabel
             ? [`Quais os melhores exercícios de ${muscleLabel}?`, `Monte uma sequência de ${muscleLabel} para hoje`]
             : ['Que exercícios fazer sem equipamento?', 'Como escolher exercícios para hipertrofia?'],
     });
 
     const filterOptions = useMemo(() => {
-        const muscles = [...new Set(exercises.flatMap(getExerciseMuscleGroups))].sort();
+        const present = new Set(exercises.flatMap(ex => getExerciseMuscles(ex, muscleMap).map(m => m.slug)));
+        const muscles = MUSCLES.filter(m => present.has(m.slug));
         const equipment = [...new Set(exercises.map(ex => ex.equipment))].sort();
         return { muscles, equipment };
-    }, [exercises]);
+    }, [exercises, muscleMap]);
 
     const handleCreateExercise = () => {
         setSelectedExercise(null);
@@ -242,6 +252,15 @@ const Exercises = () => {
                                         <List size={20} />
                                     </button>
                                 </Tooltip>
+                                <Tooltip content="Explorar por músculo">
+                                    <button
+                                        onClick={() => setViewMode('muscles')}
+                                        aria-label="Explorar por músculo"
+                                        className={`p-2 rounded-lg transition-all ${viewMode === 'muscles' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    >
+                                        <PersonStanding size={20} />
+                                    </button>
+                                </Tooltip>
                             </div>
 
 
@@ -257,8 +276,8 @@ const Exercises = () => {
                                         className="w-full appearance-none pl-10 pr-8 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all cursor-pointer"
                                     >
                                         <option value="all">Todos Músculos</option>
-                                        {filterOptions.muscles.map(group => (
-                                            <option key={group} value={group}>{group}</option>
+                                        {filterOptions.muscles.map(m => (
+                                            <option key={m.slug} value={m.slug}>{m.nome}</option>
                                         ))}
                                     </select>
                                 </Tooltip>
@@ -287,7 +306,15 @@ const Exercises = () => {
 
             {/* Content Area */}
             <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-0">
-                {filteredExercises.length > 0 ? (
+                {viewMode === 'muscles' ? (
+                    <MuscleExplorer
+                        exercises={searchedExercises}
+                        muscleMap={muscleMap}
+                        selected={muscleFilter === 'all' ? null : muscleFilter}
+                        onSelect={(slug) => setMuscleFilter(slug || 'all')}
+                        onOpenExercise={handleEditExercise}
+                    />
+                ) : filteredExercises.length > 0 ? (
                     viewMode === 'grid' ? (
                         <div className="grid grid-cols-1 gap-2">
                             {filteredExercises.map(exercise => (
@@ -371,7 +398,7 @@ const Exercises = () => {
                                         <div className="flex items-center gap-3 mt-1">
                                             <span className="inline-flex items-center text-xs text-gray-500 truncate">
                                                 <Target size={12} className="mr-1 text-blue-500 shrink-0" />
-                                                {getExerciseMuscleGroups(exercise).join(', ')}
+                                                {getExerciseMuscles(exercise, muscleMap).map(m => MUSCLE_BY_SLUG[m.slug]?.nome).join(', ') || getExerciseMuscleGroups(exercise).join(', ')}
                                             </span>
                                             <span className="inline-flex items-center text-xs text-gray-500">
                                                 <Package size={12} className="mr-1 text-gray-400" />

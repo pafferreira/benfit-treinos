@@ -90,6 +90,24 @@ export const supabaseHelpers = {
         return data
     },
 
+    // Músculos de cada exercício (b_exercise_muscles, etapa 2B).
+    // Devolve { exercise_id: [{ slug, papel }] }, ou null enquanto a tabela
+    // não existir no banco: aí o app deduz os músculos do texto do exercício.
+    async getExerciseMuscleMap() {
+        const { data, error } = await supabase
+            .from('b_exercise_muscles')
+            .select('exercise_id, muscle_slug, papel')
+
+        if (error) return null
+        const map = {}
+        data.forEach(row => {
+            if (!map[row.exercise_id]) map[row.exercise_id] = []
+            map[row.exercise_id].push({ slug: row.muscle_slug, papel: row.papel })
+        })
+        Object.values(map).forEach(list => list.sort((a, b) => (a.papel === 'principal' ? -1 : 0) - (b.papel === 'principal' ? -1 : 0)))
+        return map
+    },
+
     async getExercisesByMuscleGroup(muscleGroup) {
         const { data, error } = await supabase
             .from('b_exercises')
