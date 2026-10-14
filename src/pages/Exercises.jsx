@@ -48,6 +48,17 @@ const Exercises = () => {
         return searchedExercises.filter(ex => getExerciseMuscles(ex, muscleMap).some(m => m.slug === muscleFilter));
     }, [searchedExercises, muscleFilter, muscleMap]);
 
+    // Com um músculo filtrado, Grade e Lista separam quem o trabalha como
+    // principal de quem só ajuda (auxiliar), como no "Explorar por músculo".
+    const sections = useMemo(() => {
+        if (muscleFilter === 'all') return [{ key: 'all', title: null, items: filteredExercises }];
+        const papelOf = (ex) => getExerciseMuscles(ex, muscleMap).find(m => m.slug === muscleFilter)?.papel;
+        return [
+            { key: 'principal', title: 'Trabalha como músculo principal', items: filteredExercises.filter(ex => papelOf(ex) === 'principal') },
+            { key: 'secundario', title: 'Também ajuda (auxiliar)', items: filteredExercises.filter(ex => papelOf(ex) !== 'principal') },
+        ].filter(section => section.items.length > 0);
+    }, [filteredExercises, muscleFilter, muscleMap]);
+
     const stats = useMemo(() => {
         const uniqueMuscles = new Set(filteredExercises.flatMap(ex => getExerciseMuscles(ex, muscleMap).map(m => m.slug)));
         const uniqueEquipment = new Set(filteredExercises.map(ex => ex.equipment));
@@ -305,7 +316,7 @@ const Exercises = () => {
             </div>
 
             {/* Content Area */}
-            <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-0">
+            <div className={`w-full max-w-7xl mx-auto py-0 ${viewMode === 'muscles' ? 'px-0' : 'px-0 sm:px-6 lg:px-8'}`}>
                 {viewMode === 'muscles' ? (
                     <MuscleExplorer
                         exercises={searchedExercises}
@@ -315,114 +326,123 @@ const Exercises = () => {
                         onOpenExercise={handleEditExercise}
                     />
                 ) : filteredExercises.length > 0 ? (
-                    viewMode === 'grid' ? (
-                        <div className="grid grid-cols-1 gap-2">
-                            {filteredExercises.map(exercise => (
-                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className="group relative flex gap-4 bg-white/90 border border-gray-200/80 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden cursor-pointer p-3 sm:p-4">
-                                    <div className="relative w-32 h-32 sm:w-36 sm:h-36 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-                                        <img
-                                            src={exercise.image_url ?
-                                                (exercise.image_url.startsWith('http') ? exercise.image_url :
-                                                    `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/exercises/${exercise.image_url}`)
-                                                : (exercise.video_url || 'https://via.placeholder.com/400x300')}
-                                            alt={exercise.name}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                            onError={(e) => {
-                                                e.target.onerror = null;
-                                                e.target.src = 'https://via.placeholder.com/400x300?text=Sem+Imagem';
-                                            }}
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-1 flex-col justify-between min-w-0">
-                                        <h3 className="text-base sm:text-lg font-bold leading-tight text-gray-900">
-                                            {exercise.name}
-                                        </h3>
-
-                                        <span className="mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
-                                            <Package size={12} className="text-gray-500" />
-                                            {exercise.equipment}
-                                        </span>
-
-                                        {exercise.tags && exercise.tags.length > 0 && (
-                                            <div className="mt-2 flex flex-wrap gap-1.5">
-                                                {exercise.tags.map(tag => (
-                                                    <span
-                                                        key={tag}
-                                                        className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-blue-600"
-                                                    >
-                                                        {tag}
-                                                    </span>
-                                                ))}
+                    sections.map(section => (
+                        <section key={section.key} className="flex flex-col gap-2 mb-4">
+                            {section.title && (
+                                <h4 className="px-4 sm:px-0 mt-2 text-[0.7rem] font-bold uppercase tracking-wider text-gray-500">
+                                    {section.title} <span className="font-semibold text-gray-400">· {section.items.length}</span>
+                                </h4>
+                            )}
+                            {viewMode === 'grid' ? (
+                                <div className="grid grid-cols-1 gap-2">
+                                    {section.items.map(exercise => (
+                                        <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className="group relative flex gap-4 bg-white/90 border border-gray-200/80 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden cursor-pointer p-3 sm:p-4">
+                                            <div className="relative w-32 h-32 sm:w-36 sm:h-36 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                                                <img
+                                                    src={exercise.image_url ?
+                                                        (exercise.image_url.startsWith('http') ? exercise.image_url :
+                                                            `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/exercises/${exercise.image_url}`)
+                                                        : (exercise.video_url || 'https://via.placeholder.com/400x300')}
+                                                    alt={exercise.name}
+                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                    onError={(e) => {
+                                                        e.target.onerror = null;
+                                                        e.target.src = 'https://via.placeholder.com/400x300?text=Sem+Imagem';
+                                                    }}
+                                                />
                                             </div>
-                                        )}
-                                    </div>
 
-                                    {(isAdmin || isPersonal) && (
-                                        <div className="absolute bottom-3 right-3 z-10">
-                                            <Tooltip content="Excluir Exercício">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
-                                                    aria-label="Excluir exercício"
-                                                    className="bg-white/90 backdrop-blur-sm hover:bg-white text-red-500 p-2 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </Tooltip>
+                                            <div className="flex flex-1 flex-col justify-between min-w-0">
+                                                <h3 className="text-base sm:text-lg font-bold leading-tight text-gray-900">
+                                                    {exercise.name}
+                                                </h3>
+
+                                                <span className="mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+                                                    <Package size={12} className="text-gray-500" />
+                                                    {exercise.equipment}
+                                                </span>
+
+                                                {exercise.tags && exercise.tags.length > 0 && (
+                                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                                        {exercise.tags.map(tag => (
+                                                            <span
+                                                                key={tag}
+                                                                className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-blue-600"
+                                                            >
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {(isAdmin || isPersonal) && (
+                                                <div className="absolute bottom-3 right-3 z-10">
+                                                    <Tooltip content="Excluir Exercício">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
+                                                            aria-label="Excluir exercício"
+                                                            className="bg-white/90 backdrop-blur-sm hover:bg-white text-red-500 p-2 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </Tooltip>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-2 w-full">
-                            {filteredExercises.map(exercise => (
-                                <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white p-0 transition-all flex items-center gap-4 w-full cursor-pointer hover:bg-blue-50/40`}>
-                                    <div className="h-16 w-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden relative">
-                                        <img
-                                            src={exercise.image_url ?
-                                                (exercise.image_url.startsWith('http') ? exercise.image_url :
-                                                    `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/exercises/${exercise.image_url}`)
-                                                : (exercise.video_url || 'https://via.placeholder.com/150')}
-                                            alt={exercise.name}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                                e.target.onerror = null;
-                                                e.target.src = 'https://via.placeholder.com/150';
-                                            }}
-                                        />
-                                    </div>
+                            ) : (
+                                <div className="flex flex-col gap-2 w-full">
+                                    {section.items.map(exercise => (
+                                        <div key={exercise.id} onClick={() => handleEditExercise(exercise)} className={`group bg-white p-0 transition-all flex items-center gap-4 w-full cursor-pointer hover:bg-blue-50/40`}>
+                                            <div className="h-16 w-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden relative">
+                                                <img
+                                                    src={exercise.image_url ?
+                                                        (exercise.image_url.startsWith('http') ? exercise.image_url :
+                                                            `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/exercises/${exercise.image_url}`)
+                                                        : (exercise.video_url || 'https://via.placeholder.com/150')}
+                                                    alt={exercise.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        e.target.onerror = null;
+                                                        e.target.src = 'https://via.placeholder.com/150';
+                                                    }}
+                                                />
+                                            </div>
 
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="text-base font-bold text-gray-900 truncate">{exercise.name}</h3>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <span className="inline-flex items-center text-xs text-gray-500 truncate">
-                                                <Target size={12} className="mr-1 text-blue-500 shrink-0" />
-                                                {getExerciseMuscles(exercise, muscleMap).map(m => MUSCLE_BY_SLUG[m.slug]?.nome).join(', ') || getExerciseMuscleGroups(exercise).join(', ')}
-                                            </span>
-                                            <span className="inline-flex items-center text-xs text-gray-500">
-                                                <Package size={12} className="mr-1 text-gray-400" />
-                                                {exercise.equipment}
-                                            </span>
-                                        </div>
-                                    </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-base font-bold text-gray-900 truncate">{exercise.name}</h3>
+                                                <div className="flex items-center gap-3 mt-1">
+                                                    <span className="inline-flex items-center text-xs text-gray-500 truncate">
+                                                        <Target size={12} className="mr-1 text-blue-500 shrink-0" />
+                                                        {getExerciseMuscles(exercise, muscleMap).map(m => MUSCLE_BY_SLUG[m.slug]?.nome).join(', ') || getExerciseMuscleGroups(exercise).join(', ')}
+                                                    </span>
+                                                    <span className="inline-flex items-center text-xs text-gray-500">
+                                                        <Package size={12} className="mr-1 text-gray-400" />
+                                                        {exercise.equipment}
+                                                    </span>
+                                                </div>
+                                            </div>
 
-                                    {(isAdmin || isPersonal) && (
-                                        <div className="flex gap-2">
-                                            <Tooltip content="Excluir Exercício">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
-                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </Tooltip>
+                                            {(isAdmin || isPersonal) && (
+                                                <div className="flex gap-2">
+                                                    <Tooltip content="Excluir Exercício">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise); }}
+                                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </Tooltip>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    )
+                            )}
+                        </section>
+                    ))
                 ) : (
                     <div className="flex flex-col items-center justify-center py-24 text-center">
                         <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
