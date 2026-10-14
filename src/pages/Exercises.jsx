@@ -305,7 +305,7 @@ const Exercises = () => {
             </div>
 
             {/* Content Area */}
-            <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-0">
+            <div className={`w-full max-w-7xl mx-auto py-0 ${viewMode === 'muscles' ? 'px-0' : 'px-0 sm:px-6 lg:px-8'}`}>
                 {viewMode === 'muscles' ? (
                     <MuscleExplorer
                         exercises={searchedExercises}

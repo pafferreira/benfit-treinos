@@ -2,7 +2,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    /* Sem margem lateral própria: ocupa a mesma largura das vistas Grade e Lista. */
+    /* Sem margem lateral: ocupa a mesma largura do quadro de filtros acima. */
     padding: 0 0 1rem;
 }
 
