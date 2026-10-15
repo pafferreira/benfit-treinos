@@ -2,10 +2,16 @@
 import { supabase } from '../lib/supabase';
 import { postJson } from './ai';
 
-// action: image | poses | video | video-status
-export const requestMedia = async (action, { exerciseId, mediaId, adjustment } = {}) => {
-    const { media } = await postJson('/api/media', { action, exerciseId, mediaId, adjustment });
+// action: image | poses | video | video-status. prompt: descrição editada pelo admin.
+export const requestMedia = async (action, { exerciseId, mediaId, adjustment, prompt } = {}) => {
+    const { media } = await postJson('/api/media', { action, exerciseId, mediaId, adjustment, prompt });
     return media;
+};
+
+// Descrição padrão (em português) de um tipo de mídia, para o admin editar antes de gerar.
+export const getDefaultPrompt = async (exerciseId, kind) => {
+    const { prompt } = await postJson('/api/media', { action: 'prompt', exerciseId, kind });
+    return prompt;
 };
 
 export const listMedia = async ({ statuses, limit = 50 } = {}) => {

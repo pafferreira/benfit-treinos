@@ -9,6 +9,7 @@ import {
     generateImage,
     mediaPath,
     startVideo,
+    translatePrompt,
     uploadMedia,
 } from './_media.js';
 
@@ -17,9 +18,15 @@ import {
 // - poses: início e fim do movimento, alternando no app (só admin)
 // - video: animação em loop pelo Veo (só admin); devolve a mídia "gerando"
 // - video-status: confere o vídeo e, pronto, salva o arquivo e manda para a fila
+// - prompt: devolve a descrição padrão de um tipo, para o admin editar antes de gerar
+// O admin pode mandar "prompt" (descrição editada) no lugar da descrição padrão.
 // Tudo roda com o token de quem pediu; as funções do banco conferem as permissões.
-const ACTIONS = new Set(['image', 'poses', 'video', 'video-status']);
-const ADMIN_ONLY = new Set(['poses', 'video']);
+const ACTIONS = new Set(['image', 'poses', 'video', 'video-status', 'prompt']);
+const ADMIN_ONLY = new Set(['poses', 'video', 'prompt']);
+const KINDS = new Set(['image', 'poses', 'video']);
+const PROMPT_MAX = 4000;
+// Nas duas poses, a descrição tem duas partes (início e fim) separadas por esta linha.
+export const POSE_SEPARATOR = '\n---\n';
 
 const loadExercise = async (supabase, exerciseId) => {
     const { data, error } = await supabase
@@ -40,10 +47,26 @@ const isAdminUser = async (supabase, userId) => {
 // Recusa cedo o que nunca seria permitido; o limite diário fica na reserva do banco.
 const checkAccess = async ({ supabase, user, action, exercise }) => {
     const admin = await isAdminUser(supabase, user.id);
-    if (admin) return;
+    if (admin) return true;
     if (ADMIN_ONLY.has(action)) throw new ChatHttpError(403, 'Só administradores geram animações');
     const ownAiExercise = exercise.created_by_ai && exercise.created_by === user.id && !exercise.image_url;
     if (!ownAiExercise) throw new ChatHttpError(403, 'Sem permissão para gerar esta imagem');
+    return false;
+};
+
+export const defaultPrompt = (exercise, kind, adjustment = '') => {
+    if (kind === 'poses') {
+        return ['start', 'end'].map(pose => buildPosePrompt(exercise, pose, adjustment)).join(POSE_SEPARATOR);
+    }
+    return kind === 'video' ? buildVideoPrompt(exercise, adjustment) : buildImagePrompt(exercise, adjustment);
+};
+
+export const splitPosePrompt = (prompt) => {
+    const parts = prompt.split(/\n\s*---\s*\n/).map(part => part.trim()).filter(Boolean);
+    if (parts.length !== 2) {
+        throw new ChatHttpError(400, 'Nas duas poses, mantenha uma linha só com --- separando a pose inicial da final');
+    }
+    return parts;
 };
 
 // Duas imagens atuais como referência de estilo (as que ficam em exercises/).
@@ -100,22 +123,28 @@ const requireExerciseImage = async (exercise) => {
     return image;
 };
 
-async function handleImage({ supabase, exercise, adjustment }) {
-    const prompt = buildImagePrompt(exercise, adjustment);
+async function handleImage({ supabase, exercise, adjustment, customPrompt }) {
+    const prompt = customPrompt || buildImagePrompt(exercise, adjustment);
     return generateReserved(supabase, exercise, 'image', prompt, async () => {
-        const references = await styleReferences(supabase, exercise.id);
-        const image = await generateImage({ prompt, references });
+        const [references, english] = await Promise.all([styleReferences(supabase, exercise.id), translatePrompt(prompt)]);
+        const image = await generateImage({ prompt: english, references });
         const path = mediaPath(exercise, 'imagem', image.mimeType);
         const url = await uploadMedia(supabase, path, Buffer.from(image.data, 'base64'), image.mimeType);
         return { url, paths: [path] };
     });
 }
 
-async function handlePoses({ supabase, exercise, adjustment }) {
+async function handlePoses({ supabase, exercise, adjustment, customPrompt }) {
+    const prompts = customPrompt
+        ? splitPosePrompt(customPrompt)
+        : ['start', 'end'].map(pose => buildPosePrompt(exercise, pose, adjustment));
     const reference = await requireExerciseImage(exercise);
-    const prompts = ['start', 'end'].map(pose => buildPosePrompt(exercise, pose, adjustment));
     return generateReserved(supabase, exercise, 'poses', prompts.join('\n---\n'), async () => {
-        const images = await Promise.all(prompts.map(prompt => generateImage({ prompt, references: [reference] })));
+        const english = await Promise.all(prompts.map(prompt => translatePrompt(prompt)));
+        // A pose final parte da inicial: mesma pessoa, ângulo e enquadramento, só o corpo muda.
+        const start = await generateImage({ prompt: english[0], references: [reference] });
+        const end = await generateImage({ prompt: english[1], references: [start, reference] });
+        const images = [start, end];
         const paths = images.map((image, i) => mediaPath(exercise, i === 0 ? 'pose-inicio' : 'pose-fim', image.mimeType));
         const frames = await Promise.all(images.map((image, i) =>
             uploadMedia(supabase, paths[i], Buffer.from(image.data, 'base64'), image.mimeType)));
@@ -123,10 +152,10 @@ async function handlePoses({ supabase, exercise, adjustment }) {
     });
 }
 
-async function handleVideo({ supabase, exercise, adjustment }) {
+async function handleVideo({ supabase, exercise, adjustment, customPrompt }) {
     const image = await requireExerciseImage(exercise);
-    const prompt = buildVideoPrompt(exercise, adjustment);
-    const { job } = await startVideo({ prompt, image });
+    const prompt = customPrompt || buildVideoPrompt(exercise, adjustment);
+    const { job } = await startVideo({ prompt: await translatePrompt(prompt), image });
     return submit(supabase, {
         p_entity_type: 'exercise', p_entity_id: exercise.id, p_kind: 'video',
         p_url: null, p_frames: null, p_storage_paths: [], p_prompt: prompt, p_job: job,
@@ -163,11 +192,15 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Método não permitido' });
     }
-    const { action, exerciseId, mediaId, adjustment } = req.body || {};
+    const { action, exerciseId, mediaId, adjustment, kind, prompt } = req.body || {};
     if (!ACTIONS.has(action)) {
         return res.status(400).json({ error: 'Ação inválida' });
     }
     const cleanAdjustment = typeof adjustment === 'string' ? adjustment.trim().slice(0, 500) : '';
+    const customPrompt = typeof prompt === 'string' ? prompt.trim() : '';
+    if (customPrompt.length > PROMPT_MAX) {
+        return res.status(400).json({ error: `A descrição pode ter até ${PROMPT_MAX} caracteres` });
+    }
 
     try {
         const { supabase, user } = await requireUser(getBearerToken(req));
@@ -180,10 +213,18 @@ export default async function handler(req, res) {
 
         if (!exerciseId) return res.status(400).json({ error: 'Campo "exerciseId" é obrigatório' });
         const exercise = await loadExercise(supabase, exerciseId);
-        await checkAccess({ supabase, user, action, exercise });
+        const admin = await checkAccess({ supabase, user, action, exercise });
+
+        if (action === 'prompt') {
+            if (!KINDS.has(kind)) return res.status(400).json({ error: 'Tipo de mídia inválido' });
+            return res.status(200).json({ prompt: defaultPrompt(exercise, kind, cleanAdjustment) });
+        }
+        if (customPrompt && !admin) {
+            return res.status(403).json({ error: 'Só administradores editam a descrição' });
+        }
 
         const run = { image: handleImage, poses: handlePoses, video: handleVideo }[action];
-        const media = await run({ supabase, exercise, adjustment: cleanAdjustment });
+        const media = await run({ supabase, exercise, adjustment: cleanAdjustment, customPrompt });
         return res.status(200).json({ media });
     } catch (error) {
         if (error instanceof ChatHttpError) {

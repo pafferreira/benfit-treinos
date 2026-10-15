@@ -18,7 +18,6 @@
 
 .am-input { width: 100%; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.6rem 0.75rem; font-size: 0.85rem; resize: vertical; }
 .am-input:focus, .am-adjust textarea:focus { outline: none; border-color: #008ACF; box-shadow: 0 0 0 3px rgba(0, 138, 207, 0.15); }
-.am-gen-buttons { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: 0.5rem; }
 .am-hint { font-size: 0.72rem; color: #9CA3AF; }
 
 .am-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.55rem 0.75rem; border-radius: 0.75rem; border: 1px solid #E5E7EB; background: #fff; color: #374151; font-size: 0.82rem; font-weight: 600; min-height: 2.5rem; transition: background 0.15s, border-color 0.15s; }
@@ -71,3 +70,11 @@
 .am-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .am-actions .am-btn { flex: 1 1 6.5rem; }
 .am-preview-empty { color: #9CA3AF; background: #F9FAFB; }
+.am-kind-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; padding: 0.25rem; border-radius: 0.85rem; background: #F3F4F6; }
+.am-kind-tabs button { white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; min-height: 2.25rem; border-radius: 0.65rem; font-size: 0.8rem; font-weight: 600; color: #4B5563; }
+.am-kind-tabs button.is-active { background: #fff; color: #034EA2; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.am-kind-tabs button:disabled { opacity: 0.45; cursor: not-allowed; }
+.am-prompt-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.am-prompt-head .am-link { align-self: center; }
+.am-adjust textarea:disabled { background: #F9FAFB; color: #9CA3AF; }
+.am-gen-submit { width: 100%; }

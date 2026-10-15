@@ -10,10 +10,11 @@ import {
     parseImageResponse,
     parseVideoOperation,
     startVideo,
+    translatePrompt,
 } from '../api/_media.js';
 import { COACH_TOOLS, MUSCLE_NAMES, createToolRunner } from '../api/_coach-tools.js';
 import { MUSCLES } from '../src/lib/muscles.js';
-import mediaHandler from '../api/media.js';
+import mediaHandler, { defaultPrompt, splitPosePrompt } from '../api/media.js';
 
 const fakeResponse = () => ({
     statusCode: null,
@@ -31,19 +32,31 @@ const exercise = {
     instructions: ['Deite de costas', 'Suba o quadril'],
 };
 
-test('prompt da imagem traz estilo, músculos em inglês e ajuste', () => {
+test('descrição da imagem em português traz estilo, músculos e ajuste', () => {
     const prompt = buildImagePrompt(exercise, 'mulher');
-    assert.match(prompt, /pure white background/);
-    assert.match(prompt, /Main muscle, strong red highlight: glutes/);
-    assert.match(prompt, /Secondary muscles, lighter red highlight: hamstrings/);
+    assert.match(prompt, /fundo branco puro/);
+    assert.match(prompt, /Músculo principal, vermelho forte: Glúteos/);
+    assert.match(prompt, /Músculos auxiliares, vermelho mais claro: Posteriores de coxa/);
     assert.match(prompt, /Ponte de Glúteo/);
-    assert.match(prompt, /Adjustment requested by the reviewer: mulher/);
+    assert.match(prompt, /Ajuste pedido na revisão: mulher/);
 });
 
-test('prompts das poses e do vídeo pedem a mesma cena', () => {
-    assert.match(buildPosePrompt(exercise, 'start'), /STARTING position/);
-    assert.match(buildPosePrompt(exercise, 'end'), /END position/);
-    assert.match(buildVideoPrompt(exercise), /loops seamlessly/);
+test('descrições das poses e do vídeo pedem a mesma cena', () => {
+    assert.match(buildPosePrompt(exercise, 'start'), /posição INICIAL/);
+    assert.match(buildPosePrompt(exercise, 'end'), /posição FINAL/);
+    assert.match(buildVideoPrompt(exercise), /loop sem emenda/);
+});
+
+test('descrição padrão das duas poses separa início e fim, e a editada precisa manter o separador', () => {
+    const poses = defaultPrompt(exercise, 'poses');
+    assert.deepEqual(splitPosePrompt(poses).map(p => /INICIAL/.test(p) || /FINAL/.test(p)), [true, true]);
+    assert.deepEqual(splitPosePrompt('início\n ---\nfim'), ['início', 'fim']);
+    assert.throws(() => splitPosePrompt('só uma parte'), err => err.status === 400);
+});
+
+test('translatePrompt usa a tradução e cai para o português se falhar', async () => {
+    assert.equal(await translatePrompt('Fundo branco', async () => ({ text: 'White background' })), 'White background');
+    assert.equal(await translatePrompt('Fundo branco', async () => { throw new Error('fora do ar'); }), 'Fundo branco');
 });
 
 test('lê a imagem da resposta do Gemini (camelCase e snake_case)', () => {

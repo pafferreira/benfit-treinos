@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, X, RefreshCw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Check, X, RefreshCw, RotateCcw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { exerciseImageUrl, DEFAULT_EXERCISE_IMAGE } from '../lib/exerciseImage';
-import { requestMedia, listMedia, reviewMedia, getMediaApproval, setMediaApproval } from '../services/media';
+import { requestMedia, listMedia, reviewMedia, getMediaApproval, setMediaApproval, getDefaultPrompt } from '../services/media';
 import SearchableExerciseSelect from '../components/SearchableExerciseSelect';
 import ExerciseAnimation from '../components/ExerciseAnimation';
 import './AdminMedia.css';
@@ -13,7 +13,7 @@ import './AdminMedia.css';
 // exercício (inclusive o piloto de animação: vídeo e duas poses).
 const KINDS = {
     image: { label: 'Imagem', icon: ImageIcon },
-    poses: { label: 'Duas poses', icon: Footprints },
+    poses: { label: 'Duas poses', tab: '2 poses', icon: Footprints },
     video: { label: 'Vídeo', icon: Film },
 };
 
@@ -30,6 +30,9 @@ const STATUS_LABEL = {
     rejeitada: 'Rejeitada',
     falhou: 'Falhou',
 };
+
+const PROMPT_MAX = 4000;
+const POSES_HINT = 'Mantenha a linha com --- separando a pose inicial (acima) da final (abaixo).';
 
 const toast = (message, type = 'success') => window.dispatchEvent(new CustomEvent('app-toast', { detail: { message, type } }));
 
@@ -65,7 +68,7 @@ const MediaPreview = ({ media, exercise }) => {
 const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
     const [showPrompt, setShowPrompt] = useState(false);
     const [adjusting, setAdjusting] = useState(false);
-    const [adjustment, setAdjustment] = useState('');
+    const [draft, setDraft] = useState('');
     const kind = KINDS[media.kind] || KINDS.image;
     const KindIcon = kind.icon;
     const current = exercise ? exerciseImageUrl(exercise) : null;
@@ -106,15 +109,15 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
 
             {adjusting && (
                 <div className="am-adjust">
-                    <label htmlFor={`adj-${media.id}`}>O que mudar na nova versão?</label>
+                    <label htmlFor={`adj-${media.id}`}>Descrição para a nova versão (edite o que quiser)</label>
                     <textarea
                         id={`adj-${media.id}`}
-                        rows={2}
-                        maxLength={500}
-                        value={adjustment}
-                        onChange={(e) => setAdjustment(e.target.value)}
-                        placeholder="Ex.: pegada mais aberta, mostrar o banco inclinado"
+                        rows={8}
+                        maxLength={PROMPT_MAX}
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
                     />
+                    {media.kind === 'poses' && <p className="am-hint">{POSES_HINT}</p>}
                 </div>
             )}
 
@@ -129,13 +132,13 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
                         <button
                             type="button"
                             className="am-btn am-btn-primary"
-                            disabled={busy}
-                            onClick={() => { onRegenerate(media, adjustment); setAdjusting(false); setAdjustment(''); }}
+                            disabled={busy || !draft.trim()}
+                            onClick={() => { onRegenerate(media, draft.trim()); setAdjusting(false); }}
                         >
                             <Sparkles size={16} /> Gerar
                         </button>
                     ) : (
-                        <button type="button" className="am-btn" disabled={busy} onClick={() => setAdjusting(true)}>
+                        <button type="button" className="am-btn" disabled={busy} onClick={() => { setDraft(media.prompt || ''); setAdjusting(true); }}>
                             <RefreshCw size={16} /> Gerar de novo
                         </button>
                     )
@@ -160,7 +163,10 @@ const AdminMedia = () => {
     const [approvalOn, setApprovalOn] = useState(true);
     const [busyIds, setBusyIds] = useState(() => new Set());
     const [newExerciseId, setNewExerciseId] = useState('');
-    const [newAdjustment, setNewAdjustment] = useState('');
+    const [newKind, setNewKind] = useState('image');
+    const [newPrompt, setNewPrompt] = useState('');
+    const [promptLoading, setPromptLoading] = useState(false);
+    const [promptVersion, setPromptVersion] = useState(0);
     const [generating, setGenerating] = useState(null);
     const pollingRef = useRef(false);
     // reload muda a cada render; o ref evita reiniciar a consulta dos vídeos.
@@ -250,11 +256,11 @@ const AdminMedia = () => {
         }
     };
 
-    const generate = async (kind, exerciseId, adjustment) => {
+    const generate = async (kind, exerciseId, prompt) => {
         const key = `${kind}:${exerciseId}`;
         setGenerating(key);
         try {
-            const media = await requestMedia(kind, { exerciseId, adjustment });
+            const media = await requestMedia(kind, { exerciseId, prompt });
             upsertItem(media);
             setTab(media.status === 'gerando' ? 'gerando' : media.status === 'pendente' ? 'pendente' : 'historico');
             if (media.status === 'aprovada') reloadExercises();
@@ -268,7 +274,19 @@ const AdminMedia = () => {
         }
     };
 
-    const handleRegenerate = (media, adjustment) => generate(media.kind, media.entity_id, adjustment);
+    const handleRegenerate = (media, prompt) => generate(media.kind, media.entity_id, prompt);
+
+    // Descrição padrão do exercício e tipo escolhidos, já em português, para editar.
+    useEffect(() => {
+        if (!newExerciseId) { setNewPrompt(''); return undefined; }
+        let active = true;
+        setPromptLoading(true);
+        getDefaultPrompt(newExerciseId, newKind)
+            .then(prompt => { if (active) setNewPrompt(prompt || ''); })
+            .catch(err => { if (active) toast(`Não foi possível montar a descrição: ${err.message}`, 'error'); })
+            .finally(() => { if (active) setPromptLoading(false); });
+        return () => { active = false; };
+    }, [newExerciseId, newKind, promptVersion]);
 
     const toggleApproval = async () => {
         const next = !approvalOn;
@@ -331,34 +349,56 @@ const AdminMedia = () => {
                     onChange={setNewExerciseId}
                     placeholder="Escolha o exercício"
                 />
-                <textarea
-                    className="am-input"
-                    rows={2}
-                    maxLength={500}
-                    value={newAdjustment}
-                    onChange={(e) => setNewAdjustment(e.target.value)}
-                    placeholder="Ajuste opcional (ex.: mulher, pegada neutra)"
-                />
-                <div className="am-gen-buttons">
-                    {Object.entries(KINDS).map(([kind, { label, icon }]) => {
+                <div className="am-kind-tabs" role="radiogroup" aria-label="Tipo de mídia">
+                    {Object.entries(KINDS).map(([kind, { label, tab: tabLabel, icon }]) => {
                         const KindIcon = icon;
-                        const needsImage = kind !== 'image' && !exerciseImageUrl(selected);
+                        const needsImage = kind !== 'image' && selected && !exerciseImageUrl(selected);
                         return (
                             <button
                                 key={kind}
                                 type="button"
-                                className="am-btn"
-                                disabled={!selected || Boolean(generating) || needsImage}
+                                role="radio"
+                                aria-checked={newKind === kind}
+                                className={newKind === kind ? 'is-active' : ''}
+                                disabled={Boolean(generating) || needsImage}
                                 title={needsImage ? 'Precisa de uma imagem aprovada antes' : undefined}
-                                onClick={() => generate(kind, newExerciseId, newAdjustment.trim())}
+                                onClick={() => setNewKind(kind)}
                             >
-                                {generating === `${kind}:${newExerciseId}` ? <Loader2 size={16} className="animate-spin" /> : <KindIcon size={16} />}
-                                {label}
+                                <KindIcon size={15} /> {tabLabel || label}
                             </button>
                         );
                     })}
                 </div>
-                <p className="am-hint">Imagem leva uns 20 segundos; duas poses, um pouco mais; o vídeo segue em "Gerando".</p>
+                {selected && (
+                    <div className="am-adjust">
+                        <div className="am-prompt-head">
+                            <label htmlFor="am-new-prompt">Descrição para a IA (edite o que quiser)</label>
+                            <button type="button" className="am-link" disabled={promptLoading} onClick={() => setPromptVersion(v => v + 1)}>
+                                <RotateCcw size={13} /> Restaurar
+                            </button>
+                        </div>
+                        <textarea
+                            id="am-new-prompt"
+                            rows={9}
+                            maxLength={PROMPT_MAX}
+                            value={promptLoading ? 'Montando a descrição…' : newPrompt}
+                            disabled={promptLoading}
+                            onChange={(e) => setNewPrompt(e.target.value)}
+                        />
+                        {newKind === 'poses' && <p className="am-hint">{POSES_HINT}</p>}
+                    </div>
+                )}
+                <button
+                    type="button"
+                    className="am-btn am-btn-primary am-gen-submit"
+                    disabled={!selected || Boolean(generating) || promptLoading || !newPrompt.trim()
+                        || (newKind !== 'image' && !exerciseImageUrl(selected))}
+                    onClick={() => generate(newKind, newExerciseId, newPrompt.trim())}
+                >
+                    {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                    Gerar {KINDS[newKind].label.toLowerCase()}
+                </button>
+                <p className="am-hint">A descrição é traduzida para o inglês na hora de gerar. Imagem leva uns 20 segundos; duas poses, um pouco mais; o vídeo segue em "Gerando".</p>
             </section>
 
             <div className="am-tabs" role="tablist">

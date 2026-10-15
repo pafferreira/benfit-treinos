@@ -16,37 +16,18 @@ const VIDEO_SECONDS = Number(process.env.BENFIT_VIDEO_SECONDS) || 6;
 
 export const BUCKET = 'benfit-assets';
 
-// Nomes em inglês para o prompt: o modelo acerta mais a anatomia assim.
-const MUSCLES_EN = {
-    'Peitoral': 'chest (pectorals)',
-    'Ombros': 'shoulders (deltoids)',
-    'Bíceps': 'biceps',
-    'Tríceps': 'triceps',
-    'Antebraços': 'forearms',
-    'Abdômen': 'abdominals',
-    'Trapézio': 'trapezius',
-    'Costas (dorsais)': 'lats (latissimus dorsi)',
-    'Lombar': 'lower back (erector spinae)',
-    'Glúteos': 'glutes (gluteus maximus)',
-    'Glúteo médio': 'gluteus medius',
-    'Quadríceps': 'quadriceps',
-    'Posteriores de coxa': 'hamstrings',
-    'Adutores': 'adductors (inner thigh)',
-    'Panturrilhas': 'calves',
-    'Cardio': 'whole body (cardio)',
-    'Corpo Todo': 'whole body',
-};
-
+// A descrição fica em português (o admin lê e edita na tela Aprovar mídias);
+// translatePrompt passa para inglês na hora de gerar, onde os modelos acertam mais.
 const STYLE = [
-    'Match the visual style of the reference images exactly:',
-    'a realistic 3D render of one athletic adult person in dark gray gym clothes,',
-    'on a pure white background with no scenery,',
-    'the worked muscles highlighted in red with visible muscle fibers, like an anatomy fitness illustration.',
-    'Whole body and the whole equipment inside the frame, side or three-quarter view that shows the technique clearly.',
-    'No text, no labels, no logos, no watermark. Landscape 16:9.',
+    'Siga exatamente o estilo visual das imagens de referência:',
+    'render 3D realista de uma pessoa adulta atlética com roupa de academia cinza-escura,',
+    'em fundo branco puro, sem cenário,',
+    'com os músculos trabalhados destacados em vermelho e fibras musculares visíveis, como uma ilustração de anatomia fitness.',
+    'Corpo inteiro e equipamento inteiro dentro do quadro, em vista lateral ou de três quartos que mostre bem a técnica.',
+    'Sem texto, sem legendas, sem logotipos, sem marca d\'água. Formato paisagem 16:9.',
 ].join(' ');
 
-const muscleList = (groups = []) => groups.map(g => MUSCLES_EN[g] || g).join(', ');
+const muscleList = (groups = []) => groups.join(', ');
 
 export const exerciseGroups = (exercise) => (
     Array.isArray(exercise?.muscle_groups) && exercise.muscle_groups.length > 0
@@ -59,32 +40,53 @@ export const buildImagePrompt = (exercise, adjustment = '') => {
     const steps = (exercise?.instructions || []).filter(Boolean).slice(0, 6).join(' ');
     return [
         STYLE,
-        `Exercise: ${exercise.name}.`,
-        exercise.equipment ? `Equipment: ${exercise.equipment}.` : '',
-        groups[0] ? `Main muscle, strong red highlight: ${muscleList(groups.slice(0, 1))}.` : '',
-        groups.length > 1 ? `Secondary muscles, lighter red highlight: ${muscleList(groups.slice(1))}.` : '',
-        steps ? `How it is performed (in Portuguese): ${steps}` : '',
-        'Show the most recognizable moment of the movement with correct, safe technique.',
-        adjustment ? `Adjustment requested by the reviewer: ${adjustment}` : '',
+        `Exercício: ${exercise.name}.`,
+        exercise.equipment ? `Equipamento: ${exercise.equipment}.` : '',
+        groups[0] ? `Músculo principal, vermelho forte: ${muscleList(groups.slice(0, 1))}.` : '',
+        groups.length > 1 ? `Músculos auxiliares, vermelho mais claro: ${muscleList(groups.slice(1))}.` : '',
+        steps ? `Como é feito: ${steps}` : '',
+        'Mostre o momento mais reconhecível do movimento, com técnica correta e segura.',
+        adjustment ? `Ajuste pedido na revisão: ${adjustment}` : '',
     ].filter(Boolean).join('\n');
 };
 
 export const buildPosePrompt = (exercise, pose, adjustment = '') => [
-    'Recreate the reference image: same person, same clothes, same equipment, same camera angle, same framing, same style and the same red muscle highlights.',
+    'Recrie a imagem de referência: mesma pessoa, mesma roupa, mesmo equipamento, mesmo ângulo de câmera, mesmo enquadramento, mesmo estilo e os mesmos músculos destacados em vermelho.',
     pose === 'start'
-        ? `Change only the body position to the STARTING position of the exercise "${exercise.name}".`
-        : `Change only the body position to the END position (peak contraction) of the exercise "${exercise.name}".`,
-    'Pure white background. No text. Landscape 16:9.',
-    adjustment ? `Adjustment requested by the reviewer: ${adjustment}` : '',
+        ? `Mude só a posição do corpo para a posição INICIAL do exercício "${exercise.name}".`
+        : `A primeira imagem de referência é a posição inicial: mantenha tudo igual a ela e mude só a posição do corpo para a posição FINAL (pico da contração) do exercício "${exercise.name}".`,
+    'Fundo branco puro. Sem texto. Formato paisagem 16:9.',
+    adjustment ? `Ajuste pedido na revisão: ${adjustment}` : '',
 ].filter(Boolean).join('\n');
 
 export const buildVideoPrompt = (exercise, adjustment = '') => [
-    `The person in the image performs one slow, controlled repetition of the exercise "${exercise.name}" with correct technique`,
-    'and returns exactly to the starting position, so the clip loops seamlessly.',
-    'Fixed camera, no camera movement, no zoom. Pure white background.',
-    'Keep the same 3D render style and the red highlighted muscles visible the whole time.',
-    adjustment ? `Adjustment requested by the reviewer: ${adjustment}` : '',
+    `A pessoa da imagem faz uma repetição lenta e controlada do exercício "${exercise.name}", com técnica correta,`,
+    'e volta exatamente à posição inicial, para o vídeo repetir em loop sem emenda.',
+    'Câmera parada, sem movimento de câmera, sem zoom. Fundo branco puro.',
+    'Mantenha o mesmo estilo de render 3D e os músculos destacados em vermelho visíveis o tempo todo.',
+    adjustment ? `Ajuste pedido na revisão: ${adjustment}` : '',
 ].filter(Boolean).join(' ');
+
+const TRANSLATE_SYSTEM = [
+    'You translate image and video generation prompts from Brazilian Portuguese to English.',
+    'Keep every instruction, the line breaks and any line that is only "---".',
+    'Translate gym exercise, equipment and muscle names to the terms used in English-speaking gyms',
+    '(for example "Supino" = bench press, "Puxada" = lat pulldown, "Posteriores de coxa" = hamstrings).',
+    'Answer with the translated prompt only, no comments.',
+].join(' ');
+
+// Traduz a descrição para o inglês. Se nenhum provedor responder, segue em
+// português: os modelos do Google também entendem, só com um pouco menos de precisão.
+export async function translatePrompt(prompt, chat) {
+    try {
+        const run = chat || (await import('./_providers.js')).chatWithFallback;
+        const { text } = await run({ messages: [{ role: 'user', content: prompt }], systemPrompt: TRANSLATE_SYSTEM });
+        return text?.trim() || prompt;
+    } catch (e) {
+        console.warn('[api/media] Tradução falhou, seguindo em português:', e.message);
+        return prompt;
+    }
+}
 
 const geminiKey = () => {
     const key = process.env.GEMINI_API_KEY;

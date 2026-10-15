@@ -12,7 +12,7 @@ const ExerciseAnimation = ({ videoUrl, frames, poster, alt = '', className = '' 
 
     useEffect(() => {
         if (!usePoses || paused) return undefined;
-        const timer = setInterval(() => setFrame(f => (f + 1) % poses.length), 1250);
+        const timer = setInterval(() => setFrame(f => (f + 1) % poses.length), 1400);
         return () => clearInterval(timer);
     }, [usePoses, paused, poses.length]);
 
