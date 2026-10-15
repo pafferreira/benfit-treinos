@@ -1,0 +1,36 @@
+/* Biblioteca da tela Mídias Benfit. Mesmos tokens da tela de mídias (azul #034EA2/#008ACF). */
+.ml-root { display: flex; flex-direction: column; gap: 0.9rem; }
+.ml-toolbar { display: flex; flex-direction: column; gap: 0.6rem; }
+.ml-search { display: flex; align-items: center; gap: 0.5rem; background: #fff; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0 0.75rem; color: #9CA3AF; }
+.ml-search:focus-within { border-color: #008ACF; box-shadow: 0 0 0 3px rgba(0, 138, 207, 0.15); }
+.ml-search input { flex: 1; min-width: 0; border: 0; outline: none; padding: 0.65rem 0; font-size: 0.9rem; color: #111827; background: transparent; }
+.ml-search button { padding: 0.25rem; color: #9CA3AF; }
+
+.ml-filters { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.15rem; scrollbar-width: none; }
+.ml-filters::-webkit-scrollbar { display: none; }
+.ml-filters button { flex-shrink: 0; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.8rem; border-radius: 999px; border: 1px solid #E5E7EB; background: #fff; font-size: 0.8rem; font-weight: 600; color: #4B5563; }
+.ml-filters button.is-active { background: #034EA2; border-color: #034EA2; color: #fff; }
+.ml-count { font-size: 0.7rem; opacity: 0.75; }
+
+.ml-row { display: flex; gap: 0.5rem; align-items: center; }
+.ml-row select { flex: 1; min-width: 0; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.5rem 0.6rem; font-size: 0.8rem; background: #fff; color: #374151; }
+.ml-active { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.8rem; border-radius: 999px; border: 1px solid #E5E7EB; background: #fff; font-size: 0.8rem; font-weight: 600; color: #6B7280; }
+.ml-active-dot { width: 0.55rem; height: 0.55rem; border-radius: 999px; background: #9CA3AF; }
+.ml-active.is-on { color: #166534; border-color: #BBF7D0; background: #F0FDF4; }
+.ml-active.is-on .ml-active-dot { background: #16A34A; }
+.ml-total { font-size: 0.75rem; color: #6B7280; }
+
+.ml-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
+@media (min-width: 768px) { .ml-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.ml-card { position: relative; background: #fff; border: 1px solid #E5E7EB; border-radius: 0.9rem; overflow: hidden; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+.ml-card-open { display: flex; flex-direction: column; width: 100%; text-align: left; }
+.ml-card-open img { width: 100%; aspect-ratio: 1; object-fit: cover; background: #F3F4F6; }
+.ml-card.is-inactive img { opacity: 0.45; filter: grayscale(1); }
+.ml-card-body { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.55rem 0.6rem 0.65rem; min-width: 0; }
+.ml-card-name { font-size: 0.8rem; font-weight: 700; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-card-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.ml-chip { background: #F3F4F6; color: #4B5563; }
+.ml-chip-off { background: #1F2937; color: #fff; }
+.ml-used { font-size: 0.7rem; color: #034EA2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-card-delete { position: absolute; top: 0.4rem; right: 0.4rem; padding: 0.35rem; border-radius: 0.6rem; background: rgba(255, 255, 255, 0.9); color: #DC2626; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+.ml-row-end { justify-content: space-between; }

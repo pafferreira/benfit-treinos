@@ -110,7 +110,7 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
 
             const maxSize = 5 * 1024 * 1024; // 5MB
             if (resizedFile.size > maxSize) {
-                alert('A imagem ainda está maior que 5MB após otimização. Use um arquivo menor ou carregue uma versão otimizada em Perfil → Gerenciar Avatares.');
+                alert('A imagem ainda está maior que 5MB após otimização. Use um arquivo menor ou carregue uma versão otimizada em Perfil → Mídias Benfit.');
                 setUploading(false);
                 setUploadProgress(0);
                 return;
@@ -201,7 +201,7 @@ const AvatarModal = ({ isOpen, onClose, onSave, avatar = null, isLoading = false
         onSave(formData);
     };
 
-    const DEFAULT_CATEGORIES = ['3D', 'Real', 'Avatar', 'exercicio', 'Outro'];
+    const DEFAULT_CATEGORIES = ['3D', 'Real', 'Avatar', 'exercicio', 'prato', 'Outro'];
     const categories = [...new Set([...DEFAULT_CATEGORIES, formData.category].filter(Boolean))].sort();
 
     const genderOptions = ['', 'male', 'female', 'neutral'];

@@ -1,4 +1,4 @@
-/* Tela "Aprovar mídias" (v2, etapa 2C). Tokens reais do app: azul #034EA2/#008ACF, fundo #F3F4F6. */
+/* Tela "Mídias Benfit" (v2, etapas 2C e 2D). Tokens reais do app: azul #034EA2/#008ACF, fundo #F3F4F6. */
 .am-page { padding: 1rem 1rem 6rem; display: flex; flex-direction: column; gap: 1rem; }
 .am-header { display: flex; align-items: center; gap: 0.75rem; }
 .am-header h1 { font-size: 1.5rem; font-weight: 700; color: #034EA2; line-height: 1.2; }
@@ -79,3 +79,9 @@
 .am-adjust textarea:disabled { background: #F9FAFB; color: #9CA3AF; }
 .am-gen-submit { width: 100%; }
 .am-entity-tabs { grid-template-columns: repeat(2, 1fr); }
+
+/* Mídias Benfit: abas principais (Biblioteca, Aprovar, Gerar). */
+.am-sections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.25rem; padding: 0.25rem; background: #E5E7EB; border-radius: 0.9rem; }
+.am-sections button { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.55rem 0.25rem; border-radius: 0.7rem; font-size: 0.88rem; font-weight: 700; color: #4B5563; }
+.am-sections button.is-active { background: #fff; color: #034EA2; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.am-sections button.is-active .am-tab-count { background: #034EA2; color: #fff; }

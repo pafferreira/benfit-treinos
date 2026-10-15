@@ -8,6 +8,7 @@ import { listDishes, DISHES_CHANGED_EVENT } from '../services/dishes';
 import { useCoach } from '../context/coach';
 import SearchableExerciseSelect from '../components/SearchableExerciseSelect';
 import ExerciseAnimation from '../components/ExerciseAnimation';
+import MediaLibrary from '../components/MediaLibrary';
 import './AdminMedia.css';
 
 // Tela "Aprovar mídias" (v2, etapas 2C e 2D), só admin: fila das imagens e
@@ -23,6 +24,12 @@ const TABS = [
     { key: 'pendente', label: 'Pendentes', statuses: ['pendente'] },
     { key: 'gerando', label: 'Gerando', statuses: ['gerando'] },
     { key: 'historico', label: 'Histórico', statuses: ['aprovada', 'rejeitada', 'falhou'] },
+];
+
+const SECTIONS = [
+    { key: 'biblioteca', label: 'Biblioteca' },
+    { key: 'aprovar', label: 'Aprovar' },
+    { key: 'gerar', label: 'Gerar' },
 ];
 
 const STATUS_LABEL = {
@@ -169,6 +176,11 @@ const AdminMedia = () => {
     const { isRealAdmin, loading: roleLoading } = useUserRole();
     const { exercises, reload: reloadExercises } = useExercises();
     const [tab, setTab] = useState('pendente');
+    // Abas da tela Mídias Benfit; #biblioteca e #gerar no link abrem direto nelas.
+    const [section, setSection] = useState(() => {
+        const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
+        return SECTIONS.some(s => s.key === hash) ? hash : 'aprovar';
+    });
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [approvalOn, setApprovalOn] = useState(true);
@@ -260,7 +272,7 @@ const AdminMedia = () => {
                     }
                 }
             } catch (err) {
-                console.warn('[Aprovar mídias] Falha ao conferir vídeo:', err.message);
+                console.warn('[Mídias Benfit] Falha ao conferir vídeo:', err.message);
             } finally {
                 pollingRef.current = false;
             }
@@ -301,6 +313,7 @@ const AdminMedia = () => {
             const media = await requestMedia(kind, { entityType, entityId, prompt });
             upsertItem(media);
             setTab(media.status === 'gerando' ? 'gerando' : media.status === 'pendente' ? 'pendente' : 'historico');
+            setSection('aprovar');
             if (media.status === 'aprovada') {
                 if (entityType === 'dish') reloadDishes(); else reloadExercises();
             }
@@ -365,11 +378,30 @@ const AdminMedia = () => {
                     <ArrowLeft size={24} />
                 </button>
                 <div>
-                    <h1>Aprovar mídias</h1>
-                    <p>Imagens e animações geradas pela IA.</p>
+                    <h1>Mídias Benfit</h1>
+                    <p>Biblioteca de imagens e mídias geradas pela IA.</p>
                 </div>
             </div>
 
+            <div className="am-sections" role="tablist" aria-label="Seções">
+                {SECTIONS.map(s => (
+                    <button
+                        key={s.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={section === s.key}
+                        className={section === s.key ? 'is-active' : ''}
+                        onClick={() => setSection(s.key)}
+                    >
+                        {s.label}
+                        {s.key === 'aprovar' && counts.pendente > 0 && <span className="am-tab-count">{counts.pendente}</span>}
+                    </button>
+                ))}
+            </div>
+
+            {section === 'biblioteca' && <MediaLibrary exercises={exercises || []} dishes={dishes} />}
+
+            {section === 'aprovar' && <>
             <section className="am-panel am-switch-row">
                 <div>
                     <strong>Revisar antes de publicar</strong>
@@ -388,7 +420,9 @@ const AdminMedia = () => {
                     <span />
                 </button>
             </section>
+            </>}
 
+            {section === 'gerar' && (
             <section className="am-panel">
                 <h2 className="am-panel-title"><Sparkles size={16} /> Gerar mídia</h2>
                 <div className="am-kind-tabs am-entity-tabs" role="radiogroup" aria-label="Para o quê">
@@ -470,7 +504,9 @@ const AdminMedia = () => {
                     {isDishTarget ? 'A foto leva uns 20 segundos.' : 'Imagem leva uns 20 segundos; duas poses, um pouco mais; o vídeo segue em "Gerando".'}
                 </p>
             </section>
+            )}
 
+            {section === 'aprovar' && <>
             <div className="am-tabs" role="tablist">
                 {TABS.map(t => (
                     <button
@@ -507,6 +543,7 @@ const AdminMedia = () => {
                     ))}
                 </div>
             )}
+            </>}
         </div>
     );
 };

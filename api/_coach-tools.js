@@ -1,4 +1,4 @@
-// Ferramentas do Benfit Coach (v2, etapa 2C). Só o Claude usa ferramentas;
+// Ferramentas do Benfit (v2, etapas 2C e 2D). Só o Claude usa ferramentas;
 // OpenAI e Gemini continuam como reserva só de texto.
 
 // Mesmos nomes de b_muscles (src/lib/muscles.js), mais Cardio e Corpo Todo.
@@ -95,6 +95,28 @@ export const COACH_TOOLS = [
             required: ['name', 'meal_type', 'ingredients', 'preparation', 'kcal', 'protein_g', 'carbs_g', 'fat_g'],
         },
     },
+    {
+        name: 'gerar_midia',
+        description: 'Pede ao gerador de mídias da IA imagem, poses (início e fim do movimento, alternando) '
+            + 'ou vídeo curto em loop de um exercício ou prato que já está no catálogo. '
+            + 'As mídias entram na fila de aprovação da tela Mídias Benfit e só aparecem no app depois de aprovadas. '
+            + 'Prato só tem foto. Poses e vídeo partem da imagem já publicada do exercício. '
+            + 'A ferramenta confere a permissão de quem pediu e diz o que foi enviado.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                tipo_item: { type: 'string', enum: ['exercicio', 'prato'] },
+                nome: { type: 'string', description: 'Nome do exercício ou prato como está no catálogo.' },
+                midias: {
+                    type: 'array',
+                    items: { type: 'string', enum: ['imagem', 'poses', 'video'] },
+                    minItems: 1,
+                    maxItems: 3,
+                },
+            },
+            required: ['tipo_item', 'nome', 'midias'],
+        },
+    },
 ];
 
 const MEAL_LABELS = {
@@ -162,9 +184,69 @@ async function searchDishes(supabase, { busca, meal_type: mealType }) {
     return { content: `Pratos já no catálogo de Dieta:\n${ranked.map(describeDish).join('\n')}` };
 }
 
+const MEDIA_KINDS = { imagem: 'image', poses: 'poses', video: 'video' };
+const MEDIA_LABELS = { image: 'imagem', poses: 'poses', video: 'vídeo' };
+
+// Acha o exercício ou prato pelo nome: igual (sem caixa) primeiro, depois parecido.
+async function findCatalogItem(supabase, table, name) {
+    const term = String(name || '').trim().slice(0, 120);
+    if (!term) return { items: [] };
+    const columns = 'id, name, image_url, created_by_ai, created_by';
+    const exact = await supabase.from(table).select(columns).ilike('name', term.replace(/[%_]/g, '')).limit(2);
+    if (exact.error) return { error: exact.error };
+    if (exact.data?.length) return { items: exact.data };
+    const like = await supabase.from(table).select(columns).ilike('name', `%${term.replace(/[%_]/g, '')}%`).order('name').limit(5);
+    if (like.error) return { error: like.error };
+    return { items: like.data || [] };
+}
+
+// Decide quais mídias seguem para o gerador, com as mesmas regras de /api/media.
+export const planMediaRequest = ({ item, isDish, isAdmin, userId, kinds }) => {
+    const accepted = [];
+    const refused = [];
+    for (const kind of kinds) {
+        if (isDish && kind !== 'image') {
+            refused.push(`${MEDIA_LABELS[kind]}: prato só tem foto`);
+        } else if (!isAdmin && kind !== 'image') {
+            refused.push(`${MEDIA_LABELS[kind]}: só um admin pode pedir`);
+        } else if (!isAdmin && !(item.created_by_ai && item.created_by === userId && !item.image_url)) {
+            refused.push(`${MEDIA_LABELS[kind]}: só dá para pedir a imagem de um item que você criou e que ainda está sem imagem`);
+        } else if (kind !== 'image' && !item.image_url) {
+            refused.push(`${MEDIA_LABELS[kind]}: o exercício precisa ter a imagem aprovada antes`);
+        } else {
+            accepted.push(kind);
+        }
+    }
+    return { accepted, refused };
+};
+
+async function requestMediaTool(supabase, user, input) {
+    const isDish = input?.tipo_item === 'prato';
+    const kinds = [...new Set((input?.midias || []).map(m => MEDIA_KINDS[m]).filter(Boolean))];
+    if (kinds.length === 0) return { content: 'Diga quais mídias gerar: imagem, poses ou vídeo.', isError: true };
+    const found = await findCatalogItem(supabase, isDish ? 'b_dishes' : 'b_exercises', input?.nome);
+    if (found.error) return { content: `Não foi possível procurar no catálogo: ${found.error.message}`, isError: true };
+    const label = isDish ? 'prato' : 'exercício';
+    if (found.items.length === 0) return { content: `Nenhum ${label} com esse nome no catálogo.` };
+    if (found.items.length > 1) {
+        return { content: `Achei mais de um ${label}: ${found.items.map(i => `"${i.name}"`).join(', ')}. Pergunte qual deles.` };
+    }
+    const item = found.items[0];
+    const { data: isAdmin } = await supabase.rpc('is_admin');
+    const { accepted, refused } = planMediaRequest({ item, isDish, isAdmin: Boolean(isAdmin), userId: user?.id, kinds });
+    const notes = refused.length ? ` Não enviado: ${refused.join('; ')}.` : '';
+    if (accepted.length === 0) return { content: `Nada foi enviado para "${item.name}".${notes}` };
+    return {
+        content: `Pedido enviado para "${item.name}": ${accepted.map(k => MEDIA_LABELS[k]).join(', ')}. `
+            + 'O app gera agora e as mídias entram em Mídias Benfit para aprovação; o vídeo leva alguns minutos.' + notes,
+        action: { type: 'media_requested', entityType: isDish ? 'dish' : 'exercise', entityId: item.id, name: item.name, kinds: accepted },
+    };
+}
+
 // Executa uma ferramenta pedida pelo Claude com o cliente do usuário (RLS).
-export const createToolRunner = (supabase) => async (name, input) => {
+export const createToolRunner = (supabase, user = null) => async (name, input) => {
     if (name === 'buscar_pratos') return searchDishes(supabase, input || {});
+    if (name === 'gerar_midia') return requestMediaTool(supabase, user, input || {});
     if (name === 'sugerir_prato') {
         const { data, error } = await supabase.rpc('b_create_ai_dish', { p_data: input });
         if (error) {

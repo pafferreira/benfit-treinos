@@ -39,7 +39,7 @@ export default async function handler(req, res) {
             messages,
             systemPrompt: SYSTEM_PROMPT,
             tools: COACH_TOOLS,
-            runTool: createToolRunner(session.supabase),
+            runTool: createToolRunner(session.supabase, session.user),
         });
         const messageId = await saveAssistantResponse({
             supabase: session.supabase,

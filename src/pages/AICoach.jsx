@@ -491,8 +491,41 @@ const AICoach = ({ variant = 'page' }) => {
         });
     };
 
+    // gerar_midia: o Benfit pediu imagem, poses ou vídeo de um item do catálogo.
+    const handleMediaActions = (actions) => {
+        const requests = (actions || []).filter(a => a?.type === 'media_requested' && a.entityId);
+        requests.forEach(action => {
+            action.kinds.forEach(kind => {
+                requestMedia(kind, { entityType: action.entityType, entityId: action.entityId })
+                    .then(media => {
+                        mediaChanged();
+                        if (action.entityType === 'dish') window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
+                        else reloadExercises();
+                        const label = { image: 'Imagem', poses: 'Poses', video: 'Vídeo' }[kind];
+                        window.dispatchEvent(new CustomEvent('app-toast', {
+                            detail: {
+                                message: media?.status === 'gerando'
+                                    ? `${label} de "${action.name}" em produção. Acompanhe em Mídias Benfit.`
+                                    : media?.status === 'aprovada'
+                                        ? `${label} de "${action.name}" pronto e publicado.`
+                                        : `${label} de "${action.name}" enviado para aprovação em Mídias Benfit.`,
+                                type: 'success',
+                            },
+                        }));
+                    })
+                    .catch(err => {
+                        console.warn('[Benfit] Mídia não gerada:', err?.message);
+                        window.dispatchEvent(new CustomEvent('app-toast', {
+                            detail: { message: `Não foi possível gerar para "${action.name}": ${err.message}`, type: 'error' },
+                        }));
+                    });
+            });
+        });
+    };
+
     const handleCoachActions = (actions) => {
         handleDishActions(actions);
+        handleMediaActions(actions);
         const created = (actions || []).filter(a => a?.type === 'exercise_created' && !a.existing);
         if (created.length === 0) return;
         reloadExercises();
