@@ -122,6 +122,7 @@ export const loadConversationSession = async ({ accessToken, conversationId }) =
         .select('role, content, provider, provider_parts, created_at')
         .eq('conversation_id', conversationId)
         .eq('user_id', user.id)
+        .in('role', ['user', 'assistant'])
         .order('created_at', { ascending: false })
         .limit(CHAT_HISTORY_LIMIT);
 

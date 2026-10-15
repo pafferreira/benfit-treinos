@@ -1,4 +1,4 @@
-import { RobotCoachIcon } from './icons/BenfitIcons';
+import { BenfitAvatar } from './icons/BenfitIcons';
 import { useCoach } from '../context/coach';
 import './CoachSheet.css';
 
@@ -13,7 +13,7 @@ const CoachButton = ({ className = '' }) => {
             aria-label="Abrir Benfit"
             title="Benfit"
         >
-            <RobotCoachIcon size={20} />
+            <BenfitAvatar size={38} />
         </button>
     );
 };

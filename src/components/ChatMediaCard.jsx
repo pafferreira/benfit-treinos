@@ -13,7 +13,8 @@ const statusInfo = (media) => {
             : { tone: 'wait', icon: Loader2, spin: true, text: 'Gerando…' };
     }
     if (media.status === 'aprovada') return { tone: 'ok', icon: CheckCircle2, text: 'Publicada. Já aparece para todos.' };
-    if (media.status === 'rejeitada') return { tone: 'error', icon: AlertTriangle, text: 'Rejeitada na revisão.' };
+    if (media.status === 'rejeitada') return { tone: 'error', icon: AlertTriangle, text: 'Rejeitada na revisão. Peça outra ao Benfit se quiser.' };
+    if (media.status === 'removida') return { tone: 'error', icon: AlertTriangle, text: 'Esta mídia não está mais disponível.' };
     return { tone: 'wait', icon: Clock, text: 'Aguardando aprovação. Ela só aparece no app depois que um administrador aprovar em Mídias Benfit.' };
 };
 

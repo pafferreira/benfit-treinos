@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Send, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil, ThumbsUp, ThumbsDown, Maximize2 } from 'lucide-react';
-import { RobotCoachIcon } from '../components/icons/BenfitIcons';
+import { BenfitAvatar } from '../components/icons/BenfitIcons';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
 import { chatWithBenfit, generateConversationTitle, generateEmbedding, rateCoachMessage } from '../services/ai';
-import { requestMedia, mediaChanged } from '../services/media';
+import { requestMedia, mediaChanged, getMediaByIds } from '../services/media';
 import { DISHES_CHANGED_EVENT } from '../services/dishes';
 import { buildUserContext, buildExerciseStats } from '../services/context';
 import { useUserRole, useExercises, useExerciseMuscleMap } from '../hooks/useSupabase';
@@ -13,6 +13,8 @@ import CoachExerciseCard from '../components/CoachExerciseCard';
 import ChatMediaCard from '../components/ChatMediaCard';
 import { useCoach } from '../context/coach';
 import './AICoach.css';
+
+const MEDIA_KIND_LABELS = { image: 'Imagem', poses: 'Poses', video: 'Vídeo' };
 
 // ── Constantes ───────────────────────────────────────────────────
 const SUGGESTIONS = [
@@ -292,10 +294,29 @@ const AICoach = ({ variant = 'page' }) => {
         try {
             const msgs = await supabaseHelpers.getConversationMessages(convId);
             if (msgs?.length > 0) {
-                setMessages([INITIAL_MESSAGE, ...msgs.map(m => ({
-                    id: m.id, dbId: m.id, sender: m.role === 'user' ? 'user' : 'ai',
-                    text: m.content, feedback: m.feedback ?? null,
-                }))]);
+                // Cartões de mídia: o status e o arquivo vêm atualizados da fila b_media.
+                const mediaRef = (m) => m.provider === 'benfit_media' ? m.provider_parts?.[0] : null;
+                const mediaIds = msgs.map(mediaRef).filter(Boolean).map(r => r.media_id);
+                const mediaById = mediaIds.length
+                    ? await getMediaByIds(mediaIds).catch(() => new Map())
+                    : new Map();
+                setMessages([INITIAL_MESSAGE, ...msgs.flatMap(m => {
+                    const ref = mediaRef(m);
+                    if (ref) {
+                        const media = mediaById.get(ref.media_id);
+                        return [{
+                            id: m.id, sender: 'ai', text: '',
+                            media: media
+                                ? { kind: ref.kind, name: ref.name, status: media.status, url: media.url, frames: media.frames, error: media.error }
+                                : { kind: ref.kind, name: ref.name, status: 'removida' },
+                        }];
+                    }
+                    if (m.role === 'system') return [];
+                    return [{
+                        id: m.id, dbId: m.id, sender: m.role === 'user' ? 'user' : 'ai',
+                        text: m.content, feedback: m.feedback ?? null,
+                    }];
+                })]);
                 setIsFirstMessage(false);
             } else {
                 setMessages([INITIAL_MESSAGE]);
@@ -464,11 +485,20 @@ const AICoach = ({ variant = 'page' }) => {
         const id = `media-${entityId}-${kind}-${Date.now()}`;
         const update = (media) => setMessages(prev => prev.map(m => m.id === id ? { ...m, media: { ...m.media, ...media } } : m));
         setMessages(prev => [...prev, { id, sender: 'ai', text: '', media: { kind, name, status: 'gerando' } }]);
+        const uid = userIdRef.current;
+        const convId = currentConvIdRef.current;
         requestMedia(kind, { entityType, entityId })
             .then(media => {
                 update({ status: media?.status || 'pendente', url: media?.url, frames: media?.frames });
                 mediaChanged();
                 onDone?.();
+                // Guarda o cartão na conversa (papel "system": não vai para o modelo).
+                if (media?.id && uid && convId) {
+                    supabaseHelpers.saveChatMessage(uid, 'system', `${MEDIA_KIND_LABELS[kind]} de ${name} gerada pelo Benfit.`, convId, {
+                        provider: 'benfit_media',
+                        providerParts: [{ media_id: media.id, kind, name }],
+                    }).catch(err => console.warn('[Benfit] Cartão da mídia não salvo na conversa:', err?.message));
+                }
             })
             .catch(err => {
                 console.warn('[Benfit] Mídia não gerada:', err?.message);
@@ -787,7 +817,7 @@ const AICoach = ({ variant = 'page' }) => {
 
             {isSheet && screen?.label && (
                 <div className="coach-screen-chip">
-                    <RobotCoachIcon size={14} />
+                    <BenfitAvatar size={18} />
                     <span>Ajudando em: {screen.label}</span>
                 </div>
             )}
@@ -884,7 +914,7 @@ const AICoach = ({ variant = 'page' }) => {
                     messages.map((msg) => (
                         <div key={msg.id} className={`message ${msg.sender}`}>
                             <div className="message-avatar">
-                                {msg.sender === 'ai' ? <RobotCoachIcon size={18} /> : <User size={18} />}
+                                {msg.sender === 'ai' ? <BenfitAvatar size={28} /> : <User size={18} />}
                             </div>
                             <div className="message-bubble">
                                 {msg.media && <ChatMediaCard media={msg.media} />}
@@ -930,7 +960,7 @@ const AICoach = ({ variant = 'page' }) => {
                 )}
                 {isTyping && (
                     <div className="message ai">
-                        <div className="message-avatar"><RobotCoachIcon size={18} /></div>
+                        <div className="message-avatar"><BenfitAvatar size={28} /></div>
                         <div className="message-bubble typing-indicator">
                             Buscando seu histórico e pensando...
                         </div>

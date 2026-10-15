@@ -33,6 +33,17 @@ export const listMedia = async ({ statuses, limit = 50 } = {}) => {
     return data || [];
 };
 
+// Mídias pelos ids (cartões salvos na conversa do Benfit). O RLS mostra as
+// aprovadas, as que a pessoa pediu e, para o admin, todas.
+export const getMediaByIds = async (ids) => {
+    const { data, error } = await supabase
+        .from('b_media')
+        .select('id, kind, status, url, frames, error')
+        .in('id', ids);
+    if (error) throw error;
+    return new Map((data || []).map(m => [m.id, m]));
+};
+
 export const reviewMedia = async (mediaId, decision) => {
     const { data, error } = await supabase.rpc('b_media_review', { p_media_id: mediaId, p_decision: decision });
     if (error) throw error;
