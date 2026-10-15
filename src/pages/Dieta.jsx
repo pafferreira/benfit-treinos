@@ -144,10 +144,10 @@ const Dieta = () => {
                 <div>
                     <h2 className="dieta-hero-title">Pratos com foto e macros</h2>
                     <p className="dieta-hero-text">
-                        Peça um prato ao Coach: ele procura no catálogo e, se não achar, monta um novo com ingredientes e macros.
+                        Peça um prato ao Benfit: ele procura no catálogo e, se não achar, monta um novo com ingredientes e macros.
                     </p>
                     <button type="button" className="dieta-hero-btn" onClick={() => openCoach(QUESTIONS[0])}>
-                        <MessageCircle size={15} /> Pedir um prato ao Coach
+                        <MessageCircle size={15} /> Pedir um prato ao Benfit
                     </button>
                 </div>
             </section>
@@ -195,10 +195,10 @@ const Dieta = () => {
                 ) : visible.length === 0 ? (
                     <div className="dieta-empty">
                         {dishes.length === 0
-                            ? 'O catálogo ainda está vazio. Peça o primeiro prato ao Coach.'
+                            ? 'O catálogo ainda está vazio. Peça o primeiro prato ao Benfit.'
                             : filter === 'favoritos' && !query
                                 ? 'Toque no coração de um prato para guardar aqui.'
-                                : 'Nenhum prato encontrado. Peça ao Coach uma sugestão.'}
+                                : 'Nenhum prato encontrado. Peça ao Benfit uma sugestão.'}
                     </div>
                 ) : (
                     <div className="dieta-grid">
@@ -218,7 +218,7 @@ const Dieta = () => {
             <section className="dieta-questions">
                 <h3 className="dieta-section-title">
                     <MessageCircle size={16} />
-                    Pergunte ao Coach
+                    Pergunte ao Benfit
                 </h3>
                 {QUESTIONS.slice(1).map(q => (
                     <button key={q} type="button" className="dieta-question" onClick={() => openCoach(q)}>

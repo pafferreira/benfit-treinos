@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 export const postJson = async (url, payload) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
-        throw new Error('Sessão expirada. Entre novamente para conversar com o Coach.');
+        throw new Error('Sessão expirada. Entre novamente para conversar com o Benfit.');
     }
 
     const res = await fetch(url, {

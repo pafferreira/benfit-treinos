@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, X, RefreshCw, RotateCcw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { exerciseImageUrl, DEFAULT_EXERCISE_IMAGE } from '../lib/exerciseImage';
-import { requestMedia, listMedia, reviewMedia, getMediaApproval, setMediaApproval, getDefaultPrompt } from '../services/media';
-import { listDishes } from '../services/dishes';
+import { requestMedia, listMedia, reviewMedia, getMediaApproval, setMediaApproval, getDefaultPrompt, MEDIA_CHANGED_EVENT } from '../services/media';
+import { listDishes, DISHES_CHANGED_EVENT } from '../services/dishes';
+import { useCoach } from '../context/coach';
 import SearchableExerciseSelect from '../components/SearchableExerciseSelect';
 import ExerciseAnimation from '../components/ExerciseAnimation';
 import './AdminMedia.css';
@@ -67,8 +68,8 @@ const MediaPreview = ({ media, exercise }) => {
 };
 
 const ENTITIES = {
-    exercise: { label: 'Exercício', pick: 'Escolha o exercício' },
-    dish: { label: 'Prato', pick: 'Escolha o prato' },
+    exercise: { label: 'Exercício', pick: 'Escolha o exercício', empty: 'Nenhum exercício encontrado.' },
+    dish: { label: 'Prato', pick: 'Escolha o prato', empty: 'Nenhum prato encontrado.' },
 };
 
 const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
@@ -88,7 +89,7 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
                     <h3 className="am-card-title">{exercise?.name || (isDish ? 'Prato removido' : 'Exercício removido')}</h3>
                     <p className="am-card-meta">
                         <KindIcon size={14} /> {kind.label} · {formatDate(media.created_at)}
-                        {exercise?.created_by_ai && <span className="am-chip am-chip-ai">Criado pelo Coach</span>}
+                        {exercise?.created_by_ai && <span className="am-chip am-chip-ai">Criado pelo Benfit</span>}
                     </p>
                 </div>
                 <span className={`am-status am-status-${media.status}`}>{STATUS_LABEL[media.status]}</span>
@@ -164,6 +165,7 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
 
 const AdminMedia = () => {
     const navigate = useNavigate();
+    const { openCoach } = useCoach();
     const { isRealAdmin, loading: roleLoading } = useUserRole();
     const { exercises, reload: reloadExercises } = useExercises();
     const [tab, setTab] = useState('pendente');
@@ -209,6 +211,27 @@ const AdminMedia = () => {
     useEffect(() => {
         if (isRealAdmin) load();
     }, [isRealAdmin, load]);
+
+    // O Benfit cadastra pratos e exercícios pelo chat e manda a foto para a fila.
+    useEffect(() => {
+        if (!isRealAdmin) return undefined;
+        const onMedia = () => { load(); reloadDishes(); reloadRef.current?.(); };
+        window.addEventListener(MEDIA_CHANGED_EVENT, onMedia);
+        window.addEventListener(DISHES_CHANGED_EVENT, reloadDishes);
+        return () => {
+            window.removeEventListener(MEDIA_CHANGED_EVENT, onMedia);
+            window.removeEventListener(DISHES_CHANGED_EVENT, reloadDishes);
+        };
+    }, [isRealAdmin, load, reloadDishes]);
+
+    // Item que ainda não existe: o Benfit cadastra pelo chat e já gera a foto.
+    const createWithBenfit = (name) => {
+        const term = name.trim();
+        if (!term) return;
+        openCoach(newEntity === 'dish'
+            ? `Cadastre no catálogo de Dieta o prato "${term}", com ingredientes, modo de preparo e macros.`
+            : `Cadastre na base o exercício "${term}", com grupos musculares e instruções.`);
+    };
 
     useEffect(() => {
         const onKey = (e) => { if (e.key === 'Escape') navigate('/perfil'); };
@@ -389,6 +412,9 @@ const AdminMedia = () => {
                     value={newExerciseId}
                     onChange={setNewExerciseId}
                     placeholder={ENTITIES[newEntity].pick}
+                    emptyLabel={ENTITIES[newEntity].empty}
+                    onCreateNew={createWithBenfit}
+                    createLabel={(term) => `Criar "${term}" com o Benfit`}
                 />
                 {!isDishTarget && <div className="am-kind-tabs" role="radiogroup" aria-label="Tipo de mídia">
                     {kindEntries.map(([kind, { label, tab: tabLabel, icon }]) => {

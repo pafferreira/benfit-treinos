@@ -47,7 +47,7 @@ const TIPS = [
     'Aumente a carga aos poucos. Técnica limpa vale mais que peso extra.',
     'Beba água antes, durante e depois do treino, principalmente nos dias quentes.',
     'Aquecer 5 minutos reduz o risco de lesão e melhora o rendimento da primeira série.',
-    'Anote como se sentiu no fim do treino. O Coach usa isso para ajustar suas sugestões.',
+    'Anote como se sentiu no fim do treino. O Benfit usa isso para ajustar suas sugestões.',
 ];
 
 const isSameDay = (a, b) => (
@@ -469,7 +469,7 @@ const DashboardHome = () => {
                 <div className="dash-tip-icon"><Sparkles size={16} /></div>
                 <p className="dash-tip-text">
                     <strong>Dica Benfit:</strong> {tip}
-                    <span className="dash-tip-cta"><MessageCircle size={12} /> Pergunte ao Coach</span>
+                    <span className="dash-tip-cta"><MessageCircle size={12} /> Pergunte ao Benfit</span>
                 </p>
             </button>
         </div>

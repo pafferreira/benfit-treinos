@@ -71,7 +71,7 @@ const DishModal = ({ dish, isOpen, onClose, favorite, notes, onToggleFavorite, i
                 ) : (
                     <div className="dish-modal-photo dish-modal-photo-empty">
                         <UtensilsCrossed size={28} />
-                        <span>{dish.created_by_ai ? 'Foto em preparação pelo Coach' : 'Sem foto'}</span>
+                        <span>{dish.created_by_ai ? 'Foto em preparação pelo Benfit' : 'Sem foto'}</span>
                         {canRetryPhoto && (
                             <button type="button" className="dish-btn" onClick={retryPhoto} disabled={generating}>
                                 {generating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}

@@ -4,6 +4,10 @@ import { postJson } from './ai';
 
 // action: image | poses | video | video-status. prompt: descrição editada pelo admin.
 // entityType: exercise (padrão) ou dish; prato só tem foto (image).
+// Avisa a tela Aprovar mídias que o Benfit criou um item ou gerou uma mídia.
+export const MEDIA_CHANGED_EVENT = 'benfit-media-changed';
+export const mediaChanged = () => window.dispatchEvent(new CustomEvent(MEDIA_CHANGED_EVENT));
+
 export const requestMedia = async (action, { exerciseId, entityType = 'exercise', entityId, mediaId, adjustment, prompt } = {}) => {
     const { media } = await postJson('/api/media', {
         action, entityType, entityId: entityId || exerciseId, mediaId, adjustment, prompt,

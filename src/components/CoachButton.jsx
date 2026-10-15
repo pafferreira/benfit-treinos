@@ -10,8 +10,8 @@ const CoachButton = ({ className = '' }) => {
             type="button"
             className={`coach-launch-btn ${className}`}
             onClick={() => openCoach()}
-            aria-label="Abrir Benfit Coach"
-            title="Benfit Coach"
+            aria-label="Abrir Benfit"
+            title="Benfit"
         >
             <RobotCoachIcon size={20} />
         </button>

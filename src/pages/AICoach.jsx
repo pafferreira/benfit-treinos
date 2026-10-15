@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Send, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil, ThumbsUp, ThumbsDown, Maximize2, MapPin } from 'lucide-react';
+import { Send, User, Sparkles, Plus, MessageSquare, Trash2, Menu, X, Search, Dumbbell, CalendarDays, Target, Play, Share2, BookOpen, Pencil, ThumbsUp, ThumbsDown, Maximize2 } from 'lucide-react';
 import { RobotCoachIcon } from '../components/icons/BenfitIcons';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
 import { chatWithBenfit, generateConversationTitle, generateEmbedding, rateCoachMessage } from '../services/ai';
-import { requestMedia } from '../services/media';
+import { requestMedia, mediaChanged } from '../services/media';
 import { DISHES_CHANGED_EVENT } from '../services/dishes';
 import { buildUserContext, buildExerciseStats } from '../services/context';
 import { useUserRole, useExercises, useExerciseMuscleMap } from '../hooks/useSupabase';
@@ -48,7 +48,7 @@ const MUSCLE_GROUPS = [
 const INITIAL_MESSAGE = {
     id: 'initial',
     sender: 'ai',
-    text: 'Olá! Sou o **Benfit Coach** 🏋️\n\nConheço seus treinos recentes, suas metas e o catálogo Benfit. Pergunte sobre exercícios, cargas, recuperação ou alimentação.'
+    text: 'Olá! Sou o **Benfit** 🏋️\n\nConheço seus treinos recentes, suas metas e o catálogo Benfit. Pergunte sobre exercícios, cargas, recuperação ou alimentação.'
 };
 
 // Formata resultados do shared knowledge como resposta direta ao usuário
@@ -464,10 +464,12 @@ const AICoach = ({ variant = 'page' }) => {
         const dishes = (actions || []).filter(a => a?.type === 'dish_created');
         if (dishes.length === 0) return;
         window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
+        mediaChanged();
         dishes.filter(a => !a.existing).forEach(action => {
             requestMedia('image', { entityType: 'dish', entityId: action.dishId })
                 .then(media => {
                     window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
+                    mediaChanged();
                     window.dispatchEvent(new CustomEvent('app-toast', {
                         detail: {
                             message: media?.status === 'aprovada'
@@ -494,10 +496,12 @@ const AICoach = ({ variant = 'page' }) => {
         const created = (actions || []).filter(a => a?.type === 'exercise_created' && !a.existing);
         if (created.length === 0) return;
         reloadExercises();
+        mediaChanged();
         created.forEach(action => {
             requestMedia('image', { exerciseId: action.exerciseId })
                 .then(media => {
                     reloadExercises();
+                    mediaChanged();
                     window.dispatchEvent(new CustomEvent('app-toast', {
                         detail: {
                             message: media?.status === 'aprovada'
@@ -712,7 +716,7 @@ const AICoach = ({ variant = 'page' }) => {
         });
     };
 
-    const currentConvTitle = conversations.find(c => c.id === currentConvId)?.title || 'Benfit Coach';
+    const currentConvTitle = conversations.find(c => c.id === currentConvId)?.title || 'Benfit';
 
     const suggestions = isSheet && screen?.suggestions?.length ? screen.suggestions : SUGGESTIONS;
 
@@ -744,7 +748,7 @@ const AICoach = ({ variant = 'page' }) => {
                     <button
                         className="coach-header-btn"
                         onClick={closeCoach}
-                        aria-label="Fechar o Coach"
+                        aria-label="Fechar o Benfit"
                         title="Fechar"
                     >
                         <X size={18} />
@@ -787,8 +791,8 @@ const AICoach = ({ variant = 'page' }) => {
 
             {isSheet && screen?.label && (
                 <div className="coach-screen-chip">
-                    <MapPin size={12} />
-                    <span>Vendo: {screen.label}</span>
+                    <RobotCoachIcon size={14} />
+                    <span>Ajudando em: {screen.label}</span>
                 </div>
             )}
 

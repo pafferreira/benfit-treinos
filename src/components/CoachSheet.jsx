@@ -32,7 +32,7 @@ const CoachSheet = () => {
                 className={`coach-sheet ${isOpen ? 'open' : ''} ${tall ? 'tall' : ''}`}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Benfit Coach"
+                aria-label="Benfit"
                 aria-hidden={!isOpen}
             >
                 <button
@@ -44,7 +44,7 @@ const CoachSheet = () => {
                     <span />
                 </button>
                 <div className="coach-sheet-body">
-                    <Suspense fallback={<div className="coach-sheet-loading">Abrindo o Coach...</div>}>
+                    <Suspense fallback={<div className="coach-sheet-loading">Abrindo o Benfit...</div>}>
                         <AICoach variant="sheet" />
                     </Suspense>
                 </div>

@@ -551,7 +551,7 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
                                         <ImageIcon size={48} className="mb-2 opacity-50" />
                                         <span className="text-xs">
-                                            {exercise?.created_by_ai ? 'Imagem em preparação pelo Coach' : 'Sem imagem selecionada'}
+                                            {exercise?.created_by_ai ? 'Imagem em preparação pelo Benfit' : 'Sem imagem selecionada'}
                                         </span>
                                     </div>
                                 )}
