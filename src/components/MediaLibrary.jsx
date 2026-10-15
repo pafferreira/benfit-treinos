@@ -41,6 +41,8 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
             if (a.category && a.is_active === showActive) acc[a.category] = (acc[a.category] || 0) + 1;
             return acc;
         }, {});
+        // Exercícios e Pratos aparecem sempre, mesmo vazios, para dar para filtrar.
+        ['exercicio', 'prato'].forEach(cat => { counts[cat] ??= 0; });
         return Object.entries(counts).sort((a, b) => b[1] - a[1]);
     }, [avatars, showActive]);
     const genders = useMemo(() => [...new Set(avatars.map(a => a.gender).filter(Boolean))], [avatars]);

@@ -242,8 +242,19 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         }
     };
 
-    const hasAnimation = Boolean(exercise?.animation_url)
-        || (Array.isArray(exercise?.animation_frames) && exercise.animation_frames.length >= 2);
+    // Visualização: imagem, poses (início e fim) e vídeo, cada um num botão.
+    const hasPoses = Array.isArray(exercise?.animation_frames) && exercise.animation_frames.length >= 2;
+    const hasVideo = Boolean(exercise?.animation_url);
+    const mediaViews = [
+        { key: 'imagem', label: 'Imagem' },
+        ...(hasPoses ? [{ key: 'poses', label: 'Poses' }] : []),
+        ...(hasVideo ? [{ key: 'video', label: 'Vídeo' }] : []),
+    ];
+    const defaultView = readOnly ? (hasVideo ? 'video' : hasPoses ? 'poses' : 'imagem') : 'imagem';
+    const [mediaViewState, setMediaView] = useState({ id: null, view: 'imagem' });
+    const mediaView = mediaViewState.id === (exercise?.id ?? null) && mediaViews.some(v => v.key === mediaViewState.view)
+        ? mediaViewState.view
+        : defaultView;
 
     const legacyGroups = formData.muscle_groups.filter(g => !muscleGroups.includes(g));
     // Músculos padrão (etapa 2B) a partir dos grupos marcados: o mapa acompanha a edição.
@@ -530,11 +541,29 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                 Visualização
                             </h3>
 
-                            {/* Animação de execução (etapa 2C): só na consulta; na edição fica a imagem. */}
-                            {readOnly && hasAnimation ? (
+                            {mediaViews.length > 1 && (
+                                <div className="exercise-media-tabs" role="tablist" aria-label="Visualização">
+                                    {mediaViews.map(v => (
+                                        <button
+                                            key={v.key}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={mediaView === v.key}
+                                            className={mediaView === v.key ? 'is-active' : ''}
+                                            onClick={() => setMediaView({ id: exercise?.id ?? null, view: v.key })}
+                                        >
+                                            {v.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Animação de execução (etapa 2C): poses ou vídeo, escolhidos acima. */}
+                            {mediaView !== 'imagem' ? (
                                 <ExerciseAnimation
-                                    videoUrl={exercise.animation_url}
-                                    frames={exercise.animation_frames}
+                                    key={mediaView}
+                                    videoUrl={mediaView === 'video' ? exercise.animation_url : null}
+                                    frames={mediaView === 'poses' ? exercise.animation_frames : null}
                                     poster={formData.image_url}
                                     alt={formData.name}
                                     className="border border-gray-200"

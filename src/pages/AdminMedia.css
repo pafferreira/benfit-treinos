@@ -87,3 +87,8 @@
 .am-sections button { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.55rem 0.25rem; border-radius: 0.7rem; font-size: 0.88rem; font-weight: 700; color: #4B5563; }
 .am-sections button.is-active { background: #fff; color: #034EA2; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
 .am-sections button.is-active .am-tab-count { background: #034EA2; color: #fff; }
+
+/* Filtro Todos / Exercícios / Pratos na aba Aprovar. */
+.am-entity-filter { display: flex; gap: 0.4rem; }
+.am-entity-filter button { padding: 0.4rem 0.85rem; border-radius: 999px; border: 1px solid #E5E7EB; background: #fff; font-size: 0.8rem; font-weight: 600; color: #4B5563; }
+.am-entity-filter button.is-active { background: #034EA2; border-color: #034EA2; color: #fff; }

@@ -243,10 +243,14 @@ const AdminMedia = () => {
     const reloadDishes = useCallback(() => listDishes().then(setDishes).catch(() => {}), []);
     useEffect(() => { if (isRealAdmin) reloadDishes(); }, [isRealAdmin, reloadDishes]);
     const entityOf = (media) => (media.entity_type === 'dish' ? dishById : exerciseById)[media.entity_id];
+    // Filtro por tipo de item: todos, só exercícios ou só pratos.
+    const [entityFilter, setEntityFilter] = useState('todos');
+    const filtered = useMemo(() => (entityFilter === 'todos' ? items : items.filter(m => m.entity_type === entityFilter)), [items, entityFilter]);
     const counts = useMemo(() => TABS.reduce((acc, t) => ({
-        ...acc, [t.key]: items.filter(m => t.statuses.includes(m.status)).length,
-    }), {}), [items]);
-    const visible = useMemo(() => items.filter(m => TABS.find(t => t.key === tab).statuses.includes(m.status)), [items, tab]);
+        ...acc, [t.key]: filtered.filter(m => t.statuses.includes(m.status)).length,
+    }), {}), [filtered]);
+    const pendingTotal = useMemo(() => items.filter(m => m.status === 'pendente').length, [items]);
+    const visible = useMemo(() => filtered.filter(m => TABS.find(t => t.key === tab).statuses.includes(m.status)), [filtered, tab]);
 
     const load = useCallback(async () => {
         try {
@@ -468,7 +472,7 @@ const AdminMedia = () => {
                         onClick={() => setSection(s.key)}
                     >
                         {s.label}
-                        {s.key === 'aprovar' && counts.pendente > 0 && <span className="am-tab-count">{counts.pendente}</span>}
+                        {s.key === 'aprovar' && pendingTotal > 0 && <span className="am-tab-count">{pendingTotal}</span>}
                     </button>
                 ))}
             </div>
@@ -581,6 +585,20 @@ const AdminMedia = () => {
             )}
 
             {section === 'aprovar' && <>
+            <div className="am-entity-filter" role="radiogroup" aria-label="Tipo de item">
+                {[['todos', 'Todos'], ['exercise', 'Exercícios'], ['dish', 'Pratos']].map(([key, label]) => (
+                    <button
+                        key={key}
+                        type="button"
+                        role="radio"
+                        aria-checked={entityFilter === key}
+                        className={entityFilter === key ? 'is-active' : ''}
+                        onClick={() => setEntityFilter(key)}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
             <div className="am-tabs" role="tablist">
                 {TABS.map(t => (
                     <button
