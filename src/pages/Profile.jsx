@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Settings, Bell, Moon, Sun, CircleHelp, LogOut, ChevronRight, Award, Activity, Plus, Trash2, X, Check, Camera, Image, Search, Filter, ChevronDown, BookOpen } from 'lucide-react';
+import { User, Settings, Bell, Moon, Sun, CircleHelp, LogOut, ChevronRight, Award, Activity, Plus, Trash2, X, Check, Camera, Image, Search, Filter, ChevronDown, BookOpen, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { saveToMemory } from '../services/memory';
@@ -377,6 +377,15 @@ const Profile = () => {
                             <div className="item-left">
                                 <User size={20} className="item-icon" />
                                 <span>Gerenciar Usuários</span>
+                            </div>
+                            <ChevronRight size={20} color="var(--color-subtext-light)" />
+                        </div>
+                    )}
+                    {isRealAdmin && (
+                        <div className="settings-item" onClick={() => navigate('/admin/midias')}>
+                            <div className="item-left">
+                                <Sparkles size={20} className="item-icon" />
+                                <span>Aprovar mídias da IA</span>
                             </div>
                             <ChevronRight size={20} color="var(--color-subtext-light)" />
                         </div>

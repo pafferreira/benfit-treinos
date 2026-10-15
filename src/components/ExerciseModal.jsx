@@ -6,6 +6,8 @@ import { X, Check, MoreHorizontal, ChevronDown, ChevronUp, Search, Image as Imag
 import ExerciseUsageTab from './ExerciseUsageTab';
 import ExerciseHistoryTab from './ExerciseHistoryTab';
 import BodyMap, { MuscleChips } from './BodyMap';
+import ExerciseAnimation from './ExerciseAnimation';
+import { requestMedia } from '../services/media';
 import { MUSCLES, normalizeMuscleTerms } from '../lib/muscles';
 import './ExerciseModal.css';
 
@@ -59,6 +61,9 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
 
     const [tagInput, setTagInput] = useState('');
     const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+    // Exercício criado pelo Coach sem imagem: quem pediu pode tentar gerar de novo.
+    const [retryOwner, setRetryOwner] = useState(null);
+    const [generatingImage, setGeneratingImage] = useState(false);
     const [equipmentTypes, setEquipmentTypes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('Todas');
@@ -206,6 +211,39 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
         ...MUSCLES.map(m => m.nome),
         'Cardio', 'Corpo Todo',
     ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    const imagePending = Boolean(exercise?.created_by_ai && !exercise?.image_url);
+    useEffect(() => {
+        if (!imagePending) return undefined;
+        let active = true;
+        supabase.auth.getSession().then(({ data }) => {
+            if (active) setRetryOwner(data?.session?.user?.id || null);
+        });
+        return () => { active = false; };
+    }, [imagePending]);
+    const canRetryImage = imagePending && retryOwner && retryOwner === exercise?.created_by;
+
+    const retryImage = async () => {
+        setGeneratingImage(true);
+        try {
+            const media = await requestMedia('image', { exerciseId: exercise.id });
+            window.dispatchEvent(new CustomEvent('app-toast', {
+                detail: {
+                    message: media?.status === 'aprovada'
+                        ? 'Imagem pronta. Ela aparece ao abrir o exercício de novo.'
+                        : 'Imagem gerada. Ela aparece depois da aprovação.',
+                    type: 'success',
+                },
+            }));
+        } catch (err) {
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: err.message, type: 'error' } }));
+        } finally {
+            setGeneratingImage(false);
+        }
+    };
+
+    const hasAnimation = Boolean(exercise?.animation_url)
+        || (Array.isArray(exercise?.animation_frames) && exercise.animation_frames.length >= 2);
 
     const legacyGroups = formData.muscle_groups.filter(g => !muscleGroups.includes(g));
     // Músculos padrão (etapa 2B) a partir dos grupos marcados: o mapa acompanha a edição.
@@ -492,7 +530,16 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                 Visualização
                             </h3>
 
-                            {/* Image Preview Area */}
+                            {/* Animação de execução (etapa 2C): só na consulta; na edição fica a imagem. */}
+                            {readOnly && hasAnimation ? (
+                                <ExerciseAnimation
+                                    videoUrl={exercise.animation_url}
+                                    frames={exercise.animation_frames}
+                                    poster={formData.image_url}
+                                    alt={formData.name}
+                                    className="border border-gray-200"
+                                />
+                            ) : (
                             <div className="relative aspect-video w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden border border-gray-200 group">
                                 {formData.image_url ? (
                                     <img
@@ -503,7 +550,9 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
                                         <ImageIcon size={48} className="mb-2 opacity-50" />
-                                        <span className="text-xs">Sem imagem selecionada</span>
+                                        <span className="text-xs">
+                                            {exercise?.created_by_ai ? 'Imagem em preparação pelo Coach' : 'Sem imagem selecionada'}
+                                        </span>
                                     </div>
                                 )}
 
@@ -520,6 +569,19 @@ const ExerciseModal = ({ isOpen, onClose, onSave, exercise = null, isLoading = f
                                     </button>
                                 )}
                             </div>
+                            )}
+
+                            {readOnly && canRetryImage && (
+                                <button
+                                    type="button"
+                                    onClick={retryImage}
+                                    disabled={generatingImage}
+                                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-[#034EA2] hover:bg-blue-100 disabled:opacity-60"
+                                >
+                                    <ImageIcon size={16} />
+                                    {generatingImage ? 'Gerando imagem…' : 'Gerar imagem com a IA'}
+                                </button>
+                            )}
 
 
                             {/* Avatar Selector (Collapsible) - Only if NOT readOnly */}
