@@ -289,3 +289,11 @@
     color: var(--color-subtext-light);
     text-align: center;
 }
+
+.dish-card-skeleton .dish-card-photo {
+    border-radius: 0;
+}
+
+.dish-card-skeleton .dish-card-body {
+    gap: 0.45rem;
+}

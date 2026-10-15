@@ -38,15 +38,23 @@ test('searchTerms limpa a busca para o filtro', () => {
     assert.deepEqual(searchTerms('a,b'), []);
 });
 
-test('buscar_pratos lista o catálogo e filtra por refeição', async () => {
+test('buscar_pratos acha pelo nome ou ingrediente, sem acento, e filtra por refeição', async () => {
     const calls = [];
-    const supabase = { from: () => fakeQuery([{ id: 'd1', name: 'Frango com Batata-Doce', meal_type: 'pos_treino', kcal: 520, protein_g: '45.5' }], calls) };
-    const run = createToolRunner(supabase);
+    const rows = [
+        { id: 'd1', name: 'Frango com Batata-Doce', meal_type: 'pos_treino', kcal: 520, protein_g: '45.5', ingredients: [{ item: 'Peito de frango' }] },
+        { id: 'd2', name: 'Bowl Verde', description: 'Leve', meal_type: 'pos_treino', kcal: 410, protein_g: '20', ingredients: [{ item: 'Quinoa' }, { item: 'Brócolis' }] },
+    ];
+    const run = createToolRunner({ from: () => fakeQuery(rows, calls) });
     const found = await run('buscar_pratos', { busca: 'frango', meal_type: 'pos_treino' });
     assert.match(found.content, /Frango com Batata-Doce \(pós-treino; 520 kcal, 45.5 g de proteína\)/);
-    assert.deepEqual(calls, [['or', 'name.ilike.%frango%,description.ilike.%frango%'], ['eq', 'meal_type', 'pos_treino']]);
+    assert.doesNotMatch(found.content, /Bowl Verde/);
+    assert.deepEqual(calls, [['eq', 'meal_type', 'pos_treino']]);
 
-    const empty = await createToolRunner({ from: () => fakeQuery([], []) })('buscar_pratos', { busca: 'xyz' });
+    const byIngredient = await run('buscar_pratos', { busca: 'prato com quinoa e brocolis' });
+    assert.match(byIngredient.content, /Bowl Verde/);
+    assert.doesNotMatch(byIngredient.content, /Frango/);
+
+    const empty = await run('buscar_pratos', { busca: 'xyz' });
     assert.match(empty.content, /Nenhum prato/);
 });
 

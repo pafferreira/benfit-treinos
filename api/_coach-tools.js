@@ -103,11 +103,14 @@ const MEAL_LABELS = {
 };
 
 // Palavras de 3+ letras, sem caracteres que quebram o filtro do PostgREST.
+// Palavras comuns que não ajudam a achar um prato.
+const STOP_WORDS = new Set(['com', 'sem', 'para', 'que', 'uma', 'dos', 'das', 'nos', 'nas', 'pelo', 'pela', 'prato', 'pratos', 'receita', 'algo']);
+
 export const searchTerms = (text) => String(text || '')
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
     .split(/\s+/)
-    .filter(word => word.length >= 3)
+    .filter(word => word.length >= 3 && !STOP_WORDS.has(word))
     .slice(0, 5);
 
 const describeDish = (dish) => {
@@ -118,26 +121,45 @@ const describeDish = (dish) => {
     return `- ${dish.name} (${MEAL_LABELS[dish.meal_type] || dish.meal_type}${macros ? `; ${macros}` : ''})`;
 };
 
+// Normaliza para comparar sem acento e sem caixa.
+const normalizeText = (text) => String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+// Texto pesquisável do prato: nome, descrição, ingredientes e tags.
+export const dishSearchText = (dish) => normalizeText([
+    dish.name,
+    dish.description,
+    ...(Array.isArray(dish.ingredients) ? dish.ingredients.map(i => i?.item) : []),
+    ...(dish.tags || []),
+].join(' '));
+
+// O catálogo é pequeno: traz os pratos (da refeição pedida, se houver) e
+// filtra aqui, para achar também pelo ingrediente e ignorar acentos.
 async function searchDishes(supabase, { busca, meal_type: mealType }) {
-    const terms = searchTerms(busca);
+    const terms = searchTerms(normalizeText(busca));
     let query = supabase
         .from('b_dishes')
-        .select('id, name, meal_type, kcal, protein_g')
+        .select('id, name, description, meal_type, kcal, protein_g, ingredients, tags')
         .order('name')
-        .limit(8);
-    if (terms.length > 0) {
-        query = query.or(terms.map(t => `name.ilike.%${t}%,description.ilike.%${t}%`).join(','));
-    }
+        .limit(500);
     if (MEAL_TYPES.includes(mealType)) query = query.eq('meal_type', mealType);
     const { data, error } = await query;
     if (error) {
         console.warn('[api/chat] Busca de pratos falhou:', error.message);
         return { content: `Não foi possível buscar no catálogo: ${error.message}`, isError: true };
     }
-    if (!data || data.length === 0) {
+    const ranked = (data || [])
+        .map(dish => {
+            const text = dishSearchText(dish);
+            return { dish, hits: terms.filter(term => text.includes(term)).length };
+        })
+        .filter(({ hits }) => terms.length === 0 || hits > 0)
+        .sort((a, b) => b.hits - a.hits)
+        .slice(0, 8)
+        .map(({ dish }) => dish);
+    if (ranked.length === 0) {
         return { content: 'Nenhum prato parecido no catálogo de Dieta.' };
     }
-    return { content: `Pratos já no catálogo de Dieta:\n${data.map(describeDish).join('\n')}` };
+    return { content: `Pratos já no catálogo de Dieta:\n${ranked.map(describeDish).join('\n')}` };
 }
 
 // Executa uma ferramenta pedida pelo Claude com o cliente do usuário (RLS).

@@ -110,7 +110,7 @@ const SearchableExerciseSelect = ({
                             </div>
                         )}
 
-                        {searchTerm && !filteredExercises.find(e => e.name.toLowerCase() === searchTerm.toLowerCase()) && (
+                        {onCreateNew && searchTerm && !filteredExercises.find(e => e.name.toLowerCase() === searchTerm.toLowerCase()) && (
                              <div
                                 className="create-option"
                                 onClick={(e) => {

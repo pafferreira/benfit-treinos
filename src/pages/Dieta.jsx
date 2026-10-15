@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { MessageCircle, ChevronRight, Heart, Search, UtensilsCrossed, Loader2 } from 'lucide-react';
+import { MessageCircle, ChevronRight, Heart, Search, UtensilsCrossed } from 'lucide-react';
 import { BowlPlateIcon } from '../components/icons/BenfitIcons';
 import DishModal from '../components/DishModal';
+import { Skeleton } from '../components/Skeleton';
 import { useCoach, useCoachScreen } from '../context/coach';
 import { useUserRole } from '../hooks/useSupabase';
 import {
@@ -179,7 +180,18 @@ const Dieta = () => {
                 </div>
 
                 {loading ? (
-                    <div className="dieta-empty"><Loader2 size={18} className="animate-spin" /> Carregando pratos…</div>
+                    <div className="dieta-grid" aria-busy="true" aria-label="Carregando pratos">
+                        {[0, 1, 2, 3].map(i => (
+                            <div key={i} className="dish-card dish-card-skeleton">
+                                <Skeleton className="dish-card-photo" />
+                                <div className="dish-card-body">
+                                    <Skeleton className="h-3 w-1/3" />
+                                    <Skeleton className="h-4 w-4/5" />
+                                    <Skeleton className="h-3 w-1/2" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 ) : visible.length === 0 ? (
                     <div className="dieta-empty">
                         {dishes.length === 0
