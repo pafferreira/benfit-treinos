@@ -83,19 +83,19 @@ const createAuthenticatedClient = (accessToken) => {
 // respeita o RLS dele. Usado por todos os endpoints de AI.
 export const requireUser = async (accessToken) => {
     if (!accessToken) {
-        throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Coach.');
+        throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Benfit.');
     }
     const supabase = createAuthenticatedClient(accessToken);
     const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
     if (authError || !user) {
-        throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Coach.');
+        throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Benfit.');
     }
     return { supabase, user };
 };
 
 export const loadConversationSession = async ({ accessToken, conversationId }) => {
     if (!accessToken) {
-        throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Coach.');
+        throw new ChatHttpError(401, 'Sessão expirada. Entre novamente para conversar com o Benfit.');
     }
     if (!UUID_PATTERN.test(conversationId || '')) {
         throw new ChatHttpError(400, 'Campo "conversationId" inválido');
@@ -122,6 +122,7 @@ export const loadConversationSession = async ({ accessToken, conversationId }) =
         .select('role, content, provider, provider_parts, created_at')
         .eq('conversation_id', conversationId)
         .eq('user_id', user.id)
+        .in('role', ['user', 'assistant'])
         .order('created_at', { ascending: false })
         .limit(CHAT_HISTORY_LIMIT);
 

@@ -1,4 +1,4 @@
-import { RobotCoachIcon } from './icons/BenfitIcons';
+import { BenfitAvatar } from './icons/BenfitIcons';
 import { useCoach } from '../context/coach';
 import './CoachSheet.css';
 
@@ -10,10 +10,10 @@ const CoachButton = ({ className = '' }) => {
             type="button"
             className={`coach-launch-btn ${className}`}
             onClick={() => openCoach()}
-            aria-label="Abrir Benfit Coach"
-            title="Benfit Coach"
+            aria-label="Abrir Benfit"
+            title="Benfit"
         >
-            <RobotCoachIcon size={20} />
+            <BenfitAvatar size={38} />
         </button>
     );
 };

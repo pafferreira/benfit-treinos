@@ -255,14 +255,14 @@ const SharedKnowledge = () => {
                         <textarea
                             className="sk-textarea"
                             rows={4}
-                            placeholder="Descreva o conhecimento para ser usado pelo Benfit Coach..."
+                            placeholder="Descreva o conhecimento para ser usado pelo Benfit..."
                             value={newItem.content}
                             onChange={e => setNewItem(prev => ({ ...prev, content: e.target.value }))}
                             required
                         />
                     </div>
                     <div className="sk-form-hint">
-                        Este texto será embedado e usado como contexto nas respostas do Coach.
+                        Este texto será embedado e usado como contexto nas respostas do Benfit.
                     </div>
                     <div className="sk-form-actions">
                         <button type="button" className="sk-cancel-btn" onClick={() => setShowAddForm(false)}>
@@ -317,7 +317,7 @@ const SharedKnowledge = () => {
                     <div className="sk-empty">
                         <BookOpen size={32} />
                         <p>Nenhum item encontrado.</p>
-                        <p>Use o botão + para adicionar conhecimento ao Coach.</p>
+                        <p>Use o botão + para adicionar conhecimento ao Benfit.</p>
                     </div>
                 )}
 

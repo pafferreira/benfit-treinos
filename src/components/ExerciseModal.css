@@ -65,3 +65,8 @@
 .exercise-muscles-title svg {
     color: #3b82f6;
 }
+
+/* Botões Imagem / Poses / Vídeo da visualização do exercício. */
+.exercise-media-tabs { display: flex; gap: 0.3rem; padding: 0.25rem; margin-bottom: 0.75rem; border-radius: 0.8rem; background: #F3F4F6; }
+.exercise-media-tabs button { flex: 1; min-height: 2.1rem; border-radius: 0.6rem; font-size: 0.8rem; font-weight: 600; color: #4B5563; }
+.exercise-media-tabs button.is-active { background: #fff; color: #034EA2; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }

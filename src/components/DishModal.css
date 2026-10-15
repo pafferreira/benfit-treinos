@@ -1,0 +1,27 @@
+.dish-modal { display: flex; flex-direction: column; gap: 0.9rem; }
+.dish-modal-photo { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 0.9rem; background: #F3F4F6; }
+.dish-modal-photo-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; color: #9CA3AF; font-size: 0.82rem; font-weight: 600; }
+.dish-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.dish-modal-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.dish-chip { padding: 0.2rem 0.6rem; border-radius: 999px; background: #F3F4F6; color: #4B5563; font-size: 0.72rem; font-weight: 600; text-transform: capitalize; }
+.dish-chip-meal { background: rgba(3, 78, 162, 0.1); color: #034EA2; }
+.dish-fav-btn { display: inline-flex; align-items: center; gap: 0.35rem; flex-shrink: 0; padding: 0.4rem 0.75rem; border-radius: 999px; border: 1px solid #E5E7EB; background: #fff; color: #4B5563; font-size: 0.8rem; font-weight: 600; }
+.dish-fav-btn.is-on { border-color: #FECACA; background: #FEF2F2; color: #DC2626; }
+.dish-modal-desc { margin: 0; font-size: 0.88rem; color: #374151; line-height: 1.5; }
+.dish-macros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
+.dish-macros div { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; padding: 0.6rem 0.25rem; border-radius: 0.75rem; background: #F8FAFC; border: 1px solid #E8EEF6; }
+.dish-macros strong { font-size: 0.95rem; color: #111827; }
+.dish-macros span { font-size: 0.68rem; color: #6B7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+.dish-modal-hint { margin: -0.4rem 0 0; font-size: 0.72rem; color: #9CA3AF; }
+.dish-modal-title { display: block; margin: 0 0 0.4rem; font-size: 0.9rem; font-weight: 700; color: #111827; }
+.dish-ingredients { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.dish-ingredients li { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.45rem 0; border-bottom: 1px solid #F1F5F9; font-size: 0.85rem; color: #374151; }
+.dish-qty { color: #6B7280; white-space: nowrap; }
+.dish-steps { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; color: #374151; line-height: 1.5; }
+.dish-notes { display: flex; flex-direction: column; gap: 0.4rem; }
+.dish-notes textarea { width: 100%; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.5rem 0.7rem; font-size: 0.85rem; resize: vertical; }
+.dish-notes textarea:focus { outline: none; border-color: #008ACF; box-shadow: 0 0 0 3px rgba(0, 138, 207, 0.15); }
+.dish-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.5rem 0.85rem; border-radius: 0.75rem; border: 1px solid #E5E7EB; background: #fff; color: #374151; font-size: 0.8rem; font-weight: 600; align-self: flex-start; }
+.dish-btn:disabled { opacity: 0.6; }
+.dish-btn-primary { background: #034EA2; border-color: #034EA2; color: #fff; }
+.dish-btn-danger { color: #DC2626; border-color: #FECACA; }

@@ -212,16 +212,31 @@ async function callGemini({ messages, systemPrompt }) {
     };
 }
 
+// As ferramentas só existem no Claude. Se ele falhar, a reserva não pode
+// prometer cadastro nem mídia que ninguém vai fazer.
+export const NO_TOOLS_NOTE = `
+
+## Aviso desta resposta
+Nesta resposta você está sem as ferramentas do app: não consegue cadastrar exercício ou prato, buscar no catálogo nem gerar imagem, poses ou vídeo. Não diga que cadastrou, gerou, enviou ou pediu nada. Se pedirem uma dessas ações, explique que ela está indisponível agora e peça para tentar de novo em alguns minutos.`;
+
+const describeFailure = (name, entry) => `${name}: ${entry.status}${entry.body ? ` ${entry.body}` : ''}`.slice(0, 300);
+
 export async function chatWithFallback({ messages, systemPrompt = SYSTEM_PROMPT, tools, runTool }) {
     const providers = [callClaude, callOpenAI, callGemini];
+    const wantsTools = Array.isArray(tools) && tools.length > 0;
 
     const errors = [];
     for (const call of providers) {
+        const prompt = wantsTools && call !== callClaude ? `${systemPrompt}${NO_TOOLS_NOTE}` : systemPrompt;
         try {
-            const result = await call({ messages, systemPrompt, tools, runTool });
-            if (result.skip) continue;
+            const result = await call({ messages, systemPrompt: prompt, tools, runTool });
+            if (result.skip) {
+                errors.push({ name: call.name, status: 'skip', body: 'chave de API não configurada' });
+                continue;
+            }
             if (result.error) {
-                errors.push({ status: result.status, body: result.body?.slice(0, 300) });
+                const entry = { name: call.name, status: result.status, body: result.body?.slice(0, 300) };
+                errors.push(entry);
                 if (isFallbackError(result.status)) {
                     console.warn(`[AI] ${call.name} falhou (${result.status}), tentando o próximo:`,
                         result.body?.slice(0, 200));
@@ -229,10 +244,15 @@ export async function chatWithFallback({ messages, systemPrompt = SYSTEM_PROMPT,
                 }
                 break; // erro realmente não recuperável
             }
-            if (result.text) return result;
-            errors.push({ status: 'empty', body: 'resposta vazia' });
+            if (result.text) {
+                // Motivo de não ter sido o primeiro da fila (o admin vê no chat).
+                const first = errors[0];
+                return first ? { ...result, fallbackReason: describeFailure(first.name, first) } : result;
+            }
+            errors.push({ name: call.name, status: 'empty', body: 'resposta vazia' });
         } catch (e) {
-            errors.push({ status: 'network', body: e.message });
+            console.error(`[AI] ${call.name} lançou erro, tentando o próximo:`, e?.message);
+            errors.push({ name: call.name, status: 'erro', body: e?.message });
         }
     }
     const err = new Error('Todos os provedores de AI falharam');

@@ -67,6 +67,30 @@ export const buildVideoPrompt = (exercise, adjustment = '') => [
     adjustment ? `Ajuste pedido na revisão: ${adjustment}` : '',
 ].filter(Boolean).join(' ');
 
+// Foto dos pratos (etapa 2D): sempre o mesmo estilo, para o catálogo ficar uniforme.
+const DISH_STYLE = [
+    'Fotografia realista de comida, vista de cima (flat lay), luz natural suave vinda da lateral,',
+    'prato de cerâmica branca sobre mesa de madeira clara, fundo limpo, poucos objetos ao redor.',
+    'Porção individual, aparência caseira e apetitosa, cores naturais.',
+    'Sem texto, sem legendas, sem logotipos, sem marca d\'água, sem pessoas. Formato paisagem 16:9.',
+].join(' ');
+
+export const buildDishImagePrompt = (dish, adjustment = '') => {
+    const ingredients = (Array.isArray(dish?.ingredients) ? dish.ingredients : [])
+        .map(i => [i?.quantidade, i?.item].filter(Boolean).join(' de '))
+        .filter(Boolean)
+        .slice(0, 12)
+        .join(', ');
+    return [
+        DISH_STYLE,
+        `Prato: ${dish.name}.`,
+        dish.description ? `Descrição: ${dish.description}` : '',
+        ingredients ? `Ingredientes visíveis no prato: ${ingredients}.` : '',
+        'Mostre só o que está nos ingredientes, montado como seria servido.',
+        adjustment ? `Ajuste pedido na revisão: ${adjustment}` : '',
+    ].filter(Boolean).join('\n');
+};
+
 const TRANSLATE_SYSTEM = [
     'You translate image and video generation prompts from Brazilian Portuguese to English.',
     'Keep every instruction, the line breaks and any line that is only "---".',
@@ -238,9 +262,10 @@ export async function downloadVideo({ uri, fetchImpl = fetch }) {
 const EXTENSIONS = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'video/mp4': 'mp4' };
 
 // Arquivos da IA ficam em exercises/ia/; o status na b_media decide se está no ar.
-export const mediaPath = (exercise, label, mimeType) => {
-    const key = String(exercise.exercise_key || exercise.id).replace(/[^a-z0-9_-]/gi, '_').slice(0, 60);
-    return `exercises/ia/${key}-${label}-${Date.now()}.${EXTENSIONS[mimeType] || 'bin'}`;
+// Exercícios em exercises/ia/, pratos em dishes/ia/.
+export const mediaPath = (item, label, mimeType, folder = 'exercises') => {
+    const key = String(item.exercise_key || item.dish_key || item.id).replace(/[^a-z0-9_-]/gi, '_').slice(0, 60);
+    return `${folder}/ia/${key}-${label}-${Date.now()}.${EXTENSIONS[mimeType] || 'bin'}`;
 };
 
 export async function uploadMedia(supabase, path, body, contentType) {

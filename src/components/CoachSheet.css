@@ -14,6 +14,8 @@
     transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
+.coach-launch-btn { padding: 0; overflow: hidden; }
+
 .coach-launch-btn:hover {
     background: rgba(var(--color-secondary-rgb), 0.18);
 }

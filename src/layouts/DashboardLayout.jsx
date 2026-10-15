@@ -115,7 +115,7 @@ const DashboardLayoutContent = () => {
             case '/exercicios':
                 return { title: 'Exercícios', subtitle: 'Biblioteca completa' };
             case '/coach':
-                return { title: 'Benfit Coach', subtitle: 'IA a serviço da sua saúde' };
+                return { title: 'Benfit', subtitle: 'IA a serviço da sua saúde' };
             case '/perfil':
                 return { title: 'Perfil', subtitle: 'Suas configurações' };
             case '/diagnostic':

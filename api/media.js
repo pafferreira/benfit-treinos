@@ -1,5 +1,6 @@
 import { ChatHttpError, getBearerToken, requireUser } from './_conversation-history.js';
 import {
+    buildDishImagePrompt,
     buildImagePrompt,
     buildPosePrompt,
     buildVideoPrompt,
@@ -13,8 +14,8 @@ import {
     uploadMedia,
 } from './_media.js';
 
-// Mídia dos exercícios (v2, etapa 2C). Ações:
-// - image: imagem nova (exercício criado pelo Coach, ou admin pedindo outra)
+// Mídia dos exercícios (v2, etapa 2C) e foto dos pratos (etapa 2D). Ações:
+// - image: imagem nova (exercício ou prato criado pelo Coach, ou admin pedindo outra)
 // - poses: início e fim do movimento, alternando no app (só admin)
 // - video: animação em loop pelo Veo (só admin); devolve a mídia "gerando"
 // - video-status: confere o vídeo e, pronto, salva o arquivo e manda para a fila
@@ -24,6 +25,7 @@ import {
 const ACTIONS = new Set(['image', 'poses', 'video', 'video-status', 'prompt']);
 const ADMIN_ONLY = new Set(['poses', 'video', 'prompt']);
 const KINDS = new Set(['image', 'poses', 'video']);
+const ENTITY_TYPES = new Set(['exercise', 'dish']);
 const PROMPT_MAX = 4000;
 // Nas duas poses, a descrição tem duas partes (início e fim) separadas por esta linha.
 export const POSE_SEPARATOR = '\n---\n';
@@ -39,22 +41,38 @@ const loadExercise = async (supabase, exerciseId) => {
     return data;
 };
 
+const loadDish = async (supabase, dishId) => {
+    const { data, error } = await supabase
+        .from('b_dishes')
+        .select('id, dish_key, name, description, meal_type, ingredients, image_url, created_by, created_by_ai')
+        .eq('id', dishId)
+        .maybeSingle();
+    if (error) throw new ChatHttpError(500, 'Não foi possível carregar o prato');
+    if (!data) throw new ChatHttpError(404, 'Prato não encontrado');
+    return data;
+};
+
 const isAdminUser = async (supabase, userId) => {
     const { data } = await supabase.from('b_users').select('role').eq('id', userId).maybeSingle();
     return data?.role === 'admin';
 };
 
 // Recusa cedo o que nunca seria permitido; o limite diário fica na reserva do banco.
-const checkAccess = async ({ supabase, user, action, exercise }) => {
+// Prato só tem foto: poses e vídeo são exclusivos dos exercícios.
+const checkAccess = async ({ supabase, user, action, item, entityType, kind }) => {
+    if (entityType === 'dish' && (action === 'poses' || action === 'video' || (action === 'prompt' && kind !== 'image'))) {
+        throw new ChatHttpError(400, 'Prato só tem foto');
+    }
     const admin = await isAdminUser(supabase, user.id);
     if (admin) return true;
     if (ADMIN_ONLY.has(action)) throw new ChatHttpError(403, 'Só administradores geram animações');
-    const ownAiExercise = exercise.created_by_ai && exercise.created_by === user.id && !exercise.image_url;
-    if (!ownAiExercise) throw new ChatHttpError(403, 'Sem permissão para gerar esta imagem');
+    const ownAiItem = item.created_by_ai && item.created_by === user.id && !item.image_url;
+    if (!ownAiItem) throw new ChatHttpError(403, 'Sem permissão para gerar esta imagem');
     return false;
 };
 
-export const defaultPrompt = (exercise, kind, adjustment = '') => {
+export const defaultPrompt = (exercise, kind, adjustment = '', entityType = 'exercise') => {
+    if (entityType === 'dish') return buildDishImagePrompt(exercise, adjustment);
     if (kind === 'poses') {
         return ['start', 'end'].map(pose => buildPosePrompt(exercise, pose, adjustment)).join(POSE_SEPARATOR);
     }
@@ -69,13 +87,15 @@ export const splitPosePrompt = (prompt) => {
     return parts;
 };
 
-// Duas imagens atuais como referência de estilo (as que ficam em exercises/).
-const styleReferences = async (supabase, exerciseId) => {
+// Duas imagens atuais como referência de estilo: as dos exercícios (em
+// exercises/) ou, para pratos, fotos de pratos já aprovadas (em dishes/).
+const styleReferences = async (supabase, itemId, entityType = 'exercise') => {
+    const dish = entityType === 'dish';
     const { data } = await supabase
-        .from('b_exercises')
+        .from(dish ? 'b_dishes' : 'b_exercises')
         .select('image_url')
-        .like('image_url', '%/benfit-assets/exercises/%')
-        .neq('id', exerciseId)
+        .like('image_url', dish ? '%/benfit-assets/dishes/%' : '%/benfit-assets/exercises/%')
+        .neq('id', itemId)
         .order('name')
         .limit(2);
     const images = await Promise.all((data || []).map(row => fetchImage(row.image_url).catch(() => null)));
@@ -104,9 +124,9 @@ const finish = async (supabase, mediaId, { url = null, frames = null, paths = []
 
 // Imagem e duas poses: reserva a vaga no banco (permissão e limite diário)
 // antes de pagar a geração; qualquer falha depois marca a reserva como "falhou".
-const generateReserved = async (supabase, exercise, kind, prompt, produce) => {
+const generateReserved = async (supabase, item, kind, prompt, produce, entityType = 'exercise') => {
     const { data: reservation, error } = await supabase.rpc('b_media_reserve', {
-        p_entity_type: 'exercise', p_entity_id: exercise.id, p_kind: kind, p_prompt: prompt,
+        p_entity_type: entityType, p_entity_id: item.id, p_kind: kind, p_prompt: prompt,
     });
     if (error) throw rpcError(error, 'Não foi possível reservar a geração');
     try {
@@ -123,15 +143,18 @@ const requireExerciseImage = async (exercise) => {
     return image;
 };
 
-async function handleImage({ supabase, exercise, adjustment, customPrompt }) {
-    const prompt = customPrompt || buildImagePrompt(exercise, adjustment);
-    return generateReserved(supabase, exercise, 'image', prompt, async () => {
-        const [references, english] = await Promise.all([styleReferences(supabase, exercise.id), translatePrompt(prompt)]);
+async function handleImage({ supabase, exercise: item, adjustment, customPrompt, entityType }) {
+    const prompt = customPrompt || defaultPrompt(item, 'image', adjustment, entityType);
+    return generateReserved(supabase, item, 'image', prompt, async () => {
+        const [references, english] = await Promise.all([
+            styleReferences(supabase, item.id, entityType), translatePrompt(prompt),
+        ]);
         const image = await generateImage({ prompt: english, references });
-        const path = mediaPath(exercise, 'imagem', image.mimeType);
+        const folder = entityType === 'dish' ? 'dishes' : 'exercises';
+        const path = mediaPath(item, entityType === 'dish' ? 'foto' : 'imagem', image.mimeType, folder);
         const url = await uploadMedia(supabase, path, Buffer.from(image.data, 'base64'), image.mimeType);
         return { url, paths: [path] };
-    });
+    }, entityType);
 }
 
 async function handlePoses({ supabase, exercise, adjustment, customPrompt }) {
@@ -193,7 +216,9 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Método não permitido' });
     }
     const { action, exerciseId, mediaId, adjustment, kind, prompt } = req.body || {};
-    if (!ACTIONS.has(action)) {
+    const entityType = req.body?.entityType || 'exercise';
+    const entityId = req.body?.entityId || exerciseId;
+    if (!ACTIONS.has(action) || !ENTITY_TYPES.has(entityType)) {
         return res.status(400).json({ error: 'Ação inválida' });
     }
     const cleanAdjustment = typeof adjustment === 'string' ? adjustment.trim().slice(0, 500) : '';
@@ -211,20 +236,20 @@ export default async function handler(req, res) {
             return res.status(200).json({ media });
         }
 
-        if (!exerciseId) return res.status(400).json({ error: 'Campo "exerciseId" é obrigatório' });
-        const exercise = await loadExercise(supabase, exerciseId);
-        const admin = await checkAccess({ supabase, user, action, exercise });
+        if (!entityId) return res.status(400).json({ error: 'Campo "entityId" é obrigatório' });
+        const item = entityType === 'dish' ? await loadDish(supabase, entityId) : await loadExercise(supabase, entityId);
+        const admin = await checkAccess({ supabase, user, action, item, entityType, kind });
 
         if (action === 'prompt') {
             if (!KINDS.has(kind)) return res.status(400).json({ error: 'Tipo de mídia inválido' });
-            return res.status(200).json({ prompt: defaultPrompt(exercise, kind, cleanAdjustment) });
+            return res.status(200).json({ prompt: defaultPrompt(item, kind, cleanAdjustment, entityType) });
         }
         if (customPrompt && !admin) {
             return res.status(403).json({ error: 'Só administradores editam a descrição' });
         }
 
         const run = { image: handleImage, poses: handlePoses, video: handleVideo }[action];
-        const media = await run({ supabase, exercise, adjustment: cleanAdjustment, customPrompt });
+        const media = await run({ supabase, exercise: item, adjustment: cleanAdjustment, customPrompt, entityType });
         return res.status(200).json({ media });
     } catch (error) {
         if (error instanceof ChatHttpError) {

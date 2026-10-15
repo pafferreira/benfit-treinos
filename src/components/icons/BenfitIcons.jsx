@@ -29,6 +29,21 @@ export const RobotCoachIcon = ({ size = 24, strokeWidth = 2, ...props }) => (
     </svg>
 );
 
+// Droide do Benfit em estilo HQ (ícone G escolhido pelo PAF): avatar redondo
+// usado no botão do cabeçalho, nas mensagens e no chip do chat.
+export const BenfitAvatar = ({ size = 24, className = '', ...props }) => (
+    <img
+        src="/benfit-droide.jpg"
+        alt=""
+        aria-hidden="true"
+        width={size}
+        height={size}
+        className={`benfit-avatar ${className}`}
+        style={{ width: size, height: size, borderRadius: '9999px', objectFit: 'cover', flexShrink: 0 }}
+        {...props}
+    />
+);
+
 // Bowl no prato, visto de cima, com garfo e faca: ícone da Dieta.
 export const BowlPlateIcon = ({ size = 24, strokeWidth = 2, ...props }) => (
     <svg {...base(size, strokeWidth, props)}>

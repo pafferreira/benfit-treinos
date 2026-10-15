@@ -153,7 +153,7 @@ export const maybeStoreConversation = async (userId, userMessage, aiResponse) =>
         return false;
     }
 
-    const contentSummary = `Usuário perguntou: "${userMessage}"\nBenfit Coach respondeu: ${aiResponse.substring(0, 600)}`;
+    const contentSummary = `Usuário perguntou: "${userMessage}"\nBenfit Benfit respondeu: ${aiResponse.substring(0, 600)}`;
     const metadata = {
         type: 'conversation',
         category,

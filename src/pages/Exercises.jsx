@@ -2,11 +2,13 @@ import { useState, useMemo, useEffect } from 'react';
 import { useExercises, useUserRole, useExerciseMuscleMap } from '../hooks/useSupabase';
 import { useCoachScreen } from '../context/coach';
 import { supabaseHelpers, getExerciseMuscleGroups } from '../lib/supabase';
-import { Search, Plus, Trash2, Target, Package, LayoutGrid, List, Dumbbell, Filter, X, PersonStanding } from 'lucide-react';
+import { Search, Plus, Trash2, Target, Package, LayoutGrid, List, Dumbbell, Filter, X, PersonStanding, Play } from 'lucide-react';
 import MuscleExplorer from '../components/MuscleExplorer';
 import { MUSCLES, MUSCLE_BY_SLUG, getExerciseMuscles } from '../lib/muscles';
 import ExerciseModal from '../components/ExerciseModal';
 import { exerciseImageUrl, DEFAULT_EXERCISE_IMAGE } from '../lib/exerciseImage';
+
+const hasExerciseAnimation = (ex) => Boolean(ex?.animation_url) || (Array.isArray(ex?.animation_frames) && ex.animation_frames.length >= 2);
 import ConfirmationModal from '../components/ConfirmationModal';
 import { Skeleton } from '../components/Skeleton';
 import Tooltip from '../components/Tooltip';
@@ -348,6 +350,11 @@ const Exercises = () => {
                                                         e.target.src = DEFAULT_EXERCISE_IMAGE;
                                                     }}
                                                 />
+                                                {hasExerciseAnimation(exercise) && (
+                                                    <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                        <Play size={10} fill="currentColor" /> {exercise.animation_url ? 'Vídeo' : 'Poses'}
+                                                    </span>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-1 flex-col justify-between min-w-0">
@@ -404,6 +411,11 @@ const Exercises = () => {
                                                         e.target.src = DEFAULT_EXERCISE_IMAGE;
                                                     }}
                                                 />
+                                                {hasExerciseAnimation(exercise) && (
+                                                    <span className="absolute bottom-0.5 right-0.5 rounded-full bg-black/60 p-1 text-white" title="Tem animação">
+                                                        <Play size={8} fill="currentColor" />
+                                                    </span>
+                                                )}
                                             </div>
 
                                             <div className="flex-1 min-w-0">

@@ -1,11 +1,11 @@
 {
   "name": "benfit-treinos",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.3.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --test test/ai-multiturn.test.js test/muscles.test.js test/media.test.js test/coach-tools-loop.test.js",
+    "test": "node --test test/ai-multiturn.test.js test/muscles.test.js test/media.test.js test/coach-tools-loop.test.js test/dishes.test.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

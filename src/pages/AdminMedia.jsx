@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, X, RefreshCw, RotateCcw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Upload, Trash2, X, RefreshCw, RotateCcw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { exerciseImageUrl, DEFAULT_EXERCISE_IMAGE } from '../lib/exerciseImage';
-import { requestMedia, listMedia, reviewMedia, getMediaApproval, setMediaApproval, getDefaultPrompt } from '../services/media';
+import { requestMedia, listMedia, reviewMedia, applyMediaToItem, deleteMedia, getMediaApproval, setMediaApproval, getDefaultPrompt, MEDIA_CHANGED_EVENT } from '../services/media';
+import { listDishes, DISHES_CHANGED_EVENT } from '../services/dishes';
+import { useCoach } from '../context/coach';
 import SearchableExerciseSelect from '../components/SearchableExerciseSelect';
 import ExerciseAnimation from '../components/ExerciseAnimation';
+import MediaLibrary from '../components/MediaLibrary';
+import ConfirmationModal from '../components/ConfirmationModal';
 import './AdminMedia.css';
 
-// Tela "Aprovar mídias" (v2, etapa 2C), só admin: fila das imagens e animações
-// geradas pela IA, a chave da aprovação e o pedido de mídia nova para qualquer
-// exercício (inclusive o piloto de animação: vídeo e duas poses).
+// Tela "Aprovar mídias" (v2, etapas 2C e 2D), só admin: fila das imagens e
+// animações geradas pela IA, a chave da aprovação e o pedido de mídia nova para
+// qualquer exercício (imagem, vídeo e duas poses) ou prato (só foto).
 const KINDS = {
     image: { label: 'Imagem', icon: ImageIcon },
     poses: { label: 'Duas poses', tab: '2 poses', icon: Footprints },
@@ -21,6 +25,12 @@ const TABS = [
     { key: 'pendente', label: 'Pendentes', statuses: ['pendente'] },
     { key: 'gerando', label: 'Gerando', statuses: ['gerando'] },
     { key: 'historico', label: 'Histórico', statuses: ['aprovada', 'rejeitada', 'falhou'] },
+];
+
+const SECTIONS = [
+    { key: 'biblioteca', label: 'Biblioteca' },
+    { key: 'aprovar', label: 'Aprovar' },
+    { key: 'gerar', label: 'Gerar' },
 ];
 
 const STATUS_LABEL = {
@@ -65,26 +75,47 @@ const MediaPreview = ({ media, exercise }) => {
     return <div className="am-preview am-preview-wait am-preview-empty"><span>Sem arquivo gerado</span></div>;
 };
 
-const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
+const ENTITIES = {
+    exercise: { label: 'Exercício', pick: 'Escolha o exercício', empty: 'Nenhum exercício encontrado.' },
+    dish: { label: 'Prato', pick: 'Escolha o prato', empty: 'Nenhum prato encontrado.' },
+};
+
+// A mídia é a que está publicada hoje no exercício ou prato?
+const isInUse = (media, item) => {
+    if (!item || media.status !== 'aprovada') return false;
+    if (media.kind === 'image') return Boolean(media.url) && media.url === item.image_url;
+    if (media.kind === 'video') return Boolean(media.url) && media.url === item.animation_url;
+    if (media.kind === 'poses') return (media.frames || []).length > 0 && JSON.stringify(media.frames) === JSON.stringify(item.animation_frames || []);
+    return false;
+};
+
+const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegenerate }) => {
+    const isDish = media.entity_type === 'dish';
     const [showPrompt, setShowPrompt] = useState(false);
     const [adjusting, setAdjusting] = useState(false);
     const [draft, setDraft] = useState('');
-    const kind = KINDS[media.kind] || KINDS.image;
+    const kind = isDish ? { label: 'Foto do prato', icon: KINDS.image.icon } : (KINDS[media.kind] || KINDS.image);
     const KindIcon = kind.icon;
-    const current = exercise ? exerciseImageUrl(exercise) : null;
+    const current = exercise ? (isDish ? exercise.image_url : exerciseImageUrl(exercise)) : null;
     const canReview = media.status === 'pendente' || media.status === 'aprovada' || media.status === 'rejeitada';
+    const inUse = isInUse(media, exercise);
+    const itemWord = isDish ? 'prato' : 'exercício';
+    const canDelete = media.status === 'rejeitada' || media.status === 'falhou' || (media.status === 'aprovada' && !inUse);
 
     return (
         <article className="am-card">
             <header className="am-card-head">
                 <div className="min-w-0">
-                    <h3 className="am-card-title">{exercise?.name || 'Exercício removido'}</h3>
+                    <h3 className="am-card-title">{exercise?.name || (isDish ? 'Prato removido' : 'Exercício removido')}</h3>
                     <p className="am-card-meta">
                         <KindIcon size={14} /> {kind.label} · {formatDate(media.created_at)}
-                        {exercise?.created_by_ai && <span className="am-chip am-chip-ai">Criado pelo Coach</span>}
+                        {exercise?.created_by_ai && <span className="am-chip am-chip-ai">Criado pelo Benfit</span>}
                     </p>
                 </div>
-                <span className={`am-status am-status-${media.status}`}>{STATUS_LABEL[media.status]}</span>
+                <span className="am-status-stack">
+                    <span className={`am-status am-status-${media.status}`}>{STATUS_LABEL[media.status]}</span>
+                    {inUse && <span className="am-status am-status-inuse">Em uso</span>}
+                </span>
             </header>
 
             <div className="am-compare">
@@ -94,7 +125,18 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
                 </figure>
                 <figure>
                     <figcaption>No ar hoje</figcaption>
-                    <img className="am-preview am-preview-current" src={current || DEFAULT_EXERCISE_IMAGE} alt="" />
+                    {/* Poses e vídeo: mostra a animação publicada hoje, não a foto. */}
+                    {!isDish && media.kind === 'poses' ? (
+                        (exercise?.animation_frames || []).length >= 2
+                            ? <ExerciseAnimation frames={exercise.animation_frames} poster={current} alt="" className="am-preview am-preview-current" />
+                            : <div className="am-preview am-preview-wait am-preview-empty"><span>Sem poses</span></div>
+                    ) : !isDish && media.kind === 'video' ? (
+                        exercise?.animation_url
+                            ? <ExerciseAnimation videoUrl={exercise.animation_url} poster={current} alt="" className="am-preview am-preview-current" />
+                            : <div className="am-preview am-preview-wait am-preview-empty"><span>Sem vídeo</span></div>
+                    ) : current || !isDish
+                        ? <img className="am-preview am-preview-current" src={current || DEFAULT_EXERCISE_IMAGE} alt="" />
+                        : <div className="am-preview am-preview-wait am-preview-empty"><span>Sem foto</span></div>}
                 </figure>
             </div>
 
@@ -122,9 +164,19 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
             )}
 
             <div className="am-actions">
-                {canReview && media.status !== 'aprovada' && (
-                    <button type="button" className="am-btn am-btn-approve" disabled={busy} onClick={() => onReview(media, 'aprovada')}>
-                        <Check size={16} /> Aprovar
+                {media.status === 'pendente' && exercise && (
+                    <>
+                        <button type="button" className="am-btn am-btn-approve" disabled={busy} onClick={() => onReview(media, 'aprovada', true)}>
+                            <CheckCheck size={16} /> Aprovar e usar
+                        </button>
+                        <button type="button" className="am-btn" disabled={busy} onClick={() => onReview(media, 'aprovada', false)} title={`Aprova sem trocar a mídia do ${itemWord}`}>
+                            <Check size={16} /> Só aprovar
+                        </button>
+                    </>
+                )}
+                {media.status === 'aprovada' && exercise && !inUse && (
+                    <button type="button" className="am-btn am-btn-approve" disabled={busy} onClick={() => onUse(media)}>
+                        <Upload size={16} /> Usar no {itemWord}
                     </button>
                 )}
                 {exercise && media.status !== 'gerando' && (
@@ -148,6 +200,11 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
                         <X size={16} /> Rejeitar
                     </button>
                 )}
+                {canDelete && (
+                    <button type="button" className="am-btn am-btn-reject" disabled={busy} onClick={() => onDelete(media)}>
+                        <Trash2 size={16} /> Excluir
+                    </button>
+                )}
             </div>
         </article>
     );
@@ -155,14 +212,22 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
 
 const AdminMedia = () => {
     const navigate = useNavigate();
+    const { openCoach } = useCoach();
     const { isRealAdmin, loading: roleLoading } = useUserRole();
     const { exercises, reload: reloadExercises } = useExercises();
     const [tab, setTab] = useState('pendente');
+    // Abas da tela Mídias Benfit; #biblioteca e #gerar no link abrem direto nelas.
+    const [section, setSection] = useState(() => {
+        const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
+        return SECTIONS.some(s => s.key === hash) ? hash : 'aprovar';
+    });
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [approvalOn, setApprovalOn] = useState(true);
     const [busyIds, setBusyIds] = useState(() => new Set());
     const [newExerciseId, setNewExerciseId] = useState('');
+    const [newEntity, setNewEntity] = useState('exercise');
+    const [dishes, setDishes] = useState([]);
     const [newKind, setNewKind] = useState('image');
     const [newPrompt, setNewPrompt] = useState('');
     const [promptLoading, setPromptLoading] = useState(false);
@@ -174,10 +239,18 @@ const AdminMedia = () => {
     useEffect(() => { reloadRef.current = reloadExercises; }, [reloadExercises]);
 
     const exerciseById = useMemo(() => Object.fromEntries((exercises || []).map(ex => [ex.id, ex])), [exercises]);
+    const dishById = useMemo(() => Object.fromEntries(dishes.map(d => [d.id, d])), [dishes]);
+    const reloadDishes = useCallback(() => listDishes().then(setDishes).catch(() => {}), []);
+    useEffect(() => { if (isRealAdmin) reloadDishes(); }, [isRealAdmin, reloadDishes]);
+    const entityOf = (media) => (media.entity_type === 'dish' ? dishById : exerciseById)[media.entity_id];
+    // Filtro por tipo de item: todos, só exercícios ou só pratos.
+    const [entityFilter, setEntityFilter] = useState('todos');
+    const filtered = useMemo(() => (entityFilter === 'todos' ? items : items.filter(m => m.entity_type === entityFilter)), [items, entityFilter]);
     const counts = useMemo(() => TABS.reduce((acc, t) => ({
-        ...acc, [t.key]: items.filter(m => t.statuses.includes(m.status)).length,
-    }), {}), [items]);
-    const visible = useMemo(() => items.filter(m => TABS.find(t => t.key === tab).statuses.includes(m.status)), [items, tab]);
+        ...acc, [t.key]: filtered.filter(m => t.statuses.includes(m.status)).length,
+    }), {}), [filtered]);
+    const pendingTotal = useMemo(() => items.filter(m => m.status === 'pendente').length, [items]);
+    const visible = useMemo(() => filtered.filter(m => TABS.find(t => t.key === tab).statuses.includes(m.status)), [filtered, tab]);
 
     const load = useCallback(async () => {
         try {
@@ -194,6 +267,27 @@ const AdminMedia = () => {
     useEffect(() => {
         if (isRealAdmin) load();
     }, [isRealAdmin, load]);
+
+    // O Benfit cadastra pratos e exercícios pelo chat e manda a foto para a fila.
+    useEffect(() => {
+        if (!isRealAdmin) return undefined;
+        const onMedia = () => { load(); reloadDishes(); reloadRef.current?.(); };
+        window.addEventListener(MEDIA_CHANGED_EVENT, onMedia);
+        window.addEventListener(DISHES_CHANGED_EVENT, reloadDishes);
+        return () => {
+            window.removeEventListener(MEDIA_CHANGED_EVENT, onMedia);
+            window.removeEventListener(DISHES_CHANGED_EVENT, reloadDishes);
+        };
+    }, [isRealAdmin, load, reloadDishes]);
+
+    // Item que ainda não existe: o Benfit cadastra pelo chat e já gera a foto.
+    const createWithBenfit = (name) => {
+        const term = name.trim();
+        if (!term) return;
+        openCoach(newEntity === 'dish'
+            ? `Cadastre no catálogo de Dieta o prato "${term}", com ingredientes, modo de preparo e macros.`
+            : `Cadastre na base o exercício "${term}", com grupos musculares e instruções.`);
+    };
 
     useEffect(() => {
         const onKey = (e) => { if (e.key === 'Escape') navigate('/perfil'); };
@@ -222,7 +316,7 @@ const AdminMedia = () => {
                     }
                 }
             } catch (err) {
-                console.warn('[Aprovar mídias] Falha ao conferir vídeo:', err.message);
+                console.warn('[Mídias Benfit] Falha ao conferir vídeo:', err.message);
             } finally {
                 pollingRef.current = false;
             }
@@ -238,14 +332,48 @@ const AdminMedia = () => {
         return next;
     });
 
-    const handleReview = async (media, decision) => {
+    const [toDelete, setToDelete] = useState(null);
+    const handleDelete = async () => {
+        const media = toDelete;
+        setToDelete(null);
         setBusy(media.id, true);
         try {
-            const updated = await reviewMedia(media.id, decision);
+            await deleteMedia(media.id);
+            setItems(prev => prev.filter(m => m.id !== media.id));
+            window.dispatchEvent(new Event('avatars-updated'));
+            toast('Mídia excluída.');
+        } catch (err) {
+            toast(err.message, 'error');
+        } finally {
+            setBusy(media.id, false);
+        }
+    };
+
+    const handleUse = async (media) => {
+        setBusy(media.id, true);
+        try {
+            await applyMediaToItem(media.id);
+            const isDish = media.entity_type === 'dish';
+            if (isDish) reloadDishes(); else reloadExercises();
+            toast(isDish ? 'Foto publicada no prato.' : 'Mídia publicada no exercício.');
+        } catch (err) {
+            toast(err.message, 'error');
+        } finally {
+            setBusy(media.id, false);
+        }
+    };
+
+    const handleReview = async (media, decision, use = true) => {
+        setBusy(media.id, true);
+        try {
+            const updated = await reviewMedia(media.id, decision, use);
             upsertItem(updated);
             if (decision === 'aprovada') {
-                reloadExercises();
-                toast('Mídia aprovada e publicada no exercício.');
+                const isDish = media.entity_type === 'dish';
+                if (isDish) reloadDishes(); else reloadExercises();
+                toast(use
+                    ? (isDish ? 'Foto aprovada e publicada no prato.' : 'Mídia aprovada e publicada no exercício.')
+                    : `Mídia aprovada sem trocar a do ${isDish ? 'prato' : 'exercício'}. Use quando quiser pelo Histórico.`);
             } else {
                 toast('Mídia rejeitada.');
             }
@@ -256,14 +384,17 @@ const AdminMedia = () => {
         }
     };
 
-    const generate = async (kind, exerciseId, prompt) => {
-        const key = `${kind}:${exerciseId}`;
+    const generate = async (kind, entityId, prompt, entityType = 'exercise') => {
+        const key = `${kind}:${entityId}`;
         setGenerating(key);
         try {
-            const media = await requestMedia(kind, { exerciseId, prompt });
+            const media = await requestMedia(kind, { entityType, entityId, prompt });
             upsertItem(media);
             setTab(media.status === 'gerando' ? 'gerando' : media.status === 'pendente' ? 'pendente' : 'historico');
-            if (media.status === 'aprovada') reloadExercises();
+            setSection('aprovar');
+            if (media.status === 'aprovada') {
+                if (entityType === 'dish') reloadDishes(); else reloadExercises();
+            }
             toast(media.status === 'gerando'
                 ? 'Vídeo em geração. Ele aparece em "Gerando" e fica pronto em alguns minutos.'
                 : media.status === 'aprovada' ? 'Mídia gerada e publicada.' : 'Mídia gerada. Revise em "Pendentes".');
@@ -274,19 +405,25 @@ const AdminMedia = () => {
         }
     };
 
-    const handleRegenerate = (media, prompt) => generate(media.kind, media.entity_id, prompt);
+    const handleRegenerate = (media, prompt) => generate(media.kind, media.entity_id, prompt, media.entity_type);
+
+    const changeEntity = (entity) => {
+        setNewEntity(entity);
+        setNewExerciseId('');
+        setNewKind('image');
+    };
 
     // Descrição padrão do exercício e tipo escolhidos, já em português, para editar.
     useEffect(() => {
         if (!newExerciseId) { setNewPrompt(''); return undefined; }
         let active = true;
         setPromptLoading(true);
-        getDefaultPrompt(newExerciseId, newKind)
+        getDefaultPrompt(newExerciseId, newKind, newEntity)
             .then(prompt => { if (active) setNewPrompt(prompt || ''); })
             .catch(err => { if (active) toast(`Não foi possível montar a descrição: ${err.message}`, 'error'); })
             .finally(() => { if (active) setPromptLoading(false); });
         return () => { active = false; };
-    }, [newExerciseId, newKind, promptVersion]);
+    }, [newExerciseId, newKind, newEntity, promptVersion]);
 
     const toggleApproval = async () => {
         const next = !approvalOn;
@@ -308,7 +445,9 @@ const AdminMedia = () => {
         );
     }
 
-    const selected = exerciseById[newExerciseId];
+    const isDishTarget = newEntity === 'dish';
+    const selected = (isDishTarget ? dishById : exerciseById)[newExerciseId];
+    const kindEntries = Object.entries(KINDS).filter(([kind]) => !isDishTarget || kind === 'image');
 
     return (
         <div className="am-page">
@@ -317,11 +456,30 @@ const AdminMedia = () => {
                     <ArrowLeft size={24} />
                 </button>
                 <div>
-                    <h1>Aprovar mídias</h1>
-                    <p>Imagens e animações geradas pela IA.</p>
+                    <h1>Mídias Benfit</h1>
+                    <p>Biblioteca de imagens e mídias geradas pela IA.</p>
                 </div>
             </div>
 
+            <div className="am-sections" role="tablist" aria-label="Seções">
+                {SECTIONS.map(s => (
+                    <button
+                        key={s.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={section === s.key}
+                        className={section === s.key ? 'is-active' : ''}
+                        onClick={() => setSection(s.key)}
+                    >
+                        {s.label}
+                        {s.key === 'aprovar' && pendingTotal > 0 && <span className="am-tab-count">{pendingTotal}</span>}
+                    </button>
+                ))}
+            </div>
+
+            {section === 'biblioteca' && <MediaLibrary exercises={exercises || []} dishes={dishes} />}
+
+            {section === 'aprovar' && <>
             <section className="am-panel am-switch-row">
                 <div>
                     <strong>Revisar antes de publicar</strong>
@@ -340,17 +498,38 @@ const AdminMedia = () => {
                     <span />
                 </button>
             </section>
+            </>}
 
+            {section === 'gerar' && (
             <section className="am-panel">
-                <h2 className="am-panel-title"><Sparkles size={16} /> Gerar mídia para um exercício</h2>
+                <h2 className="am-panel-title"><Sparkles size={16} /> Gerar mídia</h2>
+                <div className="am-kind-tabs am-entity-tabs" role="radiogroup" aria-label="Para o quê">
+                    {Object.entries(ENTITIES).map(([entity, { label }]) => (
+                        <button
+                            key={entity}
+                            type="button"
+                            role="radio"
+                            aria-checked={newEntity === entity}
+                            className={newEntity === entity ? 'is-active' : ''}
+                            disabled={Boolean(generating)}
+                            onClick={() => changeEntity(entity)}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
                 <SearchableExerciseSelect
-                    exercises={exercises}
+                    key={newEntity}
+                    exercises={isDishTarget ? dishes : exercises}
                     value={newExerciseId}
                     onChange={setNewExerciseId}
-                    placeholder="Escolha o exercício"
+                    placeholder={ENTITIES[newEntity].pick}
+                    emptyLabel={ENTITIES[newEntity].empty}
+                    onCreateNew={createWithBenfit}
+                    createLabel={(term) => `Criar "${term}" com o Benfit`}
                 />
-                <div className="am-kind-tabs" role="radiogroup" aria-label="Tipo de mídia">
-                    {Object.entries(KINDS).map(([kind, { label, tab: tabLabel, icon }]) => {
+                {!isDishTarget && <div className="am-kind-tabs" role="radiogroup" aria-label="Tipo de mídia">
+                    {kindEntries.map(([kind, { label, tab: tabLabel, icon }]) => {
                         const KindIcon = icon;
                         const needsImage = kind !== 'image' && selected && !exerciseImageUrl(selected);
                         return (
@@ -368,7 +547,7 @@ const AdminMedia = () => {
                             </button>
                         );
                     })}
-                </div>
+                </div>}
                 {selected && (
                     <div className="am-adjust">
                         <div className="am-prompt-head">
@@ -393,14 +572,33 @@ const AdminMedia = () => {
                     className="am-btn am-btn-primary am-gen-submit"
                     disabled={!selected || Boolean(generating) || promptLoading || !newPrompt.trim()
                         || (newKind !== 'image' && !exerciseImageUrl(selected))}
-                    onClick={() => generate(newKind, newExerciseId, newPrompt.trim())}
+                    onClick={() => generate(newKind, newExerciseId, newPrompt.trim(), newEntity)}
                 >
                     {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                    Gerar {KINDS[newKind].label.toLowerCase()}
+                    {isDishTarget ? 'Gerar foto do prato' : `Gerar ${KINDS[newKind].label.toLowerCase()}`}
                 </button>
-                <p className="am-hint">A descrição é traduzida para o inglês na hora de gerar. Imagem leva uns 20 segundos; duas poses, um pouco mais; o vídeo segue em "Gerando".</p>
+                <p className="am-hint">
+                    A descrição é traduzida para o inglês na hora de gerar.{' '}
+                    {isDishTarget ? 'A foto leva uns 20 segundos.' : 'Imagem leva uns 20 segundos; duas poses, um pouco mais; o vídeo segue em "Gerando".'}
+                </p>
             </section>
+            )}
 
+            {section === 'aprovar' && <>
+            <div className="am-entity-filter" role="radiogroup" aria-label="Tipo de item">
+                {[['todos', 'Todos'], ['exercise', 'Exercícios'], ['dish', 'Pratos']].map(([key, label]) => (
+                    <button
+                        key={key}
+                        type="button"
+                        role="radio"
+                        aria-checked={entityFilter === key}
+                        className={entityFilter === key ? 'is-active' : ''}
+                        onClick={() => setEntityFilter(key)}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
             <div className="am-tabs" role="tablist">
                 {TABS.map(t => (
                     <button
@@ -429,14 +627,25 @@ const AdminMedia = () => {
                         <MediaCard
                             key={media.id}
                             media={media}
-                            exercise={exerciseById[media.entity_id]}
+                            exercise={entityOf(media)}
                             busy={busyIds.has(media.id) || Boolean(generating)}
                             onReview={handleReview}
+                            onUse={handleUse}
+                            onDelete={setToDelete}
                             onRegenerate={handleRegenerate}
                         />
                     ))}
                 </div>
             )}
+            </>}
+            <ConfirmationModal
+                isOpen={Boolean(toDelete)}
+                onClose={() => setToDelete(null)}
+                onConfirm={handleDelete}
+                title="Excluir mídia"
+                message="A mídia sai da fila e os arquivos são apagados. Se for imagem, ela sai também da Biblioteca. Não dá para desfazer."
+                confirmText="Excluir"
+            />
         </div>
     );
 };

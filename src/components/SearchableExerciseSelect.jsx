@@ -9,6 +9,8 @@ const SearchableExerciseSelect = ({
     value,
     onChange,
     onCreateNew,
+    createLabel = (term) => `Criar "${term}"`,
+    emptyLabel = 'Nenhum exercício encontrado.',
     placeholder = 'Selecione um exercício...',
     className = '',
     required = false
@@ -106,11 +108,11 @@ const SearchableExerciseSelect = ({
                             ))
                         ) : (
                             <div className="no-results">
-                                <span>Nenhum exercício encontrado.</span>
+                                <span>{emptyLabel}</span>
                             </div>
                         )}
 
-                        {searchTerm && !filteredExercises.find(e => e.name.toLowerCase() === searchTerm.toLowerCase()) && (
+                        {onCreateNew && searchTerm && !filteredExercises.find(e => e.name.toLowerCase() === searchTerm.toLowerCase()) && (
                              <div
                                 className="create-option"
                                 onClick={(e) => {
@@ -119,7 +121,7 @@ const SearchableExerciseSelect = ({
                                 }}
                             >
                                 <Plus size={16} />
-                                <span>Criar "{searchTerm}"</span>
+                                <span>{createLabel(searchTerm)}</span>
                             </div>
                         )}
                     </div>

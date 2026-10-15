@@ -39,7 +39,7 @@ export default async function handler(req, res) {
             messages,
             systemPrompt: SYSTEM_PROMPT,
             tools: COACH_TOOLS,
-            runTool: createToolRunner(session.supabase),
+            runTool: createToolRunner(session.supabase, session.user),
         });
         const messageId = await saveAssistantResponse({
             supabase: session.supabase,
@@ -52,12 +52,31 @@ export default async function handler(req, res) {
             providerParts: result.providerParts,
         });
 
+        // Só o admin vê por que o Claude não respondeu (ajuda a diagnosticar chave e crédito).
+        let fallbackReason;
+        if (result.fallbackReason) {
+            console.warn('[api/chat] Resposta pela reserva:', result.fallbackReason);
+            const { data: isAdmin } = await session.supabase.rpc('is_admin');
+            if (isAdmin) {
+                fallbackReason = result.fallbackReason;
+                // Fica registrado na conversa (papel "system": não vai para o modelo nem aparece no chat).
+                await session.supabase.from('b_ai_chat_history').insert({
+                    user_id: session.user.id,
+                    conversation_id: conversationId,
+                    role: 'system',
+                    provider: 'benfit_fallback',
+                    content: fallbackReason,
+                });
+            }
+        }
+
         return res.status(200).json({
             text: result.text,
             provider: result.provider,
             model: result.model,
             messageId,
             actions: result.actions || [],
+            ...(fallbackReason ? { fallbackReason } : {}),
         });
     } catch (error) {
         if (error instanceof ChatHttpError) {
