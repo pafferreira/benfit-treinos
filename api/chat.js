@@ -57,7 +57,17 @@ export default async function handler(req, res) {
         if (result.fallbackReason) {
             console.warn('[api/chat] Resposta pela reserva:', result.fallbackReason);
             const { data: isAdmin } = await session.supabase.rpc('is_admin');
-            if (isAdmin) fallbackReason = result.fallbackReason;
+            if (isAdmin) {
+                fallbackReason = result.fallbackReason;
+                // Fica registrado na conversa (papel "system": não vai para o modelo nem aparece no chat).
+                await session.supabase.from('b_ai_chat_history').insert({
+                    user_id: session.user.id,
+                    conversation_id: conversationId,
+                    role: 'system',
+                    provider: 'benfit_fallback',
+                    content: fallbackReason,
+                });
+            }
         }
 
         return res.status(200).json({

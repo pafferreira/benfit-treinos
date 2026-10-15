@@ -974,3 +974,7 @@
     opacity: 0.4;
     cursor: default;
 }
+
+/* Aviso para o admin quando a reserva respondeu no lugar do Claude (fica fixo para copiar). */
+.coach-fallback-note { margin-top: 0.5rem; padding: 0.5rem 0.65rem; border-radius: 0.6rem; background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; font-size: 0.75rem; line-height: 1.4; user-select: text; }
+.coach-fallback-reason { display: block; margin-top: 0.25rem; font-family: ui-monospace, Menlo, monospace; word-break: break-word; }

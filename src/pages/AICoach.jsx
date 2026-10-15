@@ -614,6 +614,7 @@ const AICoach = ({ variant = 'page' }) => {
             let responseText;
             let responseId = null;
             let coachActions = null;
+            let fallbackReason = null;
 
             if (directAnswer) {
                 responseText = directAnswer;
@@ -647,11 +648,7 @@ const AICoach = ({ variant = 'page' }) => {
                 responseText = aiResponse.text;
                 responseId = aiResponse.messageId || null;
                 coachActions = aiResponse.actions;
-                if (aiResponse.fallbackReason) {
-                    window.dispatchEvent(new CustomEvent('app-toast', {
-                        detail: { message: `Aviso (só admin): o Claude não respondeu e a reserva assumiu, sem ferramentas. Motivo: ${aiResponse.fallbackReason}`, type: 'error' },
-                    }));
-                }
+                fallbackReason = aiResponse.fallbackReason || null;
 
                 if (uid) {
                     maybeStoreConversation(uid, text, responseText)
@@ -659,7 +656,7 @@ const AICoach = ({ variant = 'page' }) => {
                 }
             }
 
-            const aiMsg = { id: responseId || Date.now() + 1, dbId: responseId, sender: 'ai', text: responseText };
+            const aiMsg = { id: responseId || Date.now() + 1, dbId: responseId, sender: 'ai', text: responseText, fallbackReason };
             setMessages(prev => [...prev, aiMsg]);
             // Depois da resposta, para os cartões de mídia aparecerem abaixo dela.
             handleCoachActions(coachActions);
@@ -924,6 +921,12 @@ const AICoach = ({ variant = 'page' }) => {
                             <div className="message-bubble">
                                 {msg.media && <ChatMediaCard media={msg.media} />}
                                 {msg.text && renderText(msg.text)}
+                                {msg.fallbackReason && (
+                                    <div className="coach-fallback-note" role="note">
+                                        <strong>Aviso só para admin:</strong> o Claude não respondeu e a reserva assumiu, sem ferramentas.
+                                        <span className="coach-fallback-reason">Motivo: {msg.fallbackReason}</span>
+                                    </div>
+                                )}
                                 {msg.sender === 'ai' && msg.id !== 'initial' && !msg.media && (
                                     <CoachExerciseCard text={msg.text} exercises={libraryExercises} muscleMap={muscleMap} />
                                 )}
