@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, X, RefreshCw, RotateCcw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Upload, X, RefreshCw, RotateCcw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { exerciseImageUrl, DEFAULT_EXERCISE_IMAGE } from '../lib/exerciseImage';
-import { requestMedia, listMedia, reviewMedia, getMediaApproval, setMediaApproval, getDefaultPrompt, MEDIA_CHANGED_EVENT } from '../services/media';
+import { requestMedia, listMedia, reviewMedia, applyMediaToItem, getMediaApproval, setMediaApproval, getDefaultPrompt, MEDIA_CHANGED_EVENT } from '../services/media';
 import { listDishes, DISHES_CHANGED_EVENT } from '../services/dishes';
 import { useCoach } from '../context/coach';
 import SearchableExerciseSelect from '../components/SearchableExerciseSelect';
@@ -79,7 +79,16 @@ const ENTITIES = {
     dish: { label: 'Prato', pick: 'Escolha o prato', empty: 'Nenhum prato encontrado.' },
 };
 
-const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
+// A mídia é a que está publicada hoje no exercício ou prato?
+const isInUse = (media, item) => {
+    if (!item || media.status !== 'aprovada') return false;
+    if (media.kind === 'image') return Boolean(media.url) && media.url === item.image_url;
+    if (media.kind === 'video') return Boolean(media.url) && media.url === item.animation_url;
+    if (media.kind === 'poses') return (media.frames || []).length > 0 && JSON.stringify(media.frames) === JSON.stringify(item.animation_frames || []);
+    return false;
+};
+
+const MediaCard = ({ media, exercise, busy, onReview, onUse, onRegenerate }) => {
     const isDish = media.entity_type === 'dish';
     const [showPrompt, setShowPrompt] = useState(false);
     const [adjusting, setAdjusting] = useState(false);
@@ -88,6 +97,8 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
     const KindIcon = kind.icon;
     const current = exercise ? (isDish ? exercise.image_url : exerciseImageUrl(exercise)) : null;
     const canReview = media.status === 'pendente' || media.status === 'aprovada' || media.status === 'rejeitada';
+    const inUse = isInUse(media, exercise);
+    const itemWord = isDish ? 'prato' : 'exercício';
 
     return (
         <article className="am-card">
@@ -99,7 +110,10 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
                         {exercise?.created_by_ai && <span className="am-chip am-chip-ai">Criado pelo Benfit</span>}
                     </p>
                 </div>
-                <span className={`am-status am-status-${media.status}`}>{STATUS_LABEL[media.status]}</span>
+                <span className="am-status-stack">
+                    <span className={`am-status am-status-${media.status}`}>{STATUS_LABEL[media.status]}</span>
+                    {inUse && <span className="am-status am-status-inuse">Em uso</span>}
+                </span>
             </header>
 
             <div className="am-compare">
@@ -139,9 +153,19 @@ const MediaCard = ({ media, exercise, busy, onReview, onRegenerate }) => {
             )}
 
             <div className="am-actions">
-                {canReview && media.status !== 'aprovada' && (
-                    <button type="button" className="am-btn am-btn-approve" disabled={busy} onClick={() => onReview(media, 'aprovada')}>
-                        <Check size={16} /> Aprovar
+                {canReview && media.status !== 'aprovada' && exercise && (
+                    <>
+                        <button type="button" className="am-btn am-btn-approve" disabled={busy} onClick={() => onReview(media, 'aprovada', true)}>
+                            <CheckCheck size={16} /> Aprovar e usar
+                        </button>
+                        <button type="button" className="am-btn" disabled={busy} onClick={() => onReview(media, 'aprovada', false)} title={`Aprova sem trocar a mídia do ${itemWord}`}>
+                            <Check size={16} /> Só aprovar
+                        </button>
+                    </>
+                )}
+                {media.status === 'aprovada' && exercise && !inUse && (
+                    <button type="button" className="am-btn am-btn-approve" disabled={busy} onClick={() => onUse(media)}>
+                        <Upload size={16} /> Usar no {itemWord}
                     </button>
                 )}
                 {exercise && media.status !== 'gerando' && (
@@ -288,14 +312,31 @@ const AdminMedia = () => {
         return next;
     });
 
-    const handleReview = async (media, decision) => {
+    const handleUse = async (media) => {
         setBusy(media.id, true);
         try {
-            const updated = await reviewMedia(media.id, decision);
+            await applyMediaToItem(media.id);
+            const isDish = media.entity_type === 'dish';
+            if (isDish) reloadDishes(); else reloadExercises();
+            toast(isDish ? 'Foto publicada no prato.' : 'Mídia publicada no exercício.');
+        } catch (err) {
+            toast(err.message, 'error');
+        } finally {
+            setBusy(media.id, false);
+        }
+    };
+
+    const handleReview = async (media, decision, use = true) => {
+        setBusy(media.id, true);
+        try {
+            const updated = await reviewMedia(media.id, decision, use);
             upsertItem(updated);
             if (decision === 'aprovada') {
-                if (media.entity_type === 'dish') reloadDishes(); else reloadExercises();
-                toast(media.entity_type === 'dish' ? 'Foto aprovada e publicada no prato.' : 'Mídia aprovada e publicada no exercício.');
+                const isDish = media.entity_type === 'dish';
+                if (isDish) reloadDishes(); else reloadExercises();
+                toast(use
+                    ? (isDish ? 'Foto aprovada e publicada no prato.' : 'Mídia aprovada e publicada no exercício.')
+                    : `Mídia aprovada sem trocar a do ${isDish ? 'prato' : 'exercício'}. Use quando quiser pelo Histórico.`);
             } else {
                 toast('Mídia rejeitada.');
             }
@@ -538,6 +579,7 @@ const AdminMedia = () => {
                             exercise={entityOf(media)}
                             busy={busyIds.has(media.id) || Boolean(generating)}
                             onReview={handleReview}
+                            onUse={handleUse}
                             onRegenerate={handleRegenerate}
                         />
                     ))}

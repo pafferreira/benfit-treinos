@@ -44,8 +44,16 @@ export const getMediaByIds = async (ids) => {
     return new Map((data || []).map(m => [m.id, m]));
 };
 
-export const reviewMedia = async (mediaId, decision) => {
-    const { data, error } = await supabase.rpc('b_media_review', { p_media_id: mediaId, p_decision: decision });
+// use=false aprova sem publicar no item (imagem fica só na Biblioteca).
+export const reviewMedia = async (mediaId, decision, use = true) => {
+    const { data, error } = await supabase.rpc('b_media_review', { p_media_id: mediaId, p_decision: decision, p_use: use });
+    if (error) throw error;
+    return data;
+};
+
+// Publica no exercício ou prato uma mídia já aprovada (Histórico).
+export const applyMediaToItem = async (mediaId) => {
+    const { data, error } = await supabase.rpc('b_media_use', { p_media_id: mediaId });
     if (error) throw error;
     return data;
 };

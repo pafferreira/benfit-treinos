@@ -647,6 +647,11 @@ const AICoach = ({ variant = 'page' }) => {
                 responseText = aiResponse.text;
                 responseId = aiResponse.messageId || null;
                 coachActions = aiResponse.actions;
+                if (aiResponse.fallbackReason) {
+                    window.dispatchEvent(new CustomEvent('app-toast', {
+                        detail: { message: `Aviso (só admin): o Claude não respondeu e a reserva assumiu, sem ferramentas. Motivo: ${aiResponse.fallbackReason}`, type: 'error' },
+                    }));
+                }
 
                 if (uid) {
                     maybeStoreConversation(uid, text, responseText)

@@ -52,12 +52,21 @@ export default async function handler(req, res) {
             providerParts: result.providerParts,
         });
 
+        // Só o admin vê por que o Claude não respondeu (ajuda a diagnosticar chave e crédito).
+        let fallbackReason;
+        if (result.fallbackReason) {
+            console.warn('[api/chat] Resposta pela reserva:', result.fallbackReason);
+            const { data: isAdmin } = await session.supabase.rpc('is_admin');
+            if (isAdmin) fallbackReason = result.fallbackReason;
+        }
+
         return res.status(200).json({
             text: result.text,
             provider: result.provider,
             model: result.model,
             messageId,
             actions: result.actions || [],
+            ...(fallbackReason ? { fallbackReason } : {}),
         });
     } catch (error) {
         if (error instanceof ChatHttpError) {
