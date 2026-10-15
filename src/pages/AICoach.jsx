@@ -10,6 +10,7 @@ import { DISHES_CHANGED_EVENT } from '../services/dishes';
 import { buildUserContext, buildExerciseStats } from '../services/context';
 import { useUserRole, useExercises, useExerciseMuscleMap } from '../hooks/useSupabase';
 import CoachExerciseCard from '../components/CoachExerciseCard';
+import ChatMediaCard from '../components/ChatMediaCard';
 import { useCoach } from '../context/coach';
 import './AICoach.css';
 
@@ -457,37 +458,33 @@ const AICoach = ({ variant = 'page' }) => {
         }
     };
 
-    // Exercício novo criado pelo Coach (etapa 2C): atualiza o catálogo para o
-    // cartão aparecer e pede a imagem em segundo plano.
-    // Pratos criados pelo Coach (etapa 2D): avisa a tela Dieta e pede a foto.
+    // Mídia pedida pelo Benfit: entra na conversa como cartão, com o resultado e
+    // o aviso de aprovação (Mídias Benfit). onDone atualiza a tela do item.
+    const trackMedia = ({ kind, entityType, entityId, name }, onDone) => {
+        const id = `media-${entityId}-${kind}-${Date.now()}`;
+        const update = (media) => setMessages(prev => prev.map(m => m.id === id ? { ...m, media: { ...m.media, ...media } } : m));
+        setMessages(prev => [...prev, { id, sender: 'ai', text: '', media: { kind, name, status: 'gerando' } }]);
+        requestMedia(kind, { entityType, entityId })
+            .then(media => {
+                update({ status: media?.status || 'pendente', url: media?.url, frames: media?.frames });
+                mediaChanged();
+                onDone?.();
+            })
+            .catch(err => {
+                console.warn('[Benfit] Mídia não gerada:', err?.message);
+                update({ status: 'falhou', error: `Não foi possível gerar: ${err?.message || 'erro desconhecido'}.` });
+            });
+    };
+
+    // Pratos criados pelo Benfit (etapa 2D): avisa a tela Dieta e gera a foto.
+    const reloadDishes = () => window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
     const handleDishActions = (actions) => {
         const dishes = (actions || []).filter(a => a?.type === 'dish_created');
         if (dishes.length === 0) return;
-        window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
+        reloadDishes();
         mediaChanged();
         dishes.filter(a => !a.existing).forEach(action => {
-            requestMedia('image', { entityType: 'dish', entityId: action.dishId })
-                .then(media => {
-                    window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
-                    mediaChanged();
-                    window.dispatchEvent(new CustomEvent('app-toast', {
-                        detail: {
-                            message: media?.status === 'aprovada'
-                                ? `Foto de "${action.name}" pronta em Dieta.`
-                                : `Foto de "${action.name}" gerada. Ela aparece em Dieta depois da aprovação.`,
-                            type: 'success',
-                        },
-                    }));
-                })
-                .catch(err => {
-                    console.warn('[Benfit Coach] Foto do prato não gerada:', err?.message);
-                    window.dispatchEvent(new CustomEvent('app-toast', {
-                        detail: {
-                            message: `A foto de "${action.name}" não foi gerada. Tente de novo no prato, em Dieta.`,
-                            type: 'error',
-                        },
-                    }));
-                });
+            trackMedia({ kind: 'image', entityType: 'dish', entityId: action.dishId, name: action.name }, reloadDishes);
         });
     };
 
@@ -496,64 +493,27 @@ const AICoach = ({ variant = 'page' }) => {
         const requests = (actions || []).filter(a => a?.type === 'media_requested' && a.entityId);
         requests.forEach(action => {
             action.kinds.forEach(kind => {
-                requestMedia(kind, { entityType: action.entityType, entityId: action.entityId })
-                    .then(media => {
-                        mediaChanged();
-                        if (action.entityType === 'dish') window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
-                        else reloadExercises();
-                        const label = { image: 'Imagem', poses: 'Poses', video: 'Vídeo' }[kind];
-                        window.dispatchEvent(new CustomEvent('app-toast', {
-                            detail: {
-                                message: media?.status === 'gerando'
-                                    ? `${label} de "${action.name}" em produção. Acompanhe em Mídias Benfit.`
-                                    : media?.status === 'aprovada'
-                                        ? `${label} de "${action.name}" pronto e publicado.`
-                                        : `${label} de "${action.name}" enviado para aprovação em Mídias Benfit.`,
-                                type: 'success',
-                            },
-                        }));
-                    })
-                    .catch(err => {
-                        console.warn('[Benfit] Mídia não gerada:', err?.message);
-                        window.dispatchEvent(new CustomEvent('app-toast', {
-                            detail: { message: `Não foi possível gerar para "${action.name}": ${err.message}`, type: 'error' },
-                        }));
-                    });
+                trackMedia(
+                    { kind, entityType: action.entityType, entityId: action.entityId, name: action.name },
+                    action.entityType === 'dish' ? reloadDishes : reloadExercises,
+                );
             });
         });
     };
 
+    // Exercício novo criado pelo Benfit (etapa 2C): atualiza o catálogo e gera a imagem.
+    // Ordem dos cartões: imagem dos itens novos primeiro, depois o que gerar_midia pediu.
     const handleCoachActions = (actions) => {
+        const created = (actions || []).filter(a => a?.type === 'exercise_created' && !a.existing);
+        if (created.length > 0) {
+            reloadExercises();
+            mediaChanged();
+            created.forEach(action => {
+                trackMedia({ kind: 'image', entityType: 'exercise', entityId: action.exerciseId, name: action.name }, reloadExercises);
+            });
+        }
         handleDishActions(actions);
         handleMediaActions(actions);
-        const created = (actions || []).filter(a => a?.type === 'exercise_created' && !a.existing);
-        if (created.length === 0) return;
-        reloadExercises();
-        mediaChanged();
-        created.forEach(action => {
-            requestMedia('image', { exerciseId: action.exerciseId })
-                .then(media => {
-                    reloadExercises();
-                    mediaChanged();
-                    window.dispatchEvent(new CustomEvent('app-toast', {
-                        detail: {
-                            message: media?.status === 'aprovada'
-                                ? `Imagem de "${action.name}" pronta.`
-                                : `Imagem de "${action.name}" gerada. Ela aparece depois da aprovação.`,
-                            type: 'success',
-                        },
-                    }));
-                })
-                .catch(err => {
-                    console.warn('[Benfit Coach] Imagem do exercício não gerada:', err?.message);
-                    window.dispatchEvent(new CustomEvent('app-toast', {
-                        detail: {
-                            message: `A imagem de "${action.name}" não foi gerada. Tente de novo nos detalhes do exercício.`,
-                            type: 'error',
-                        },
-                    }));
-                });
-        });
     };
 
     // ── Envia mensagem (core, reutilizável) ───────────────────────
@@ -623,6 +583,7 @@ const AICoach = ({ variant = 'page' }) => {
 
             let responseText;
             let responseId = null;
+            let coachActions = null;
 
             if (directAnswer) {
                 responseText = directAnswer;
@@ -655,7 +616,7 @@ const AICoach = ({ variant = 'page' }) => {
                 const aiResponse = await chatWithBenfit(text, fullContext, convId);
                 responseText = aiResponse.text;
                 responseId = aiResponse.messageId || null;
-                handleCoachActions(aiResponse.actions);
+                coachActions = aiResponse.actions;
 
                 if (uid) {
                     maybeStoreConversation(uid, text, responseText)
@@ -665,6 +626,8 @@ const AICoach = ({ variant = 'page' }) => {
 
             const aiMsg = { id: responseId || Date.now() + 1, dbId: responseId, sender: 'ai', text: responseText };
             setMessages(prev => [...prev, aiMsg]);
+            // Depois da resposta, para os cartões de mídia aparecerem abaixo dela.
+            handleCoachActions(coachActions);
 
             // Título imediato (palavras-chave da mensagem) + refinamento pelo Coach
             if (wasFirst && convId && uid) {
@@ -924,8 +887,9 @@ const AICoach = ({ variant = 'page' }) => {
                                 {msg.sender === 'ai' ? <RobotCoachIcon size={18} /> : <User size={18} />}
                             </div>
                             <div className="message-bubble">
-                                {renderText(msg.text)}
-                                {msg.sender === 'ai' && msg.id !== 'initial' && (
+                                {msg.media && <ChatMediaCard media={msg.media} />}
+                                {msg.text && renderText(msg.text)}
+                                {msg.sender === 'ai' && msg.id !== 'initial' && !msg.media && (
                                     <CoachExerciseCard text={msg.text} exercises={libraryExercises} muscleMap={muscleMap} />
                                 )}
                                 {msg.sender === 'ai' && msg.dbId && (
@@ -948,7 +912,7 @@ const AICoach = ({ variant = 'page' }) => {
                                         </button>
                                     </div>
                                 )}
-                                {canShare && msg.sender === 'ai' && msg.id !== 'initial' && (
+                                {canShare && msg.sender === 'ai' && msg.id !== 'initial' && !msg.media && (
                                     <button
                                         className={`share-to-kb-btn ${msg.shared ? 'shared' : ''}`}
                                         onClick={() => handleShareToKnowledge(msg)}
