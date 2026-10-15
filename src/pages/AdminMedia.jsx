@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, CheckCheck, Upload, X, RefreshCw, RotateCcw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Upload, Trash2, X, RefreshCw, RotateCcw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { exerciseImageUrl, DEFAULT_EXERCISE_IMAGE } from '../lib/exerciseImage';
-import { requestMedia, listMedia, reviewMedia, applyMediaToItem, getMediaApproval, setMediaApproval, getDefaultPrompt, MEDIA_CHANGED_EVENT } from '../services/media';
+import { requestMedia, listMedia, reviewMedia, applyMediaToItem, deleteMedia, getMediaApproval, setMediaApproval, getDefaultPrompt, MEDIA_CHANGED_EVENT } from '../services/media';
 import { listDishes, DISHES_CHANGED_EVENT } from '../services/dishes';
 import { useCoach } from '../context/coach';
 import SearchableExerciseSelect from '../components/SearchableExerciseSelect';
 import ExerciseAnimation from '../components/ExerciseAnimation';
 import MediaLibrary from '../components/MediaLibrary';
+import ConfirmationModal from '../components/ConfirmationModal';
 import './AdminMedia.css';
 
 // Tela "Aprovar mídias" (v2, etapas 2C e 2D), só admin: fila das imagens e
@@ -88,7 +89,7 @@ const isInUse = (media, item) => {
     return false;
 };
 
-const MediaCard = ({ media, exercise, busy, onReview, onUse, onRegenerate }) => {
+const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegenerate }) => {
     const isDish = media.entity_type === 'dish';
     const [showPrompt, setShowPrompt] = useState(false);
     const [adjusting, setAdjusting] = useState(false);
@@ -99,6 +100,7 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onRegenerate }) => 
     const canReview = media.status === 'pendente' || media.status === 'aprovada' || media.status === 'rejeitada';
     const inUse = isInUse(media, exercise);
     const itemWord = isDish ? 'prato' : 'exercício';
+    const canDelete = media.status === 'rejeitada' || media.status === 'falhou' || (media.status === 'aprovada' && !inUse);
 
     return (
         <article className="am-card">
@@ -123,7 +125,16 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onRegenerate }) => 
                 </figure>
                 <figure>
                     <figcaption>No ar hoje</figcaption>
-                    {current || !isDish
+                    {/* Poses e vídeo: mostra a animação publicada hoje, não a foto. */}
+                    {!isDish && media.kind === 'poses' ? (
+                        (exercise?.animation_frames || []).length >= 2
+                            ? <ExerciseAnimation frames={exercise.animation_frames} poster={current} alt="" className="am-preview am-preview-current" />
+                            : <div className="am-preview am-preview-wait am-preview-empty"><span>Sem poses</span></div>
+                    ) : !isDish && media.kind === 'video' ? (
+                        exercise?.animation_url
+                            ? <ExerciseAnimation videoUrl={exercise.animation_url} poster={current} alt="" className="am-preview am-preview-current" />
+                            : <div className="am-preview am-preview-wait am-preview-empty"><span>Sem vídeo</span></div>
+                    ) : current || !isDish
                         ? <img className="am-preview am-preview-current" src={current || DEFAULT_EXERCISE_IMAGE} alt="" />
                         : <div className="am-preview am-preview-wait am-preview-empty"><span>Sem foto</span></div>}
                 </figure>
@@ -153,7 +164,7 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onRegenerate }) => 
             )}
 
             <div className="am-actions">
-                {canReview && media.status !== 'aprovada' && exercise && (
+                {media.status === 'pendente' && exercise && (
                     <>
                         <button type="button" className="am-btn am-btn-approve" disabled={busy} onClick={() => onReview(media, 'aprovada', true)}>
                             <CheckCheck size={16} /> Aprovar e usar
@@ -187,6 +198,11 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onRegenerate }) => 
                 {canReview && media.status === 'pendente' && (
                     <button type="button" className="am-btn am-btn-reject" disabled={busy} onClick={() => onReview(media, 'rejeitada')}>
                         <X size={16} /> Rejeitar
+                    </button>
+                )}
+                {canDelete && (
+                    <button type="button" className="am-btn am-btn-reject" disabled={busy} onClick={() => onDelete(media)}>
+                        <Trash2 size={16} /> Excluir
                     </button>
                 )}
             </div>
@@ -311,6 +327,23 @@ const AdminMedia = () => {
         if (on) next.add(id); else next.delete(id);
         return next;
     });
+
+    const [toDelete, setToDelete] = useState(null);
+    const handleDelete = async () => {
+        const media = toDelete;
+        setToDelete(null);
+        setBusy(media.id, true);
+        try {
+            await deleteMedia(media.id);
+            setItems(prev => prev.filter(m => m.id !== media.id));
+            window.dispatchEvent(new Event('avatars-updated'));
+            toast('Mídia excluída.');
+        } catch (err) {
+            toast(err.message, 'error');
+        } finally {
+            setBusy(media.id, false);
+        }
+    };
 
     const handleUse = async (media) => {
         setBusy(media.id, true);
@@ -580,12 +613,21 @@ const AdminMedia = () => {
                             busy={busyIds.has(media.id) || Boolean(generating)}
                             onReview={handleReview}
                             onUse={handleUse}
+                            onDelete={setToDelete}
                             onRegenerate={handleRegenerate}
                         />
                     ))}
                 </div>
             )}
             </>}
+            <ConfirmationModal
+                isOpen={Boolean(toDelete)}
+                onClose={() => setToDelete(null)}
+                onConfirm={handleDelete}
+                title="Excluir mídia"
+                message="A mídia sai da fila e os arquivos são apagados. Se for imagem, ela sai também da Biblioteca. Não dá para desfazer."
+                confirmText="Excluir"
+            />
         </div>
     );
 };

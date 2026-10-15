@@ -51,6 +51,17 @@ export const reviewMedia = async (mediaId, decision, use = true) => {
     return data;
 };
 
+// Exclui mídia rejeitada, que falhou ou aprovada fora de uso: o banco apaga o
+// registro (e a imagem da Biblioteca) e devolve os arquivos para apagar do Storage.
+export const deleteMedia = async (mediaId) => {
+    const { data: paths, error } = await supabase.rpc('b_media_delete', { p_media_id: mediaId });
+    if (error) throw error;
+    if (paths?.length) {
+        const { error: storageError } = await supabase.storage.from('benfit-assets').remove(paths);
+        if (storageError) console.warn('[Mídias] Arquivo não apagado do Storage:', storageError.message);
+    }
+};
+
 // Publica no exercício ou prato uma mídia já aprovada (Histórico).
 export const applyMediaToItem = async (mediaId) => {
     const { data, error } = await supabase.rpc('b_media_use', { p_media_id: mediaId });
