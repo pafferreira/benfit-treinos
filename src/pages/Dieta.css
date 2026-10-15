@@ -91,3 +91,201 @@
     text-align: center;
     margin: 0;
 }
+
+.dieta-hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--color-primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+}
+
+.dieta-catalog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.dieta-search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--color-card-light);
+    border: 1px solid #dbe3ee;
+    border-radius: var(--radius-xl);
+    padding: 0 0.85rem;
+    color: #94a3b8;
+}
+
+.dieta-search input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    padding: 0.7rem 0;
+    font-size: 0.875rem;
+    color: var(--color-text-main);
+    outline: none;
+}
+
+.dieta-filters {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 0.1rem;
+}
+
+.dieta-filters::-webkit-scrollbar { display: none; }
+
+.dieta-filters button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid #dbe3ee;
+    background: var(--color-card-light);
+    color: #4b5563;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.dieta-filters button.is-active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #ffffff;
+}
+
+.dieta-filter-count {
+    min-width: 1.1rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: rgba(220, 38, 38, 0.12);
+    color: #dc2626;
+    font-size: 0.68rem;
+    text-align: center;
+}
+
+.dieta-filters button.is-active .dieta-filter-count {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+.dieta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.dish-card {
+    position: relative;
+    background: var(--color-card-light);
+    border: 1px solid #e8eef6;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.dish-card-open {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dish-card-photo {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #f3f4f6;
+}
+
+.dish-card-photo-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+}
+
+.dish-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.6rem 0.7rem 0.75rem;
+}
+
+.dish-card-meal {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-primary);
+}
+
+.dish-card-name {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-main);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.dish-card-macros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.5rem;
+    margin: 0;
+    font-size: 0.72rem;
+    color: var(--color-subtext-light);
+}
+
+.dish-card-fav {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255, 255, 255, 0.92);
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+}
+
+.dish-card-fav.is-on { color: #dc2626; }
+
+.dieta-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem 1rem;
+    border: 1px dashed #dbe3ee;
+    border-radius: var(--radius-xl);
+    font-size: 0.85rem;
+    color: var(--color-subtext-light);
+    text-align: center;
+}

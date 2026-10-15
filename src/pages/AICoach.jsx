@@ -6,6 +6,7 @@ import { supabase, supabaseHelpers } from '../lib/supabase';
 import { searchHybridMemory, maybeStoreConversation } from '../services/memory';
 import { chatWithBenfit, generateConversationTitle, generateEmbedding, rateCoachMessage } from '../services/ai';
 import { requestMedia } from '../services/media';
+import { DISHES_CHANGED_EVENT } from '../services/dishes';
 import { buildUserContext, buildExerciseStats } from '../services/context';
 import { useUserRole, useExercises, useExerciseMuscleMap } from '../hooks/useSupabase';
 import CoachExerciseCard from '../components/CoachExerciseCard';
@@ -458,7 +459,38 @@ const AICoach = ({ variant = 'page' }) => {
 
     // Exercício novo criado pelo Coach (etapa 2C): atualiza o catálogo para o
     // cartão aparecer e pede a imagem em segundo plano.
+    // Pratos criados pelo Coach (etapa 2D): avisa a tela Dieta e pede a foto.
+    const handleDishActions = (actions) => {
+        const dishes = (actions || []).filter(a => a?.type === 'dish_created');
+        if (dishes.length === 0) return;
+        window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
+        dishes.filter(a => !a.existing).forEach(action => {
+            requestMedia('image', { entityType: 'dish', entityId: action.dishId })
+                .then(media => {
+                    window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
+                    window.dispatchEvent(new CustomEvent('app-toast', {
+                        detail: {
+                            message: media?.status === 'aprovada'
+                                ? `Foto de "${action.name}" pronta em Dieta.`
+                                : `Foto de "${action.name}" gerada. Ela aparece em Dieta depois da aprovação.`,
+                            type: 'success',
+                        },
+                    }));
+                })
+                .catch(err => {
+                    console.warn('[Benfit Coach] Foto do prato não gerada:', err?.message);
+                    window.dispatchEvent(new CustomEvent('app-toast', {
+                        detail: {
+                            message: `A foto de "${action.name}" não foi gerada. Tente de novo no prato, em Dieta.`,
+                            type: 'error',
+                        },
+                    }));
+                });
+        });
+    };
+
     const handleCoachActions = (actions) => {
+        handleDishActions(actions);
         const created = (actions || []).filter(a => a?.type === 'exercise_created' && !a.existing);
         if (created.length === 0) return;
         reloadExercises();

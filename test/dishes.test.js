@@ -1,0 +1,79 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { COACH_TOOLS, MEAL_TYPES, createToolRunner, searchTerms } from '../api/_coach-tools.js';
+import { buildDishImagePrompt, mediaPath } from '../api/_media.js';
+import { defaultPrompt } from '../api/media.js';
+
+const dish = {
+    id: 'd1',
+    dish_key: 'frango_batata_doce',
+    name: 'Frango com Batata-Doce',
+    description: 'Clássico pós-treino',
+    ingredients: [{ item: 'Peito de frango', quantidade: '150 g' }, { item: 'Batata-doce', quantidade: '200 g' }],
+};
+
+// Imita o encadeamento do supabase-js e guarda os filtros usados.
+const fakeQuery = (rows, calls) => {
+    const chain = {
+        select: () => chain,
+        order: () => chain,
+        limit: () => chain,
+        or: (filter) => { calls.push(['or', filter]); return chain; },
+        eq: (col, value) => { calls.push(['eq', col, value]); return chain; },
+        then: (resolve) => resolve({ data: rows, error: null }),
+    };
+    return chain;
+};
+
+test('ferramentas de prato existem e usam os tipos de refeição do banco', () => {
+    const names = COACH_TOOLS.map(t => t.name);
+    assert.deepEqual(names, ['propor_exercicio_novo', 'buscar_pratos', 'sugerir_prato']);
+    const suggest = COACH_TOOLS.find(t => t.name === 'sugerir_prato').input_schema;
+    assert.deepEqual(suggest.properties.meal_type.enum, MEAL_TYPES);
+    assert.ok(suggest.required.includes('protein_g'));
+});
+
+test('searchTerms limpa a busca para o filtro', () => {
+    assert.deepEqual(searchTerms('Frango, batata-doce (assada) e ovo'), ['frango', 'batata-doce', 'assada', 'ovo']);
+    assert.deepEqual(searchTerms('a,b'), []);
+});
+
+test('buscar_pratos lista o catálogo e filtra por refeição', async () => {
+    const calls = [];
+    const supabase = { from: () => fakeQuery([{ id: 'd1', name: 'Frango com Batata-Doce', meal_type: 'pos_treino', kcal: 520, protein_g: '45.5' }], calls) };
+    const run = createToolRunner(supabase);
+    const found = await run('buscar_pratos', { busca: 'frango', meal_type: 'pos_treino' });
+    assert.match(found.content, /Frango com Batata-Doce \(pós-treino; 520 kcal, 45.5 g de proteína\)/);
+    assert.deepEqual(calls, [['or', 'name.ilike.%frango%,description.ilike.%frango%'], ['eq', 'meal_type', 'pos_treino']]);
+
+    const empty = await createToolRunner({ from: () => fakeQuery([], []) })('buscar_pratos', { busca: 'xyz' });
+    assert.match(empty.content, /Nenhum prato/);
+});
+
+test('sugerir_prato cadastra e devolve a ação para gerar a foto', async () => {
+    const run = createToolRunner({ rpc: async (fn, args) => {
+        assert.equal(fn, 'b_create_ai_dish');
+        assert.equal(args.p_data.name, 'Omelete');
+        return { data: { id: 'd9', name: 'Omelete', existing: false }, error: null };
+    } });
+    const created = await run('sugerir_prato', { name: 'Omelete' });
+    assert.deepEqual(created.action, { type: 'dish_created', dishId: 'd9', name: 'Omelete', existing: false });
+    assert.match(created.content, /cadastrado no catálogo de Dieta/);
+
+    const failing = createToolRunner({ rpc: async () => ({ data: null, error: { message: 'Limite diário de pratos novos atingido' } }) });
+    const failure = await failing('sugerir_prato', {});
+    assert.equal(failure.isError, true);
+});
+
+test('descrição da foto do prato em português, com ingredientes e estilo fixo', () => {
+    const prompt = buildDishImagePrompt(dish, 'mais colorido');
+    assert.match(prompt, /vista de cima/);
+    assert.match(prompt, /Prato: Frango com Batata-Doce/);
+    assert.match(prompt, /150 g de Peito de frango, 200 g de Batata-doce/);
+    assert.match(prompt, /Ajuste pedido na revisão: mais colorido/);
+    assert.equal(defaultPrompt(dish, 'image', '', 'dish'), buildDishImagePrompt(dish));
+});
+
+test('foto do prato vai para dishes/ia/', () => {
+    assert.match(mediaPath(dish, 'foto', 'image/png', 'dishes'), /^dishes\/ia\/frango_batata_doce-foto-\d+\.png$/);
+});

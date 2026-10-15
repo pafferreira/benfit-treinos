@@ -78,3 +78,4 @@
 .am-prompt-head .am-link { align-self: center; }
 .am-adjust textarea:disabled { background: #F9FAFB; color: #9CA3AF; }
 .am-gen-submit { width: 100%; }
+.am-entity-tabs { grid-template-columns: repeat(2, 1fr); }

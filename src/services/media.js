@@ -3,14 +3,17 @@ import { supabase } from '../lib/supabase';
 import { postJson } from './ai';
 
 // action: image | poses | video | video-status. prompt: descrição editada pelo admin.
-export const requestMedia = async (action, { exerciseId, mediaId, adjustment, prompt } = {}) => {
-    const { media } = await postJson('/api/media', { action, exerciseId, mediaId, adjustment, prompt });
+// entityType: exercise (padrão) ou dish; prato só tem foto (image).
+export const requestMedia = async (action, { exerciseId, entityType = 'exercise', entityId, mediaId, adjustment, prompt } = {}) => {
+    const { media } = await postJson('/api/media', {
+        action, entityType, entityId: entityId || exerciseId, mediaId, adjustment, prompt,
+    });
     return media;
 };
 
 // Descrição padrão (em português) de um tipo de mídia, para o admin editar antes de gerar.
-export const getDefaultPrompt = async (exerciseId, kind) => {
-    const { prompt } = await postJson('/api/media', { action: 'prompt', exerciseId, kind });
+export const getDefaultPrompt = async (entityId, kind, entityType = 'exercise') => {
+    const { prompt } = await postJson('/api/media', { action: 'prompt', entityType, entityId, kind });
     return prompt;
 };
 
@@ -18,7 +21,6 @@ export const listMedia = async ({ statuses, limit = 50 } = {}) => {
     let query = supabase
         .from('b_media')
         .select('*')
-        .eq('entity_type', 'exercise')
         .order('created_at', { ascending: false })
         .limit(limit);
     if (statuses?.length) query = query.in('status', statuses);

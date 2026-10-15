@@ -8,6 +8,9 @@ export const MUSCLE_NAMES = [
     'Posteriores de coxa', 'Adutores', 'Panturrilhas', 'Cardio', 'Corpo Todo',
 ];
 
+// Tipos de refeição de b_dishes (etapa 2D).
+export const MEAL_TYPES = ['cafe', 'almoco', 'lanche', 'jantar', 'pre_treino', 'pos_treino'];
+
 export const COACH_TOOLS = [
     {
         name: 'propor_exercicio_novo',
@@ -44,10 +47,118 @@ export const COACH_TOOLS = [
             required: ['name', 'equipment', 'muscle_groups', 'instructions'],
         },
     },
+    {
+        name: 'buscar_pratos',
+        description: 'Procura pratos no catálogo de Dieta do Benfit pelo nome ou ingrediente. '
+            + 'Use antes de sugerir_prato, para recomendar um prato que já existe em vez de criar outro parecido.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                busca: { type: 'string', description: 'Palavras do prato ou ingrediente (ex.: "frango batata-doce").' },
+                meal_type: { type: 'string', enum: MEAL_TYPES, description: 'Filtra por refeição, se fizer sentido.' },
+            },
+            required: ['busca'],
+        },
+    },
+    {
+        name: 'sugerir_prato',
+        description: 'Cadastra no catálogo de Dieta um prato completo que ainda não existe nele, com ingredientes, preparo e macros por porção. '
+            + 'Use quando a pessoa pedir ou aceitar uma sugestão de prato e buscar_pratos não trouxer um equivalente. '
+            + 'Os macros são estimativas: calcule pelos ingredientes e quantidades. O app gera a foto do prato em seguida.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                name: { type: 'string', description: 'Nome curto em português (ex.: "Frango Grelhado com Batata-Doce").' },
+                description: { type: 'string', description: 'Uma frase sobre o prato e quando ele ajuda.' },
+                meal_type: { type: 'string', enum: MEAL_TYPES },
+                ingredients: {
+                    type: 'array',
+                    minItems: 2,
+                    maxItems: 15,
+                    items: {
+                        type: 'object',
+                        properties: {
+                            item: { type: 'string', description: 'Ingrediente comum no Brasil.' },
+                            quantidade: { type: 'string', description: 'Ex.: "150 g", "2 colheres de sopa", "1 unidade".' },
+                        },
+                        required: ['item', 'quantidade'],
+                    },
+                },
+                preparation: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 8, description: 'Passos curtos de preparo.' },
+                servings: { type: 'integer', minimum: 1, maximum: 12 },
+                kcal: { type: 'number', description: 'Calorias por porção.' },
+                protein_g: { type: 'number', description: 'Proteína por porção, em gramas.' },
+                carbs_g: { type: 'number', description: 'Carboidrato por porção, em gramas.' },
+                fat_g: { type: 'number', description: 'Gordura por porção, em gramas.' },
+                tags: { type: 'array', items: { type: 'string' }, maxItems: 5, description: 'Ex.: vegetariano, sem lactose, rápido.' },
+            },
+            required: ['name', 'meal_type', 'ingredients', 'preparation', 'kcal', 'protein_g', 'carbs_g', 'fat_g'],
+        },
+    },
 ];
+
+const MEAL_LABELS = {
+    cafe: 'café da manhã', almoco: 'almoço', lanche: 'lanche', jantar: 'jantar',
+    pre_treino: 'pré-treino', pos_treino: 'pós-treino',
+};
+
+// Palavras de 3+ letras, sem caracteres que quebram o filtro do PostgREST.
+export const searchTerms = (text) => String(text || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .split(/\s+/)
+    .filter(word => word.length >= 3)
+    .slice(0, 5);
+
+const describeDish = (dish) => {
+    const macros = [
+        dish.kcal != null ? `${dish.kcal} kcal` : null,
+        dish.protein_g != null ? `${Number(dish.protein_g)} g de proteína` : null,
+    ].filter(Boolean).join(', ');
+    return `- ${dish.name} (${MEAL_LABELS[dish.meal_type] || dish.meal_type}${macros ? `; ${macros}` : ''})`;
+};
+
+async function searchDishes(supabase, { busca, meal_type: mealType }) {
+    const terms = searchTerms(busca);
+    let query = supabase
+        .from('b_dishes')
+        .select('id, name, meal_type, kcal, protein_g')
+        .order('name')
+        .limit(8);
+    if (terms.length > 0) {
+        query = query.or(terms.map(t => `name.ilike.%${t}%,description.ilike.%${t}%`).join(','));
+    }
+    if (MEAL_TYPES.includes(mealType)) query = query.eq('meal_type', mealType);
+    const { data, error } = await query;
+    if (error) {
+        console.warn('[api/chat] Busca de pratos falhou:', error.message);
+        return { content: `Não foi possível buscar no catálogo: ${error.message}`, isError: true };
+    }
+    if (!data || data.length === 0) {
+        return { content: 'Nenhum prato parecido no catálogo de Dieta.' };
+    }
+    return { content: `Pratos já no catálogo de Dieta:\n${data.map(describeDish).join('\n')}` };
+}
 
 // Executa uma ferramenta pedida pelo Claude com o cliente do usuário (RLS).
 export const createToolRunner = (supabase) => async (name, input) => {
+    if (name === 'buscar_pratos') return searchDishes(supabase, input || {});
+    if (name === 'sugerir_prato') {
+        const { data, error } = await supabase.rpc('b_create_ai_dish', { p_data: input });
+        if (error) {
+            console.warn('[api/chat] Prato não criado:', error.message);
+            return { content: `Não foi possível cadastrar o prato: ${error.message}`, isError: true };
+        }
+        const action = { type: 'dish_created', dishId: data.id, name: data.name, existing: Boolean(data.existing) };
+        if (data.existing) {
+            return { content: `Já existe no catálogo um prato com esse nome: "${data.name}". Nada foi criado.`, action };
+        }
+        return {
+            content: `Prato "${data.name}" cadastrado no catálogo de Dieta. A foto será gerada agora pelo app`
+                + ' e aparece depois de aprovada.',
+            action,
+        };
+    }
     if (name !== 'propor_exercicio_novo') {
         return { content: `Ferramenta desconhecida: ${name}`, isError: true };
     }
