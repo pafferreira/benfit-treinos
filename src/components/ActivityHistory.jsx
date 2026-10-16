@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-    Activity, Clock, Flame, Dumbbell, Calendar, ChevronDown,
+    Activity, PersonStanding, Clock, Flame, Dumbbell, Calendar, ChevronDown,
     Check, Timer, TrendingUp, Zap, Play, CircleDot, Smile
 } from 'lucide-react';
 import { supabaseHelpers } from '../lib/supabase';
@@ -156,7 +156,8 @@ const SessionExercises = ({ exercises }) => {
 // ==========================================
 // Componente Principal
 // ==========================================
-const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false, finalizedDates = [], doneDates = [] }) => {
+// musclesSlot: quando enviado (tela de Histórico), a segunda aba vira "Músculos da semana" no lugar de Planos.
+const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false, finalizedDates = [], doneDates = [], musclesSlot = null }) => {
     const [loading, setLoading] = useState(true);
     const [sessions, setSessions] = useState([]);
     const [plans, setPlans] = useState([]);
@@ -408,17 +409,30 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false, 
                     <Activity size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
                     Exercícios ({processedExercises.length})
                 </button>
-                <button
-                    className={`activity-filter-tab ${activeTab === 'planos' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('planos')}
-                >
-                    <Calendar size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-                    Planos ({plans.length})
-                </button>
+                {musclesSlot ? (
+                    <button
+                        className={`activity-filter-tab ${activeTab === 'musculos' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('musculos')}
+                    >
+                        <PersonStanding size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
+                        Músculos da semana
+                    </button>
+                ) : (
+                    <button
+                        className={`activity-filter-tab ${activeTab === 'planos' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('planos')}
+                    >
+                        <Calendar size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
+                        Planos ({plans.length})
+                    </button>
+                )}
             </div>
 
+            {/* Fica montado mesmo escondido: carrega uma vez e mantém o resumo para o Benfit */}
+            {musclesSlot && <div hidden={activeTab !== 'musculos'}>{musclesSlot}</div>}
+
             {/* Content Body */}
-            {loading ? (
+            {activeTab === 'musculos' ? null : loading ? (
                 <div className="activity-empty">
                     <div className="exercises-loading">
                         <div className="spinner-small" />
