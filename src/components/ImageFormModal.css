@@ -1,0 +1,33 @@
+/* Tela "Nova imagem" de Mídias Benfit. Reaproveita os botões e abas am-* de AdminMedia.css. */
+.imf { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 0.5rem; }
+.imf-block { display: flex; flex-direction: column; gap: 0.4rem; }
+.imf-label { font-size: 0.8rem; font-weight: 700; color: #374151; }
+.imf .imf-targets { grid-template-columns: repeat(4, 1fr); }
+.imf .imf-source { grid-template-columns: repeat(2, 1fr); }
+.imf-input { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.75rem; font-size: 0.9rem; background: #fff; }
+.imf-input:focus { outline: none; border-color: #008ACF; box-shadow: 0 0 0 3px rgba(0, 138, 207, 0.15); }
+
+.imf-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.imf-chips button { padding: 0.4rem 0.75rem; border-radius: 999px; border: 1px solid #E5E7EB; background: #fff; font-size: 0.8rem; font-weight: 600; color: #4B5563; }
+.imf-chips button.is-active { background: #034EA2; border-color: #034EA2; color: #fff; }
+
+.imf-drop { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem; border: 2px dashed #D1D5DB; border-radius: 1rem; background: #F9FAFB; cursor: pointer; }
+.imf-drop:hover, .imf-drop.is-busy { border-color: #008ACF; background: #F0F9FF; }
+.imf-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.imf-drop img { width: 100%; max-height: 14rem; object-fit: contain; border-radius: 0.6rem; background: #fff; }
+.imf-drop-empty { display: flex; align-items: center; justify-content: center; width: 4rem; height: 4rem; border-radius: 1rem; background: #E5E7EB; color: #9CA3AF; }
+.imf-drop-text { font-size: 0.8rem; font-weight: 600; color: #034EA2; }
+.imf-check { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: #374151; }
+.imf-check input { width: 1rem; height: 1rem; accent-color: #034EA2; }
+
+.imf-more { border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.6rem 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.imf-more summary { display: flex; align-items: center; gap: 0.3rem; font-size: 0.82rem; font-weight: 600; color: #4B5563; cursor: pointer; list-style: none; }
+.imf-more summary::-webkit-details-marker { display: none; }
+.imf-more[open] summary svg { transform: rotate(180deg); }
+.imf-more[open] > .imf-block, .imf-more[open] > .imf-active { margin-top: 0.75rem; }
+.imf-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.5rem; border: 1px solid #E5E7EB; border-radius: 0.75rem; background: #fff; }
+.imf-tags input { flex: 1; min-width: 8rem; border: none; outline: none; font-size: 0.82rem; }
+.imf-tag { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: #F3F4F6; font-size: 0.75rem; color: #374151; }
+.imf-tag button { color: #9CA3AF; }
+
+.imf-footer { display: grid; grid-template-columns: 1fr 2fr; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px solid #E5E7EB; }

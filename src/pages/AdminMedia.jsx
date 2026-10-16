@@ -7,6 +7,7 @@ import { requestMedia, listMedia, reviewMedia, applyMediaToItem, deleteMedia, ge
 import { listDishes, DISHES_CHANGED_EVENT } from '../services/dishes';
 import { useCoach } from '../context/coach';
 import SearchableExerciseSelect from '../components/SearchableExerciseSelect';
+import ImageFormModal from '../components/ImageFormModal';
 import ExerciseAnimation from '../components/ExerciseAnimation';
 import MediaLibrary from '../components/MediaLibrary';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -252,7 +253,6 @@ const AdminMedia = () => {
     const [newKind, setNewKind] = useState('image');
     const [newPrompt, setNewPrompt] = useState('');
     const [creatingNew, setCreatingNew] = useState(false);
-    const [newName, setNewName] = useState('');
     const [promptLoading, setPromptLoading] = useState(false);
     const [promptVersion, setPromptVersion] = useState(0);
     const [generating, setGenerating] = useState(null);
@@ -304,16 +304,17 @@ const AdminMedia = () => {
     }, [isRealAdmin, load, reloadDishes]);
 
     // Item que ainda não existe: o Benfit cadastra pelo chat e já gera a foto.
-    const createWithBenfit = (name) => {
+    const createWithBenfit = (name, entity = newEntity) => {
         const term = name.trim();
         if (!term) return;
-        openCoach(newEntity === 'dish'
+        openCoach(entity === 'dish'
             ? `Cadastre no catálogo de Dieta o prato "${term}", com ingredientes, modo de preparo e macros.`
             : `Cadastre na base o exercício "${term}", com grupos musculares e instruções.`);
     };
 
     useEffect(() => {
-        const onKey = (e) => { if (e.key === 'Escape') navigate('/perfil'); };
+        // Esc fecha o modal aberto (Nova imagem, confirmação) sem sair da tela.
+        const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('[aria-modal="true"]')) navigate('/perfil'); };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [navigate]);
@@ -434,7 +435,6 @@ const AdminMedia = () => {
         setNewEntity(entity);
         setNewExerciseId('');
         setNewKind('image');
-        setCreatingNew(false);
     };
 
     // Descrição padrão do exercício e tipo escolhidos, já em português, para editar.
@@ -559,38 +559,11 @@ const AdminMedia = () => {
                     type="button"
                     className="am-btn am-new-btn"
                     disabled={Boolean(generating)}
-                    aria-expanded={creatingNew}
-                    onClick={() => { setCreatingNew(v => !v); setNewName(''); }}
+                    onClick={() => setCreatingNew(true)}
                 >
                     <Plus size={16} /> Novo
                 </button>
                 </div>
-                {creatingNew && (
-                    <form
-                        className="am-new-form"
-                        onSubmit={(e) => { e.preventDefault(); createWithBenfit(newName); setCreatingNew(false); }}
-                    >
-                        <label htmlFor="am-new-name">{isDishTarget ? 'Nome do prato novo' : 'Nome do exercício novo'}</label>
-                        <input
-                            id="am-new-name"
-                            autoFocus
-                            maxLength={80}
-                            value={newName}
-                            placeholder={isDishTarget ? 'Ex.: Panqueca de aveia com banana' : 'Ex.: Remada curvada com halteres'}
-                            onChange={(e) => setNewName(e.target.value)}
-                        />
-                        <p className="am-hint">O Benfit cadastra {isDishTarget ? 'o prato' : 'o exercício'} e já gera a imagem, que entra em Aprovar.</p>
-                        <div className="am-actions">
-                            <button type="submit" className="am-btn am-btn-primary" disabled={!newName.trim()}>
-                                <Sparkles size={16} /> Criar com imagem
-                            </button>
-                            <button type="button" className="am-btn" onClick={() => setCreatingNew(false)}>
-                                <X size={16} /> Cancelar
-                            </button>
-                        </div>
-                    </form>
-                )}
-                {!creatingNew && <>
                 {!isDishTarget && <div className="am-kind-tabs" role="radiogroup" aria-label="Tipo de mídia">
                     {kindEntries.map(([kind, { label, tab: tabLabel, icon }]) => {
                         const KindIcon = icon;
@@ -640,13 +613,22 @@ const AdminMedia = () => {
                     {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                     {isDishTarget ? 'Gerar foto do prato' : `Gerar ${KINDS[newKind].label.toLowerCase()}`}
                 </button>
-                </>}
                 <p className="am-hint">
                     A descrição é traduzida para o inglês na hora de gerar.{' '}
                     {isDishTarget ? 'A foto leva uns 20 segundos.' : 'Imagem leva uns 20 segundos; duas poses, um pouco mais; o vídeo segue em "Gerando".'}
                 </p>
             </section>
             )}
+
+            <ImageFormModal
+                isOpen={creatingNew}
+                onClose={() => setCreatingNew(false)}
+                exercises={exercises || []}
+                dishes={dishes}
+                onSaved={() => { reloadDishes(); reloadExercises(); }}
+                onGenerate={generate}
+                onCreateWithBenfit={createWithBenfit}
+            />
 
             {section === 'aprovar' && <>
             <div className="am-entity-filter" role="radiogroup" aria-label="Tipo de item">

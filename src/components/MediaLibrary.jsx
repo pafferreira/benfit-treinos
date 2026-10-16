@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Plus, Search, Trash2, X, Loader2 } from 'lucide-react';
+import { Search, Trash2, X, Loader2 } from 'lucide-react';
 import { supabaseHelpers } from '../lib/supabase';
 import { useAvatars } from '../hooks/useSupabase';
-import AvatarModal from './AvatarModal';
+import ImageFormModal from './ImageFormModal';
+import { MEAL_TYPES } from '../services/dishes';
 import ConfirmationModal from './ConfirmationModal';
 import './MediaLibrary.css';
 
@@ -12,7 +13,8 @@ const toast = (message, type = 'success') => window.dispatchEvent(new CustomEven
 
 const CATEGORY_LABELS = { exercicio: 'Exercícios', prato: 'Pratos', Avatar: 'Avatares' };
 const categoryLabel = (cat) => CATEGORY_LABELS[cat] || cat;
-const GENDER_LABELS = { male: 'Masculino', female: 'Feminino', neutral: 'Neutro' };
+// gender guarda o gênero (exercício e avatar) ou a refeição (prato).
+const GENDER_LABELS = { male: 'Masculino', female: 'Feminino', neutral: 'Neutro', ...Object.fromEntries(MEAL_TYPES.map(m => [m.key, m.label])) };
 
 const MediaLibrary = ({ exercises = [], dishes = [] }) => {
     const { avatars, loading, reload } = useAvatars();
@@ -20,8 +22,7 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
     const [category, setCategory] = useState('Todas');
     const [gender, setGender] = useState('Todos');
     const [showActive, setShowActive] = useState(true);
-    const [editing, setEditing] = useState(null); // null = fechado, {} = nova, avatar = edição
-    const [saving, setSaving] = useState(false);
+    const [editing, setEditing] = useState(null); // imagem aberta para editar
     const [toDelete, setToDelete] = useState(null);
 
     // Em qual exercício ou prato cada imagem está publicada.
@@ -58,22 +59,6 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
                 .some(v => v && String(v).toLowerCase().includes(q));
         });
     }, [avatars, showActive, category, gender, term, usage]);
-
-    const save = async (data) => {
-        setSaving(true);
-        try {
-            if (editing?.id) await supabaseHelpers.updateAvatar(editing.id, data);
-            else await supabaseHelpers.createAvatar(data);
-            setEditing(null);
-            reload();
-            window.dispatchEvent(new Event('avatars-updated'));
-            toast(editing?.id ? 'Imagem atualizada.' : 'Imagem adicionada à Biblioteca.');
-        } catch (err) {
-            toast(`Não foi possível salvar: ${err.message}`, 'error');
-        } finally {
-            setSaving(false);
-        }
-    };
 
     const remove = async () => {
         const target = toDelete;
@@ -115,8 +100,8 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
                     ))}
                 </div>
                 <div className="ml-row">
-                    <select id="ml-gender" value={gender} onChange={(e) => setGender(e.target.value)} aria-label="Gênero">
-                        <option value="Todos">Todos os gêneros</option>
+                    <select id="ml-gender" value={gender} onChange={(e) => setGender(e.target.value)} aria-label="Gênero ou refeição">
+                        <option value="Todos">Gênero ou refeição</option>
                         {genders.map(g => <option key={g} value={g}>{GENDER_LABELS[g] || g}</option>)}
                     </select>
                     <button
@@ -132,9 +117,7 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
                 </div>
                 <div className="ml-row ml-row-end">
                     <p className="ml-total">{visible.length} {visible.length === 1 ? 'imagem' : 'imagens'}</p>
-                    <button type="button" className="am-btn am-btn-primary" onClick={() => setEditing({})}>
-                        <Plus size={16} /> Adicionar imagem
-                    </button>
+                    <p className="am-hint">Imagem nova: aba Gerar, botão "+ Novo".</p>
                 </div>
             </div>
 
@@ -172,15 +155,14 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
                 </div>
             )}
 
-            {editing && (
-                <AvatarModal
-                    isOpen
-                    onClose={() => setEditing(null)}
-                    onSave={save}
-                    avatar={editing.id ? editing : null}
-                    isLoading={saving}
-                />
-            )}
+            <ImageFormModal
+                isOpen={Boolean(editing)}
+                onClose={() => setEditing(null)}
+                image={editing}
+                exercises={exercises}
+                dishes={dishes}
+                onSaved={reload}
+            />
             <ConfirmationModal
                 isOpen={Boolean(toDelete)}
                 onClose={() => setToDelete(null)}

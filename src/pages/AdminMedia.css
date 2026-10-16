@@ -100,7 +100,3 @@
 .am-pick-row { display: flex; align-items: stretch; gap: 0.5rem; }
 .am-pick-select { flex: 1; min-width: 0; }
 .am-new-btn { flex: 0 0 auto; white-space: nowrap; }
-.am-new-form { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.75rem; border: 1px solid #E5E7EB; border-radius: 0.75rem; background: #F9FAFB; }
-.am-new-form label { font-size: 0.8rem; font-weight: 600; color: #374151; }
-.am-new-form input { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.6rem; font-size: 0.9rem; background: #fff; }
-.am-new-form input:focus { outline: none; border-color: #008ACF; box-shadow: 0 0 0 3px rgba(0, 138, 207, 0.15); }
