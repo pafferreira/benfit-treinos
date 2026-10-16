@@ -117,3 +117,21 @@ test('gerar_midia acha o item, confere permissão e devolve a ação', async () 
     const none = await createToolRunner({ from: () => query([]), rpc: async () => ({ data: true }) }, { id: 'a' })('gerar_midia', { tipo_item: 'prato', nome: 'xyz', midias: ['imagem'] });
     assert.match(none.content, /Nenhum prato/);
 });
+
+test('gerar_midia não repete a foto de um prato criado na mesma resposta', async () => {
+    const dish = { id: 'd1', name: 'Iogurte com Banana', image_url: null, created_by_ai: true, created_by: 'admin' };
+    const chain = { select: () => chain, ilike: () => chain, order: () => chain, limit: () => chain, then: (r) => r({ data: [dish], error: null }) };
+    const supabase = {
+        from: () => chain,
+        rpc: async (fn) => fn === 'is_admin' ? { data: true, error: null } : { data: { id: 'd1', name: dish.name, existing: false }, error: null },
+    };
+    const run = createToolRunner(supabase, { id: 'admin' });
+    const created = await run('sugerir_prato', { name: dish.name });
+    assert.equal(created.action.type, 'dish_created');
+    const again = await run('gerar_midia', { tipo_item: 'prato', nome: dish.name, midias: ['imagem'] });
+    assert.equal(again.action, undefined);
+    assert.match(again.content, /já está sendo gerada/);
+
+    const fresh = await createToolRunner(supabase, { id: 'admin' })('gerar_midia', { tipo_item: 'prato', nome: dish.name, midias: ['imagem'] });
+    assert.deepEqual(fresh.action.kinds, ['image']);
+});
