@@ -179,8 +179,8 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
         <Modal isOpen={isOpen} onClose={onClose} title={editing ? 'Editar imagem' : 'Nova imagem'} size="full">
             <div className="imf">
                 <section className="imf-block">
-                    <span className="imf-label">Para quê</span>
-                    <div className="am-kind-tabs imf-targets" role="radiogroup" aria-label="Para quê">
+                    <span className="imf-label">Categoria</span>
+                    <div className="am-kind-tabs imf-targets" role="radiogroup" aria-label="Categoria">
                         {TARGETS.map(t => (
                             <button key={t.key} type="button" role="radio" aria-checked={target === t.key}
                                 className={target === t.key ? 'is-active' : ''} onClick={() => changeTarget(t.key)}>
