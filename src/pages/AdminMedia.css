@@ -107,3 +107,8 @@
 .am-current-empty { display: flex; align-items: center; justify-content: center; color: #9CA3AF; background: #E5E7EB; }
 .am-current figcaption { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; font-size: 0.8rem; color: #4B5563; }
 .am-current figcaption strong { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6B7280; }
+/* Com imagem: mesmo tamanho da foto do exercício (largura total, 16:9, sem cortar). */
+.am-current.is-large { flex-direction: column-reverse; align-items: stretch; gap: 0.4rem; }
+.am-current.is-large img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; border: 1px solid #E5E7EB; }
+.am-current.is-large figcaption { flex-direction: row; align-items: baseline; gap: 0.5rem; }
+.am-current.is-large figcaption span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

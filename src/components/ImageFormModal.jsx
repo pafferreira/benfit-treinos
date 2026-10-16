@@ -272,7 +272,7 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                 )}
 
                 {item && (
-                    <figure className="am-current">
+                    <figure className={`am-current${(isDish ? item.image_url : exerciseImageUrl(item)) ? ' is-large' : ''}`}>
                         {(isDish ? item.image_url : exerciseImageUrl(item))
                             ? <img src={isDish ? item.image_url : exerciseImageUrl(item)} alt="" />
                             : <span className="am-current-empty"><ImageIcon size={22} /></span>}

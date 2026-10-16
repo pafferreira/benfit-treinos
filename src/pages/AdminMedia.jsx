@@ -585,7 +585,7 @@ const AdminMedia = () => {
                     })}
                 </div>}
                 {selected && (
-                    <figure className="am-current">
+                    <figure className={`am-current${(isDishTarget ? selected.image_url : exerciseImageUrl(selected)) ? ' is-large' : ''}`}>
                         {(isDishTarget ? selected.image_url : exerciseImageUrl(selected))
                             ? <img src={isDishTarget ? selected.image_url : exerciseImageUrl(selected)} alt="" />
                             : <span className="am-current-empty"><ImageIcon size={22} /></span>}
