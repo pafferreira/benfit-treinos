@@ -66,6 +66,9 @@
 .am-error { font-size: 0.8rem; color: #B91C1C; background: #FEF2F2; border-radius: 0.6rem; padding: 0.5rem 0.65rem; }
 .am-link { display: inline-flex; align-items: center; gap: 0.25rem; align-self: flex-start; font-size: 0.78rem; font-weight: 600; color: #008ACF; }
 .am-prompt { white-space: pre-wrap; font-size: 0.72rem; line-height: 1.45; color: #4B5563; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 0.6rem; padding: 0.6rem; max-height: 12rem; overflow: auto; }
+.am-prompt-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.am-prompt-row .am-link { align-self: center; }
+.am-link:disabled { opacity: 0.5; }
 .am-adjust { display: flex; flex-direction: column; gap: 0.3rem; }
 .am-adjust label { font-size: 0.78rem; font-weight: 600; color: #374151; }
 .am-adjust textarea { width: 100%; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.5rem 0.7rem; font-size: 0.85rem; }

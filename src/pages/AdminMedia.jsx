@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, CheckCheck, Upload, Trash2, X, RefreshCw, RotateCcw, Loader2, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Upload, Trash2, X, RefreshCw, RotateCcw, Loader2, Pencil, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { exerciseImageUrl, DEFAULT_EXERCISE_IMAGE } from '../lib/exerciseImage';
 import { requestMedia, listMedia, reviewMedia, applyMediaToItem, deleteMedia, getMediaApproval, setMediaApproval, getDefaultPrompt, MEDIA_CHANGED_EVENT } from '../services/media';
@@ -94,6 +94,14 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegener
     const [showPrompt, setShowPrompt] = useState(false);
     const [adjusting, setAdjusting] = useState(false);
     const [draft, setDraft] = useState('');
+    const draftRef = useRef(null);
+    // Abre o texto da geração para editar antes de gerar a nova versão.
+    const startAdjust = () => { setDraft(media.prompt || ''); setAdjusting(true); };
+    useEffect(() => {
+        if (!adjusting || !draftRef.current) return;
+        draftRef.current.focus({ preventScroll: true });
+        draftRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, [adjusting]);
     const kind = isDish ? { label: 'Foto do prato', icon: KINDS.image.icon } : (KINDS[media.kind] || KINDS.image);
     const KindIcon = kind.icon;
     const current = exercise ? (isDish ? exercise.image_url : exerciseImageUrl(exercise)) : null;
@@ -142,18 +150,26 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegener
 
             {media.status === 'falhou' && media.error && <p className="am-error">{media.error}</p>}
 
-            {media.prompt && (
-                <button type="button" className="am-link" onClick={() => setShowPrompt(v => !v)}>
-                    {showPrompt ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Texto usado na geração
-                </button>
+            {media.prompt && !adjusting && (
+                <div className="am-prompt-row">
+                    <button type="button" className="am-link" onClick={() => setShowPrompt(v => !v)}>
+                        {showPrompt ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Texto usado na geração
+                    </button>
+                    {exercise && media.status !== 'gerando' && (
+                        <button type="button" className="am-link" disabled={busy} onClick={startAdjust}>
+                            <Pencil size={14} /> Editar texto
+                        </button>
+                    )}
+                </div>
             )}
-            {showPrompt && <pre className="am-prompt">{media.prompt}</pre>}
+            {showPrompt && !adjusting && <pre className="am-prompt">{media.prompt}</pre>}
 
             {adjusting && (
                 <div className="am-adjust">
                     <label htmlFor={`adj-${media.id}`}>Descrição para a nova versão (edite o que quiser)</label>
                     <textarea
                         id={`adj-${media.id}`}
+                        ref={draftRef}
                         rows={8}
                         maxLength={PROMPT_MAX}
                         value={draft}
@@ -190,17 +206,22 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegener
                             <Sparkles size={16} /> Gerar
                         </button>
                     ) : (
-                        <button type="button" className="am-btn" disabled={busy} onClick={() => { setDraft(media.prompt || ''); setAdjusting(true); }}>
+                        <button type="button" className="am-btn" disabled={busy} onClick={startAdjust}>
                             <RefreshCw size={16} /> Gerar de novo
                         </button>
                     )
                 )}
-                {canReview && media.status === 'pendente' && (
+                {adjusting && (
+                    <button type="button" className="am-btn" onClick={() => setAdjusting(false)}>
+                        <X size={16} /> Cancelar
+                    </button>
+                )}
+                {canReview && media.status === 'pendente' && !adjusting && (
                     <button type="button" className="am-btn am-btn-reject" disabled={busy} onClick={() => onReview(media, 'rejeitada')}>
                         <X size={16} /> Rejeitar
                     </button>
                 )}
-                {canDelete && (
+                {canDelete && !adjusting && (
                     <button type="button" className="am-btn am-btn-reject" disabled={busy} onClick={() => onDelete(media)}>
                         <Trash2 size={16} /> Excluir
                     </button>
