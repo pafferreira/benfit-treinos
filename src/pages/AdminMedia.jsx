@@ -180,7 +180,7 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegener
             )}
 
             <div className="am-actions">
-                {media.status === 'pendente' && exercise && (
+                {media.status === 'pendente' && exercise && !adjusting && (
                     <>
                         <button type="button" className="am-btn am-btn-approve" disabled={busy} onClick={() => onReview(media, 'aprovada', true)}>
                             <CheckCheck size={16} /> Aprovar e usar
@@ -190,7 +190,7 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegener
                         </button>
                     </>
                 )}
-                {media.status === 'aprovada' && exercise && !inUse && (
+                {media.status === 'aprovada' && exercise && !inUse && !adjusting && (
                     <button type="button" className="am-btn am-btn-approve" disabled={busy} onClick={() => onUse(media)}>
                         <Upload size={16} /> Usar no {itemWord}
                     </button>
@@ -207,7 +207,7 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegener
                         </button>
                     ) : (
                         <button type="button" className="am-btn" disabled={busy} onClick={startAdjust}>
-                            <RefreshCw size={16} /> Gerar de novo
+                            <RefreshCw size={16} /> Gerar novamente
                         </button>
                     )
                 )}
