@@ -14,7 +14,7 @@ const toast = (message, type = 'success') => window.dispatchEvent(new CustomEven
 const CATEGORY_LABELS = { exercicio: 'Exercícios', prato: 'Pratos', Avatar: 'Avatares' };
 const categoryLabel = (cat) => CATEGORY_LABELS[cat] || cat;
 // gender guarda o gênero (exercício e avatar) ou a refeição (prato).
-const GENDER_LABELS = { male: 'Masculino', female: 'Feminino', neutral: 'Neutro', ...Object.fromEntries(MEAL_TYPES.map(m => [m.key, m.label])) };
+const GENDER_LABELS = { male: 'Masculino', female: 'Feminino', neutral: 'Outro', ...Object.fromEntries(MEAL_TYPES.map(m => [m.key, m.label])) };
 
 const MediaLibrary = ({ exercises = [], dishes = [] }) => {
     const { avatars, loading, reload } = useAvatars();

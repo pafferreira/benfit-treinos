@@ -18,10 +18,10 @@ const TARGETS = [
     { key: 'Avatar', label: 'Avatar' },
     { key: 'Outro', label: 'Outro' },
 ];
+// Pessoas: só Masculino ou Feminino (decisão do PAF). "neutral" fica só para a categoria Outro.
 const GENDERS = [
     { key: 'male', label: 'Masculino' },
     { key: 'female', label: 'Feminino' },
-    { key: 'neutral', label: 'Neutro' },
 ];
 const STYLES = [{ key: '3d', label: '3D' }, { key: 'real', label: 'Real' }];
 const PROMPT_MAX = 4000;
@@ -34,7 +34,7 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
     const [target, setTarget] = useState('exercicio');
     const [itemId, setItemId] = useState('');
     const [name, setName] = useState('');
-    const [gender, setGender] = useState('neutral');
+    const [gender, setGender] = useState('');
     const [mealType, setMealType] = useState('');
     const [tags, setTags] = useState([]);
     const [tagInput, setTagInput] = useState('');
@@ -54,7 +54,7 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
         setItemId('');
         setName(image?.name || '');
         const isMeal = MEAL_TYPES.some(m => m.key === image?.gender);
-        setGender(image?.gender && !isMeal ? image.gender : 'neutral');
+        setGender(GENDERS.some(g => g.key === image?.gender) ? image.gender : '');
         setMealType(isMeal ? image.gender : '');
         setTags(image?.tags || []);
         setTagInput('');
@@ -148,7 +148,7 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                 name: name.trim(),
                 // Na edição, categoria antiga (3D, Hero...) fica como está se o tipo não mudou.
                 category: editing && targetOf(image.category) === target ? image.category : target,
-                gender: isDish ? (mealType || null) : target === 'Outro' ? null : gender,
+                gender: isDish ? (mealType || null) : target === 'Outro' ? 'neutral' : gender,
                 tags,
                 is_active: active,
                 public_url: file.url,
@@ -173,7 +173,8 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
 
     const ready = usingAi
         ? Boolean(itemId) && !promptLoading && prompt.trim().length > 0
-        : Boolean(name.trim() && file.url) && !uploading && (!isItem || editing || Boolean(itemId));
+        : Boolean(name.trim() && file.url) && !uploading && (!isItem || editing || Boolean(itemId))
+            && (isDish || target === 'Outro' || Boolean(gender));
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={editing ? 'Editar imagem' : 'Nova imagem'} size="full">
