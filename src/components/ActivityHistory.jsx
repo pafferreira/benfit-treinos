@@ -156,7 +156,7 @@ const SessionExercises = ({ exercises }) => {
 // ==========================================
 // Componente Principal
 // ==========================================
-// musclesSlot: quando enviado (tela de Histórico), a segunda aba vira "Músculos da semana" no lugar de Planos.
+// musclesSlot: quando enviado (tela de Histórico), a segunda aba vira "Músculos Trabalhados" no lugar de Planos.
 const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false, finalizedDates = [], doneDates = [], musclesSlot = null }) => {
     const [loading, setLoading] = useState(true);
     const [sessions, setSessions] = useState([]);
