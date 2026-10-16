@@ -415,7 +415,7 @@ const ActivityHistory = ({ isOpen, onClose, userId: propUserId, isPage = false, 
                         onClick={() => setActiveTab('musculos')}
                     >
                         <PersonStanding size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-                        Músculos da semana
+                        Músculos Trabalhados
                     </button>
                 ) : (
                     <button
