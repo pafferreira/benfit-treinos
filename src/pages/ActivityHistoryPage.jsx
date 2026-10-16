@@ -20,14 +20,14 @@ const ActivityHistoryPage = () => {
     const [targetUid, setTargetUid] = useState(userId || null);
     const [weekText, setWeekText] = useState('');
 
-    const handleWeekSummary = useCallback(({ summary, missing, sessions }) => {
+    const handleWeekSummary = useCallback(({ summary, missing, sessions, days }) => {
         if (!summary.length) {
-            setWeekText('Nos últimos 7 dias não há exercícios registrados.');
+            setWeekText(`Nos últimos ${days} dias não há exercícios registrados.`);
             return;
         }
         const worked = summary.map(m => `${m.muscle.nome} ${m.pct}%`).join(', ');
         const gaps = missing.length ? ` Sem treino: ${missing.map(r => r.nome).join(', ')}.` : '';
-        setWeekText(`Últimos 7 dias (${sessions} treinos): ${worked}.${gaps}`);
+        setWeekText(`Músculos dos últimos ${days} dias (${sessions} treinos): ${worked}.${gaps}`);
     }, []);
 
     useCoachScreen({

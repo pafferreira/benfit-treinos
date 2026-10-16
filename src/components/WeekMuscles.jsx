@@ -5,23 +5,29 @@ import { summarizeMuscles, missingRegions } from '../lib/muscles';
 import BodyMap, { MuscleChips } from './BodyMap';
 import './WeekMuscles.css';
 
-// Músculos trabalhados nos últimos 7 dias, a partir dos exercícios registrados.
+const PERIODS = [7, 15, 30];
+
+// Músculos trabalhados nos últimos 7, 15 ou 30 dias, a partir dos exercícios registrados.
 // Cada exercício conta uma vez por sessão (principal = 1, auxiliar = 0,5).
 const WeekMuscles = ({ userId, onSummary }) => {
     const muscleMap = useExerciseMuscleMap();
-    const [data, setData] = useState(null);
+    const [days, setDays] = useState(7);
+    const [data, setData] = useState(null); // { days, exercises, sessions }
 
     useEffect(() => {
         if (!userId) return;
         let alive = true;
-        supabaseHelpers.getRecentTrainedExercises(userId, 7)
-            .then(res => { if (alive) setData(res); })
+        supabaseHelpers.getRecentTrainedExercises(userId, days)
+            .then(res => { if (alive) setData({ days, ...res }); })
             .catch(err => {
-                console.error('Erro ao carregar músculos da semana:', err);
-                if (alive) setData({ exercises: [], sessions: 0 });
+                console.error('Erro ao carregar músculos trabalhados:', err);
+                if (alive) setData({ days, exercises: [], sessions: 0 });
             });
         return () => { alive = false; };
-    }, [userId]);
+    }, [userId, days]);
+
+    // Ao trocar o período, mantém o resultado anterior (esmaecido) até chegar o novo.
+    const refreshing = !!data && data.days !== days;
 
     const summary = useMemo(
         () => (data ? summarizeMuscles(data.exercises, muscleMap) : []),
@@ -30,7 +36,7 @@ const WeekMuscles = ({ userId, onSummary }) => {
     const missing = useMemo(() => missingRegions(summary), [summary]);
 
     useEffect(() => {
-        if (data && onSummary) onSummary({ summary, missing, sessions: data.sessions });
+        if (data && onSummary) onSummary({ summary, missing, sessions: data.sessions, days: data.days });
     }, [data, summary, missing, onSummary]);
 
     if (!data) {
@@ -52,16 +58,31 @@ const WeekMuscles = ({ userId, onSummary }) => {
     }
 
     return (
-        <section className="week-muscles">
+        <section className={`week-muscles ${refreshing ? 'is-refreshing' : ''}`} aria-busy={refreshing}>
             <header className="week-muscles-head">
-                <h2 className="week-muscles-title">Músculos da semana</h2>
-                <span className="week-muscles-sub">
-                    Últimos 7 dias · {data.sessions} {data.sessions === 1 ? 'treino' : 'treinos'}
-                </span>
+                <div>
+                    <h2 className="week-muscles-title">Músculos trabalhados</h2>
+                    <span className="week-muscles-sub">
+                        Últimos {data.days} dias · {data.sessions} {data.sessions === 1 ? 'treino' : 'treinos'}
+                    </span>
+                </div>
+                <div className="week-muscles-periods" role="group" aria-label="Período">
+                    {PERIODS.map(p => (
+                        <button
+                            key={p}
+                            type="button"
+                            className={`week-muscles-period ${days === p ? 'is-active' : ''}`}
+                            aria-pressed={days === p}
+                            onClick={() => setDays(p)}
+                        >
+                            {p} dias
+                        </button>
+                    ))}
+                </div>
             </header>
 
             {summary.length === 0 ? (
-                <p className="week-muscles-empty">Nenhum exercício registrado nos últimos 7 dias.</p>
+                <p className="week-muscles-empty">Nenhum exercício registrado nos últimos {data.days} dias.</p>
             ) : (
                 <div className="week-muscles-body">
                     <BodyMap
@@ -72,7 +93,7 @@ const WeekMuscles = ({ userId, onSummary }) => {
                         <MuscleChips muscles={summary.map(m => ({ slug: m.slug, pct: m.pct }))} />
                         {missing.length > 0 && (
                             <p className="week-muscles-missing">
-                                <strong>Sem treino na semana:</strong> {missing.map(r => r.nome).join(', ')}.
+                                <strong>Sem treino no período:</strong> {missing.map(r => r.nome).join(', ')}.
                             </p>
                         )}
                     </div>
