@@ -100,8 +100,8 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
                     ))}
                 </div>
                 <div className="ml-row">
-                    <select id="ml-gender" value={gender} onChange={(e) => setGender(e.target.value)} aria-label="Gênero ou refeição">
-                        <option value="Todos">Gênero ou refeição</option>
+                    <select id="ml-gender" value={gender} onChange={(e) => setGender(e.target.value)} aria-label="Título">
+                        <option value="Todos">Todos os títulos</option>
                         {genders.map(g => <option key={g} value={g}>{GENDER_LABELS[g] || g}</option>)}
                     </select>
                     <button

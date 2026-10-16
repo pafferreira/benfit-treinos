@@ -217,8 +217,8 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
 
                 {isDish ? (
                     <section className="imf-block">
-                        <span className="imf-label">Refeição</span>
-                        <div className="imf-chips" role="radiogroup" aria-label="Refeição">
+                        <span className="imf-label">Título</span>
+                        <div className="imf-chips" role="radiogroup" aria-label="Título">
                             {MEAL_TYPES.map(m => (
                                 <button key={m.key} type="button" role="radio" aria-checked={mealType === m.key}
                                     className={mealType === m.key ? 'is-active' : ''} onClick={() => setMealType(m.key)}>
@@ -229,8 +229,8 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                     </section>
                 ) : target !== 'Outro' && !usingAi && (
                     <section className="imf-block">
-                        <span className="imf-label">Gênero da pessoa na imagem</span>
-                        <div className="imf-chips" role="radiogroup" aria-label="Gênero">
+                        <span className="imf-label">Título</span>
+                        <div className="imf-chips" role="radiogroup" aria-label="Título">
                             {GENDERS.map(g => (
                                 <button key={g.key} type="button" role="radio" aria-checked={gender === g.key}
                                     className={gender === g.key ? 'is-active' : ''} onClick={() => setGender(g.key)}>
