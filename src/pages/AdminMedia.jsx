@@ -585,6 +585,17 @@ const AdminMedia = () => {
                     })}
                 </div>}
                 {selected && (
+                    <figure className="am-current">
+                        {(isDishTarget ? selected.image_url : exerciseImageUrl(selected))
+                            ? <img src={isDishTarget ? selected.image_url : exerciseImageUrl(selected)} alt="" />
+                            : <span className="am-current-empty"><ImageIcon size={22} /></span>}
+                        <figcaption>
+                            <strong>Imagem atual</strong>
+                            <span>{(isDishTarget ? selected.image_url : exerciseImageUrl(selected)) ? selected.name : 'Ainda sem imagem'}</span>
+                        </figcaption>
+                    </figure>
+                )}
+                {selected && (
                     <div className="am-adjust">
                         <div className="am-prompt-head">
                             <label htmlFor="am-new-prompt">Descrição para a IA (edite o que quiser)</label>

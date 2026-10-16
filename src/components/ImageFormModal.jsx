@@ -3,6 +3,7 @@ import { Upload, Sparkles, Loader2, RotateCcw, Image as ImageIcon, ChevronDown, 
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { resizeImageFile } from '../lib/imageResize';
 import { getDefaultPrompt } from '../services/media';
+import { exerciseImageUrl } from '../lib/exerciseImage';
 import { MEAL_TYPES } from '../services/dishes';
 import Modal from './Modal';
 import SearchableExerciseSelect from './SearchableExerciseSelect';
@@ -268,6 +269,18 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                             </button>
                         </div>
                     </section>
+                )}
+
+                {item && (
+                    <figure className="am-current">
+                        {(isDish ? item.image_url : exerciseImageUrl(item))
+                            ? <img src={isDish ? item.image_url : exerciseImageUrl(item)} alt="" />
+                            : <span className="am-current-empty"><ImageIcon size={22} /></span>}
+                        <figcaption>
+                            <strong>Imagem atual</strong>
+                            <span>{(isDish ? item.image_url : exerciseImageUrl(item)) ? item.name : 'Ainda sem imagem'}</span>
+                        </figcaption>
+                    </figure>
                 )}
 
                 {usingAi ? (
