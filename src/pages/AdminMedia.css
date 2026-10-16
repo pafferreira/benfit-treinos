@@ -115,3 +115,23 @@
 /* Aviso de geração em andamento, com Cancelar, nas abas fora de Gerar. */
 .am-generating { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; padding: 0.6rem 0.75rem; border: 1px solid #BFDBFE; border-radius: 0.75rem; background: #EFF6FF; color: #034EA2; font-size: 0.85rem; font-weight: 600; }
 .am-generating span { flex: 1; min-width: 0; }
+
+/* Histórico em accordion: filtro por estado, linha com miniatura, últimos 10. */
+.am-hist-filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+.am-hist-filters button { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 999px; background: #fff; font-size: 0.8rem; font-weight: 600; color: #4B5563; }
+.am-hist-filters button.is-active { background: #034EA2; border-color: #034EA2; color: #fff; }
+.am-hist-filters button.is-active .am-tab-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.am-hist-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.am-hist { border: 1px solid #E5E7EB; border-radius: 0.9rem; background: #fff; overflow: hidden; }
+.am-hist.is-open { border-color: #BFDBFE; }
+.am-hist > .am-card { border: 0; border-top: 1px solid #F3F4F6; border-radius: 0; box-shadow: none; }
+.am-hist-row { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.65rem; text-align: left; }
+.am-hist-thumb { position: relative; display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; flex-shrink: 0; border-radius: 0.6rem; background: #F3F4F6; color: #9CA3AF; overflow: hidden; }
+.am-hist-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.am-hist-badge { position: absolute; right: 0.2rem; bottom: 0.2rem; display: flex; padding: 0.15rem; border-radius: 0.3rem; background: rgba(3, 78, 162, 0.85); color: #fff; }
+.am-hist-body { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; min-width: 0; }
+.am-hist-name { font-size: 0.88rem; font-weight: 700; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.am-hist-meta { display: flex; align-items: center; gap: 0.25rem; font-size: 0.72rem; color: #6B7280; }
+.am-hist-chev { flex-shrink: 0; color: #9CA3AF; }
+.am-hist-more { width: 100%; margin-top: 0.75rem; }
+.am-hist > .am-card > .am-card-head { display: none; }

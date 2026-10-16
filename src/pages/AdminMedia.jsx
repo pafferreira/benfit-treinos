@@ -232,12 +232,60 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegener
     );
 };
 
+// Histórico: filtros por estado e quantas linhas aparecem de cada vez.
+const HISTORY_FILTERS = [
+    { key: 'todas', label: 'Todas' },
+    { key: 'emuso', label: 'Em uso' },
+    { key: 'aprovada', label: 'Aprovadas' },
+    { key: 'rejeitada', label: 'Rejeitadas' },
+];
+const HISTORY_PAGE = 10;
+
+// Miniatura da linha do Histórico: a imagem, a primeira pose ou a foto do exercício (vídeo).
+const thumbOf = (media, item) => {
+    if (media.kind === 'image') return media.url;
+    if (media.kind === 'poses') return (media.frames || [])[0] || null;
+    return item ? exerciseImageUrl(item) : null;
+};
+
+// Linha recolhida do Histórico; tocar abre o cartão completo com as ações.
+const HistoryRow = ({ media, item, open, onToggle, children }) => {
+    const isDish = media.entity_type === 'dish';
+    const kind = isDish ? { label: 'Foto do prato', icon: KINDS.image.icon } : (KINDS[media.kind] || KINDS.image);
+    const KindIcon = kind.icon;
+    const thumb = thumbOf(media, item);
+    const inUse = isInUse(media, item);
+    return (
+        <div className={`am-hist ${open ? 'is-open' : ''}`}>
+            <button type="button" className="am-hist-row" aria-expanded={open} onClick={onToggle}>
+                <span className="am-hist-thumb">
+                    {thumb ? <img src={thumb} alt="" loading="lazy" /> : <KindIcon size={18} />}
+                    {media.kind === 'video' && <span className="am-hist-badge"><Film size={11} /></span>}
+                </span>
+                <span className="am-hist-body">
+                    <span className="am-hist-name">{item?.name || (isDish ? 'Prato removido' : 'Exercício removido')}</span>
+                    <span className="am-hist-meta"><KindIcon size={12} /> {kind.label} · {formatDate(media.created_at)}</span>
+                </span>
+                <span className="am-status-stack">
+                    <span className={`am-status am-status-${media.status}`}>{STATUS_LABEL[media.status]}</span>
+                    {inUse && <span className="am-status am-status-inuse">Em uso</span>}
+                </span>
+                {open ? <ChevronUp size={16} className="am-hist-chev" /> : <ChevronDown size={16} className="am-hist-chev" />}
+            </button>
+            {open && children}
+        </div>
+    );
+};
+
 const AdminMedia = () => {
     const navigate = useNavigate();
     const { openCoach } = useCoach();
     const { isRealAdmin, loading: roleLoading } = useUserRole();
     const { exercises, reload: reloadExercises } = useExercises();
     const [tab, setTab] = useState('pendente');
+    const [historyFilter, setHistoryFilter] = useState('todas');
+    const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE);
+    const [openId, setOpenId] = useState(null);
     // Abas da tela Mídias Benfit; #biblioteca e #gerar no link abrem direto nelas.
     const [section, setSection] = useState(() => {
         const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
@@ -274,6 +322,21 @@ const AdminMedia = () => {
     }), {}), [filtered]);
     const pendingTotal = useMemo(() => items.filter(m => m.status === 'pendente').length, [items]);
     const visible = useMemo(() => filtered.filter(m => TABS.find(t => t.key === tab).statuses.includes(m.status)), [filtered, tab]);
+    const historyCounts = useMemo(() => {
+        const hist = filtered.filter(m => TABS[2].statuses.includes(m.status));
+        return {
+            list: hist,
+            todas: hist.length,
+            emuso: hist.filter(m => isInUse(m, (m.entity_type === 'dish' ? dishById : exerciseById)[m.entity_id])).length,
+            aprovada: hist.filter(m => m.status === 'aprovada').length,
+            rejeitada: hist.filter(m => m.status === 'rejeitada').length,
+        };
+    }, [filtered, dishById, exerciseById]);
+    const historyVisible = useMemo(() => historyCounts.list.filter(m => {
+        if (historyFilter === 'todas') return true;
+        if (historyFilter === 'emuso') return isInUse(m, (m.entity_type === 'dish' ? dishById : exerciseById)[m.entity_id]);
+        return m.status === historyFilter;
+    }), [historyCounts, historyFilter, dishById, exerciseById]);
 
     const load = useCallback(async () => {
         try {
@@ -450,6 +513,19 @@ const AdminMedia = () => {
     };
 
     const handleRegenerate = (media, prompt) => generate(media.kind, media.entity_id, prompt, media.entity_type);
+
+    const renderCard = (media) => (
+        <MediaCard
+            key={media.id}
+            media={media}
+            exercise={entityOf(media)}
+            busy={busyIds.has(media.id) || Boolean(generating)}
+            onReview={handleReview}
+            onUse={handleUse}
+            onDelete={setToDelete}
+            onRegenerate={handleRegenerate}
+        />
+    );
 
     const changeEntity = (entity) => {
         setNewEntity(entity);
@@ -712,25 +788,45 @@ const AdminMedia = () => {
 
             {loading ? (
                 <div className="am-empty"><Loader2 size={20} className="animate-spin" /> Carregando…</div>
-            ) : visible.length === 0 ? (
+            ) : visible.length === 0 && tab !== 'historico' ? (
                 <div className="am-empty">
                     {tab === 'pendente' ? 'Nada esperando aprovação.' : tab === 'gerando' ? 'Nenhum vídeo em geração.' : 'Nada por aqui ainda.'}
                 </div>
             ) : (
+                tab === 'historico' ? (
+                    <>
+                        <div className="am-hist-filters" role="radiogroup" aria-label="Estado">
+                            {HISTORY_FILTERS.map(f => (
+                                <button key={f.key} type="button" role="radio" aria-checked={historyFilter === f.key}
+                                    className={historyFilter === f.key ? 'is-active' : ''}
+                                    onClick={() => { setHistoryFilter(f.key); setHistoryLimit(HISTORY_PAGE); setOpenId(null); }}>
+                                    {f.label} <span className="am-tab-count">{historyCounts[f.key]}</span>
+                                </button>
+                            ))}
+                        </div>
+                        {historyVisible.length === 0 ? (
+                            <div className="am-empty">Nada com esse filtro.</div>
+                        ) : (
+                            <div className="am-hist-list">
+                                {historyVisible.slice(0, historyLimit).map(media => (
+                                    <HistoryRow key={media.id} media={media} item={entityOf(media)}
+                                        open={openId === media.id} onToggle={() => setOpenId(id => (id === media.id ? null : media.id))}>
+                                        {renderCard(media)}
+                                    </HistoryRow>
+                                ))}
+                            </div>
+                        )}
+                        {historyVisible.length > historyLimit && (
+                            <button type="button" className="am-btn am-hist-more" onClick={() => setHistoryLimit(n => n + HISTORY_PAGE)}>
+                                Mostrar mais {Math.min(HISTORY_PAGE, historyVisible.length - historyLimit)} de {historyVisible.length - historyLimit}
+                            </button>
+                        )}
+                    </>
+                ) : (
                 <div className="am-list">
-                    {visible.map(media => (
-                        <MediaCard
-                            key={media.id}
-                            media={media}
-                            exercise={entityOf(media)}
-                            busy={busyIds.has(media.id) || Boolean(generating)}
-                            onReview={handleReview}
-                            onUse={handleUse}
-                            onDelete={setToDelete}
-                            onRegenerate={handleRegenerate}
-                        />
-                    ))}
+                    {visible.map(renderCard)}
                 </div>
+                )
             )}
             </>}
             <ConfirmationModal
