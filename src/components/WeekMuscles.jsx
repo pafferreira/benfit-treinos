@@ -63,7 +63,7 @@ const WeekMuscles = ({ userId, onSummary }) => {
                 <div>
                     <h2 className="week-muscles-title">Músculos trabalhados</h2>
                     <span className="week-muscles-sub">
-                        Últimos {data.period} dias · {data.days} {data.days === 1 ? 'dia com treino' : 'dias com treino'}
+                        Últimos {data.period} dias · Treinou: {data.days} {data.days === 1 ? 'dia' : 'dias'}
                     </span>
                 </div>
                 <div className="week-muscles-periods" role="group" aria-label="Período">
