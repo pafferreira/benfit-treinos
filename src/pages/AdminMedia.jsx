@@ -408,11 +408,24 @@ const AdminMedia = () => {
         }
     };
 
+    // Cancelar libera a tela na hora; se a mídia chegar depois, ela é apagada
+    // (a não ser que já tenha ido ao ar, com a aprovação desligada).
+    const cancelledRef = useRef(null);
     const generate = async (kind, entityId, prompt, entityType = 'exercise') => {
-        const key = `${kind}:${entityId}`;
-        setGenerating(key);
+        const key = `${kind}:${entityId}:${Date.now()}`;
+        cancelledRef.current = null;
+        setGenerating({ key, kind, entityType, name: (entityType === 'dish' ? dishById : exerciseById)[entityId]?.name || '' });
         try {
             const media = await requestMedia(kind, { entityType, entityId, prompt });
+            if (cancelledRef.current === key) {
+                if (media.status === 'aprovada') {
+                    upsertItem(media);
+                    toast('A mídia ficou pronta antes do cancelamento e já está no ar. Veja no Histórico.', 'error');
+                } else {
+                    await deleteMedia(media.id).catch(() => {});
+                }
+                return;
+            }
             upsertItem(media);
             setTab(media.status === 'gerando' ? 'gerando' : media.status === 'pendente' ? 'pendente' : 'historico');
             setSection('aprovar');
@@ -423,10 +436,17 @@ const AdminMedia = () => {
                 ? 'Vídeo em geração. Ele aparece em "Gerando" e fica pronto em alguns minutos.'
                 : media.status === 'aprovada' ? 'Mídia gerada e publicada.' : 'Mídia gerada. Revise em "Pendentes".');
         } catch (err) {
-            toast(err.message, 'error');
+            if (cancelledRef.current !== key) toast(err.message, 'error');
         } finally {
-            setGenerating(null);
+            setGenerating(current => (current?.key === key ? null : current));
         }
+    };
+
+    const cancelGenerate = () => {
+        if (!generating) return;
+        cancelledRef.current = generating.key;
+        setGenerating(null);
+        toast('Geração cancelada.');
     };
 
     const handleRegenerate = (media, prompt) => generate(media.kind, media.entity_id, prompt, media.entity_type);
@@ -500,6 +520,19 @@ const AdminMedia = () => {
                     </button>
                 ))}
             </div>
+
+            {generating && section !== 'gerar' && (
+                <div className="am-generating" role="status">
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>
+                        Gerando {generating.entityType === 'dish' ? 'foto' : KINDS[generating.kind]?.label.toLowerCase()}
+                        {generating.name ? ` de ${generating.name}` : ''}…
+                    </span>
+                    <button type="button" className="am-btn am-btn-reject" onClick={cancelGenerate}>
+                        <X size={15} /> Cancelar
+                    </button>
+                </div>
+            )}
 
             {section === 'biblioteca' && <MediaLibrary exercises={exercises || []} dishes={dishes} />}
 
@@ -624,6 +657,11 @@ const AdminMedia = () => {
                     {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                     {isDishTarget ? 'Gerar foto do prato' : `Gerar ${KINDS[newKind].label.toLowerCase()}`}
                 </button>
+                {generating && (
+                    <button type="button" className="am-btn am-gen-submit" onClick={cancelGenerate}>
+                        <X size={16} /> Cancelar
+                    </button>
+                )}
                 <p className="am-hint">
                     A descrição é traduzida para o inglês na hora de gerar.{' '}
                     {isDishTarget ? 'A foto leva uns 20 segundos.' : 'Imagem leva uns 20 segundos; duas poses, um pouco mais; o vídeo segue em "Gerando".'}

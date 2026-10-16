@@ -101,6 +101,28 @@ const TRANSLATE_SYSTEM = [
 
 // Traduz a descrição para o inglês. Se nenhum provedor responder, segue em
 // português: os modelos do Google também entendem, só com um pouco menos de precisão.
+// Avatar: segue o estilo dos avatares que já existem (enviados como referência).
+export const buildAvatarPrompt = ({ gender = 'female', style = '3d' } = {}) => {
+    const person = gender === 'male' ? 'um homem adulto atlético' : 'uma mulher adulta atlética';
+    const look = style === 'real'
+        ? `Foto realista de estúdio, retrato de ${person}`
+        : `Retrato em 3D estilizado (estilo animação, pele lisa, olhos expressivos) de ${person}`;
+    return [
+        'Siga exatamente o estilo visual dos avatares de referência do Benfit.',
+        `${look}, do peito para cima, de frente para a câmera, com um sorriso confiante.`,
+        'Regata de academia azul (#034EA2), fundo azul-claro liso, iluminação suave e uniforme.',
+        'Rosto centralizado, ombros inteiros no quadro. Formato quadrado 1:1.',
+        'Sem texto, sem legendas, sem logotipos, sem marca d\'água.',
+    ].join(' ');
+};
+
+// Outro: descrição livre; este é só um exemplo para o admin trocar.
+export const OTHER_EXAMPLE_PROMPT = [
+    'Exemplo (troque pelo que quiser): ilustração em 3D realista de uma garrafa de água esportiva azul (#034EA2)',
+    'ao lado de um halter cinza, sobre fundo branco puro, iluminação suave de estúdio, sombra leve no chão.',
+    'Sem texto, sem legendas, sem logotipos, sem marca d\'água. Formato quadrado 1:1.',
+].join(' ');
+
 export async function translatePrompt(prompt, chat) {
     try {
         const run = chat || (await import('./_providers.js')).chatWithFallback;
@@ -137,7 +159,7 @@ export const parseImageResponse = (data) => {
     return { mimeType: inline.mimeType || inline.mime_type || 'image/png', data: inline.data };
 };
 
-export async function generateImage({ prompt, references = [], fetchImpl = fetch }) {
+export async function generateImage({ prompt, references = [], aspectRatio = '16:9', fetchImpl = fetch }) {
     const key = geminiKey();
     const parts = [
         ...references.filter(Boolean).map(ref => ({ inline_data: { mime_type: ref.mimeType, data: ref.data } })),
@@ -152,7 +174,7 @@ export async function generateImage({ prompt, references = [], fetchImpl = fetch
                 contents: [{ role: 'user', parts }],
                 generationConfig: {
                     responseModalities: ['IMAGE'],
-                    imageConfig: { aspectRatio: '16:9' },
+                    imageConfig: { aspectRatio },
                 },
             }),
         });

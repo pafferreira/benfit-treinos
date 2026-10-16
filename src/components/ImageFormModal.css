@@ -32,3 +32,6 @@
 
 .imf-footer { display: grid; grid-template-columns: 1fr 2fr; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px solid #E5E7EB; }
 .imf-url-label { font-weight: 600; color: #6B7280; margin-top: 0.25rem; }
+.imf-preview { cursor: default; }
+.imf-regen { align-self: flex-start; }
+.imf-pick-hint { margin: 0; padding: 0.6rem 0.75rem; border: 1px dashed #D1D5DB; border-radius: 0.75rem; background: #F9FAFB; }

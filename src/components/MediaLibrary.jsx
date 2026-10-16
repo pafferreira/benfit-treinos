@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Search, Trash2, X, Loader2 } from 'lucide-react';
+import { Search, Trash2, X, Loader2, Image as ImageIcon, Footprints, Film } from 'lucide-react';
 import { supabaseHelpers } from '../lib/supabase';
 import { useAvatars } from '../hooks/useSupabase';
 import ImageFormModal from './ImageFormModal';
 import { MEAL_TYPES } from '../services/dishes';
 import ConfirmationModal from './ConfirmationModal';
+import ExerciseAnimation from './ExerciseAnimation';
 import './MediaLibrary.css';
 
 // Biblioteca da tela Mídias Benfit (antiga "Gerenciar Avatares"): todas as
@@ -16,8 +17,18 @@ const categoryLabel = (cat) => CATEGORY_LABELS[cat] || cat;
 // gender guarda o gênero (exercício e avatar) ou a refeição (prato).
 const GENDER_LABELS = { male: 'Masculino', female: 'Feminino', neutral: 'Outro', ...Object.fromEntries(MEAL_TYPES.map(m => [m.key, m.label])) };
 
+// Tipos de mídia da Biblioteca: as imagens (b_avatars) e as animações já no ar
+// dos exercícios (duas poses em animation_frames, vídeo em animation_url).
+const MEDIA_KINDS = [
+    { key: 'imagem', label: 'Imagens', icon: ImageIcon },
+    { key: 'poses', label: '2 poses', icon: Footprints },
+    { key: 'video', label: 'Vídeos', icon: Film },
+];
+const hasPoses = (ex) => Array.isArray(ex.animation_frames) && ex.animation_frames.filter(Boolean).length >= 2;
+
 const MediaLibrary = ({ exercises = [], dishes = [] }) => {
     const { avatars, loading, reload } = useAvatars();
+    const [kind, setKind] = useState('imagem');
     const [term, setTerm] = useState('');
     const [category, setCategory] = useState('Todas');
     const [gender, setGender] = useState('Todos');
@@ -60,6 +71,17 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
         });
     }, [avatars, showActive, category, gender, term, usage]);
 
+    const animated = useMemo(() => {
+        const q = term.trim().toLowerCase();
+        return exercises.filter(ex => (kind === 'poses' ? hasPoses(ex) : kind === 'video' ? Boolean(ex.animation_url) : false))
+            .filter(ex => !q || [ex.name, ex.muscle_group, ...(ex.muscle_groups || [])].some(v => v && String(v).toLowerCase().includes(q)));
+    }, [exercises, kind, term]);
+    const kindCounts = useMemo(() => ({
+        imagem: avatars.filter(a => a.is_active === showActive).length,
+        poses: exercises.filter(hasPoses).length,
+        video: exercises.filter(ex => ex.animation_url).length,
+    }), [avatars, exercises, showActive]);
+
     const remove = async () => {
         const target = toDelete;
         setToDelete(null);
@@ -75,6 +97,45 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
 
     return (
         <div className="ml-root">
+            <div className="am-kind-tabs ml-kinds" role="tablist" aria-label="Tipo de mídia">
+                {MEDIA_KINDS.map(k => {
+                    const KindIcon = k.icon;
+                    return (
+                        <button key={k.key} type="button" role="tab" aria-selected={kind === k.key}
+                            className={kind === k.key ? 'is-active' : ''} onClick={() => setKind(k.key)}>
+                            <KindIcon size={15} /> {k.label} <span className="ml-count">{kindCounts[k.key]}</span>
+                        </button>
+                    );
+                })}
+            </div>
+            {kind !== 'imagem' ? (
+                <>
+                    <label className="ml-search ml-search-solo">
+                        <Search size={16} />
+                        <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Buscar exercício ou músculo" />
+                        {term && <button type="button" onClick={() => setTerm('')} aria-label="Limpar busca"><X size={14} /></button>}
+                    </label>
+                    {animated.length === 0 ? (
+                        <div className="am-empty">
+                            {kind === 'poses' ? 'Nenhum exercício com duas poses no ar.' : 'Nenhum exercício com vídeo no ar.'} Gere na aba Gerar.
+                        </div>
+                    ) : (
+                        <div className="ml-anim-grid">
+                            {animated.map(ex => (
+                                <article key={ex.id} className="ml-anim-card">
+                                    <ExerciseAnimation
+                                        videoUrl={kind === 'video' ? ex.animation_url : null}
+                                        frames={kind === 'poses' ? ex.animation_frames : null}
+                                        poster={ex.image_url}
+                                        alt={ex.name}
+                                    />
+                                    <span className="ml-card-name">{ex.name}</span>
+                                </article>
+                            ))}
+                        </div>
+                    )}
+                </>
+            ) : <>
             <div className="ml-toolbar">
                 <label className="ml-search">
                     <Search size={16} />
@@ -100,8 +161,8 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
                     ))}
                 </div>
                 <div className="ml-row">
-                    <select id="ml-gender" value={gender} onChange={(e) => setGender(e.target.value)} aria-label="Título">
-                        <option value="Todos">Todos os títulos</option>
+                    <select id="ml-gender" value={gender} onChange={(e) => setGender(e.target.value)} aria-label="Tipo">
+                        <option value="Todos">Todos os tipos</option>
                         {genders.map(g => <option key={g} value={g}>{GENDER_LABELS[g] || g}</option>)}
                     </select>
                     <button
@@ -154,6 +215,8 @@ const MediaLibrary = ({ exercises = [], dishes = [] }) => {
                     })}
                 </div>
             )}
+
+            </>}
 
             <ImageFormModal
                 isOpen={Boolean(editing)}

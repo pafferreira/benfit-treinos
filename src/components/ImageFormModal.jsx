@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Upload, Sparkles, Loader2, RotateCcw, Image as ImageIcon, ChevronDown, X } from 'lucide-react';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import { resizeImageFile } from '../lib/imageResize';
-import { getDefaultPrompt } from '../services/media';
+import { getDefaultPrompt, getFreePrompt, generateFreeImage } from '../services/media';
 import { exerciseImageUrl } from '../lib/exerciseImage';
 import { MEAL_TYPES } from '../services/dishes';
 import Modal from './Modal';
@@ -11,8 +11,10 @@ import './ImageFormModal.css';
 
 // Tela "Nova imagem" / "Editar imagem" de Mídias Benfit (aberta pelo "+ Novo"
 // da aba Gerar e pelos cartões da Biblioteca). O tipo escolhido no topo decide
-// os campos: exercício e avatar têm Gênero; prato tem Refeição, guardada no
-// mesmo campo gender de b_avatars (cafe, almoco, lanche...).
+// os campos: exercício e avatar têm Tipo (Masculino/Feminino); prato tem a
+// refeição, guardada no mesmo campo gender de b_avatars (cafe, almoco, lanche...).
+// Gerar com IA vale para todas as categorias: exercício e prato vão para a fila
+// Aprovar; avatar e outro voltam para esta tela, que mostra a prévia antes de salvar.
 const TARGETS = [
     { key: 'exercicio', label: 'Exercício' },
     { key: 'prato', label: 'Prato' },
@@ -48,6 +50,8 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
     const [promptLoading, setPromptLoading] = useState(false);
     const [promptVersion, setPromptVersion] = useState(0);
     const [saving, setSaving] = useState(false);
+    const [generatingFree, setGeneratingFree] = useState(false);
+    const freeRunRef = useRef(0);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -64,6 +68,8 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
         setFile({ url: image?.public_url || '', path: image?.storage_path || '' });
         setUseOnItem(true);
         setPrompt('');
+        setGeneratingFree(false);
+        freeRunRef.current += 1;
     }, [isOpen, image]);
 
     const isItem = target === 'exercicio' || target === 'prato';
@@ -71,14 +77,16 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
     const entityType = isDish ? 'dish' : 'exercise';
     const items = isDish ? dishes : exercises;
     const item = useMemo(() => items.find(i => i.id === itemId), [items, itemId]);
-    const canGenerate = !editing && isItem;
-    const usingAi = canGenerate && source === 'ia';
+    const canGenerate = !editing;
+    const usingAi = canGenerate && isItem && source === 'ia';
+    const freeAi = canGenerate && !isItem && source === 'ia';
+    const freeEntity = target === 'Avatar' ? 'avatar' : 'other';
     const style = STYLES.find(s => tags.includes(s.key))?.key || '';
 
     const changeTarget = (key) => {
         setTarget(key);
         setItemId('');
-        if (key !== 'exercicio' && key !== 'prato') setSource('arquivo');
+        setFile({ url: '', path: '' });
     };
 
     // Escolher o item preenche o nome e, no prato, a refeição.
@@ -96,12 +104,62 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
         if (!usingAi || !itemId) { setPrompt(''); return undefined; }
         let alive = true;
         setPromptLoading(true);
+        // Sem resposta do servidor, fica ao menos um texto básico para revisar.
+        const fallback = () => {
+            const picked = items.find(i => i.id === itemId);
+            return isDish
+                ? `Foto de comida do prato "${picked?.name || ''}", no mesmo estilo das outras fotos de pratos do Benfit: prato bem servido, vista de cima em ângulo de 45 graus, fundo claro, luz natural suave. Sem texto, sem logotipos.`
+                : `Imagem do exercício "${picked?.name || ''}", no mesmo estilo das outras imagens de exercícios do Benfit: render 3D realista, fundo branco puro, músculos trabalhados em vermelho, corpo inteiro no quadro. Sem texto, sem logotipos.`;
+        };
         getDefaultPrompt(itemId, 'image', entityType)
+            .then(text => { if (alive) setPrompt(text || fallback()); })
+            .catch(() => { if (alive) setPrompt(fallback()); })
+            .finally(() => { if (alive) setPromptLoading(false); });
+        return () => { alive = false; };
+        // items fica fora: a lista recarrega e não deve apagar o texto editado.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [usingAi, itemId, entityType, promptVersion]);
+
+    // Avatar: descrição a partir dos outros avatares (gênero e estilo). Outro: exemplo para trocar.
+    useEffect(() => {
+        if (!freeAi) return undefined;
+        let alive = true;
+        setPromptLoading(true);
+        getFreePrompt(freeEntity, { gender: gender || 'female', style: style || '3d' })
             .then(text => { if (alive) setPrompt(text || ''); })
             .catch(err => { if (alive) toast(`Não foi possível montar a descrição: ${err.message}`, 'error'); })
             .finally(() => { if (alive) setPromptLoading(false); });
         return () => { alive = false; };
-    }, [usingAi, itemId, entityType, promptVersion]);
+    }, [freeAi, freeEntity, gender, style, promptVersion]);
+
+    const generateFree = async () => {
+        const run = ++freeRunRef.current;
+        setGeneratingFree(true);
+        try {
+            const result = await generateFreeImage(freeEntity, prompt.trim(), { gender: gender || 'female', style: style || '3d' });
+            if (run !== freeRunRef.current) {
+                // Cancelada: o arquivo gerado não fica sobrando no Storage.
+                await supabase.storage.from('benfit-assets').remove([result.path]).catch(() => {});
+                return;
+            }
+            setFile({ url: result.url, path: result.path });
+            setTags(prev => (prev.includes('ia') ? prev : [...prev, 'ia']));
+            if (target === 'Avatar' && !style) setStyle('3d');
+        } catch (err) {
+            if (run === freeRunRef.current) toast(err.message, 'error');
+        } finally {
+            if (run === freeRunRef.current) setGeneratingFree(false);
+        }
+    };
+
+    const close = () => {
+        if (generatingFree) {
+            freeRunRef.current += 1;
+            setGeneratingFree(false);
+            toast('Geração cancelada.');
+        }
+        onClose();
+    };
 
     const upload = async (e) => {
         const picked = e.target.files?.[0];
@@ -138,6 +196,10 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
     const setStyle = (key) => setTags(prev => [...prev.filter(t => !STYLES.some(s => s.key === t)), ...(key && key !== style ? [key] : [])]);
 
     const save = async () => {
+        if (freeAi && !file.url) {
+            generateFree();
+            return;
+        }
         if (usingAi) {
             onGenerate?.('image', itemId, prompt.trim(), entityType);
             onClose();
@@ -172,13 +234,16 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
         }
     };
 
+    const needsGender = !isDish && target !== 'Outro';
     const ready = usingAi
         ? Boolean(itemId) && !promptLoading && prompt.trim().length > 0
+        : freeAi && !file.url
+            ? !promptLoading && !generatingFree && prompt.trim().length > 0 && (!needsGender || Boolean(gender))
         : Boolean(name.trim() && file.url) && !uploading && (!isItem || editing || Boolean(itemId))
             && (isDish || target === 'Outro' || Boolean(gender));
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={editing ? 'Editar imagem' : 'Nova imagem'} size="full">
+        <Modal isOpen={isOpen} onClose={close} title={editing ? 'Editar imagem' : 'Nova imagem'} size="full">
             <div className="imf">
                 <section className="imf-block">
                     <span className="imf-label">Categoria</span>
@@ -202,7 +267,7 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                             onChange={pickItem}
                             placeholder={isDish ? 'Escolha o prato' : 'Escolha o exercício'}
                             emptyLabel={isDish ? 'Nenhum prato encontrado.' : 'Nenhum exercício encontrado.'}
-                            onCreateNew={(term) => { onCreateWithBenfit?.(term, entityType); onClose(); }}
+                            onCreateNew={(term) => { onCreateWithBenfit?.(term, entityType); close(); }}
                             createLabel={(term) => `Criar "${term}" com o Benfit`}
                         />
                         <p className="am-hint">Não achou? Digite o nome e toque em "Criar com o Benfit": ele cadastra e já gera a imagem.</p>
@@ -213,14 +278,14 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                     <section className="imf-block">
                         <label className="imf-label" htmlFor="imf-name">Nome da imagem</label>
                         <input id="imf-name" className="imf-input" value={name} maxLength={120} onChange={(e) => setName(e.target.value)}
-                            placeholder={isDish ? 'Ex.: Wrap de atum' : target === 'Avatar' ? 'Ex.: Ana sorrindo' : 'Ex.: Agachamento livre'} />
+                            placeholder={isDish ? 'Ex.: Wrap de atum' : target === 'Avatar' ? 'Ex.: Ana sorrindo' : target === 'Outro' ? 'Ex.: Garrafa de água' : 'Ex.: Agachamento livre'} />
                     </section>
                 )}
 
                 {isDish ? (
                     <section className="imf-block">
-                        <span className="imf-label">Título</span>
-                        <div className="imf-chips" role="radiogroup" aria-label="Título">
+                        <span className="imf-label">Tipo</span>
+                        <div className="imf-chips" role="radiogroup" aria-label="Tipo">
                             {MEAL_TYPES.map(m => (
                                 <button key={m.key} type="button" role="radio" aria-checked={mealType === m.key}
                                     className={mealType === m.key ? 'is-active' : ''} onClick={() => setMealType(m.key)}>
@@ -231,8 +296,8 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                     </section>
                 ) : target !== 'Outro' && !usingAi && (
                     <section className="imf-block">
-                        <span className="imf-label">Título</span>
-                        <div className="imf-chips" role="radiogroup" aria-label="Título">
+                        <span className="imf-label">Tipo</span>
+                        <div className="imf-chips" role="radiogroup" aria-label="Tipo">
                             {GENDERS.map(g => (
                                 <button key={g.key} type="button" role="radio" aria-checked={gender === g.key}
                                     className={gender === g.key ? 'is-active' : ''} onClick={() => setGender(g.key)}>
@@ -283,21 +348,51 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                     </figure>
                 )}
 
-                {usingAi ? (
-                    itemId && (
+                {(usingAi || freeAi) && (
+                    usingAi && !itemId ? (
+                        <p className="am-hint imf-pick-hint">
+                            Escolha o {isDish ? 'prato' : 'exercício'} acima para montar a descrição da IA, que você revisa antes de gerar.
+                        </p>
+                    ) : (
                         <section className="am-adjust">
                             <div className="am-prompt-head">
-                                <label htmlFor="imf-prompt">Descrição para a IA (edite o que quiser)</label>
-                                <button type="button" className="am-link" disabled={promptLoading} onClick={() => setPromptVersion(v => v + 1)}>
+                                <label htmlFor="imf-prompt">
+                                    {freeAi && target === 'Outro' ? 'Descreva a imagem (troque o exemplo)' : 'Descrição para a IA (edite o que quiser)'}
+                                </label>
+                                <button type="button" className="am-link" disabled={promptLoading || generatingFree} onClick={() => setPromptVersion(v => v + 1)}>
                                     <RotateCcw size={13} /> Restaurar
                                 </button>
                             </div>
-                            <textarea id="imf-prompt" rows={8} maxLength={PROMPT_MAX} disabled={promptLoading}
+                            <textarea id="imf-prompt" rows={8} maxLength={PROMPT_MAX} disabled={promptLoading || generatingFree}
                                 value={promptLoading ? 'Montando a descrição…' : prompt} onChange={(e) => setPrompt(e.target.value)} />
-                            <p className="am-hint">A descrição é traduzida para o inglês na hora de gerar. A imagem entra em Aprovar.</p>
+                            <p className="am-hint">
+                                A descrição é traduzida para o inglês na hora de gerar.{' '}
+                                {usingAi ? 'A imagem entra em Aprovar.'
+                                    : target === 'Avatar' ? 'Os outros avatares do mesmo tipo e estilo vão como referência. A prévia aparece aqui antes de salvar.'
+                                        : 'A prévia aparece aqui antes de salvar.'}
+                            </p>
                         </section>
                     )
-                ) : (
+                )}
+
+                {freeAi && (generatingFree || file.url) && (
+                    <section className="imf-block">
+                        <span className="imf-label">Prévia</span>
+                        <div className={`imf-drop imf-preview ${generatingFree ? 'is-busy' : ''}`}>
+                            {generatingFree
+                                ? <span className="imf-drop-empty"><Loader2 size={22} className="animate-spin" /></span>
+                                : <img src={file.url} alt="" />}
+                            <span className="imf-drop-text">{generatingFree ? 'Gerando a imagem… leva uns 20 segundos.' : 'Gostou? Salve na Biblioteca.'}</span>
+                        </div>
+                        {!generatingFree && (
+                            <button type="button" className="am-link imf-regen" onClick={generateFree} disabled={!prompt.trim()}>
+                                <Sparkles size={13} /> Gerar novamente
+                            </button>
+                        )}
+                    </section>
+                )}
+
+                {!usingAi && !freeAi && (
                     <section className="imf-block">
                         <span className="imf-label">Arquivo</span>
                         <label className={`imf-drop ${uploading ? 'is-busy' : ''}`}>
@@ -348,10 +443,10 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                 )}
 
                 <div className="imf-footer">
-                    <button type="button" className="am-btn" onClick={onClose} disabled={saving}>Cancelar</button>
+                    <button type="button" className="am-btn" onClick={close} disabled={saving}>Cancelar</button>
                     <button type="button" className="am-btn am-btn-primary" onClick={save} disabled={!ready || saving}>
-                        {saving ? <Loader2 size={16} className="animate-spin" /> : usingAi ? <Sparkles size={16} /> : null}
-                        {usingAi ? 'Gerar imagem' : editing ? 'Salvar' : 'Adicionar à Biblioteca'}
+                        {saving || generatingFree ? <Loader2 size={16} className="animate-spin" /> : usingAi || (freeAi && !file.url) ? <Sparkles size={16} /> : null}
+                        {usingAi || (freeAi && !file.url) ? (generatingFree ? 'Gerando…' : 'Gerar imagem') : editing ? 'Salvar' : 'Adicionar à Biblioteca'}
                     </button>
                 </div>
             </div>

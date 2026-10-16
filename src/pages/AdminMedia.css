@@ -112,3 +112,6 @@
 .am-current.is-large img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; border: 1px solid #E5E7EB; }
 .am-current.is-large figcaption { flex-direction: row; align-items: baseline; gap: 0.5rem; }
 .am-current.is-large figcaption span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Aviso de geração em andamento, com Cancelar, nas abas fora de Gerar. */
+.am-generating { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; padding: 0.6rem 0.75rem; border: 1px solid #BFDBFE; border-radius: 0.75rem; background: #EFF6FF; color: #034EA2; font-size: 0.85rem; font-weight: 600; }
+.am-generating span { flex: 1; min-width: 0; }
