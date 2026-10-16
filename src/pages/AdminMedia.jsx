@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, CheckCheck, Upload, Trash2, X, RefreshCw, RotateCcw, Loader2, Pencil, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Upload, Trash2, X, RefreshCw, RotateCcw, Loader2, Pencil, Plus, Image as ImageIcon, Film, Footprints, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useExercises, useUserRole } from '../hooks/useSupabase';
 import { exerciseImageUrl, DEFAULT_EXERCISE_IMAGE } from '../lib/exerciseImage';
 import { requestMedia, listMedia, reviewMedia, applyMediaToItem, deleteMedia, getMediaApproval, setMediaApproval, getDefaultPrompt, MEDIA_CHANGED_EVENT } from '../services/media';
@@ -155,7 +155,7 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegener
                     <button type="button" className="am-link" onClick={() => setShowPrompt(v => !v)}>
                         {showPrompt ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Texto usado na geração
                     </button>
-                    {exercise && media.status !== 'gerando' && (
+                    {showPrompt && exercise && media.status !== 'gerando' && (
                         <button type="button" className="am-link" disabled={busy} onClick={startAdjust}>
                             <Pencil size={14} /> Editar texto
                         </button>
@@ -251,6 +251,8 @@ const AdminMedia = () => {
     const [dishes, setDishes] = useState([]);
     const [newKind, setNewKind] = useState('image');
     const [newPrompt, setNewPrompt] = useState('');
+    const [creatingNew, setCreatingNew] = useState(false);
+    const [newName, setNewName] = useState('');
     const [promptLoading, setPromptLoading] = useState(false);
     const [promptVersion, setPromptVersion] = useState(0);
     const [generating, setGenerating] = useState(null);
@@ -432,6 +434,7 @@ const AdminMedia = () => {
         setNewEntity(entity);
         setNewExerciseId('');
         setNewKind('image');
+        setCreatingNew(false);
     };
 
     // Descrição padrão do exercício e tipo escolhidos, já em português, para editar.
@@ -539,6 +542,8 @@ const AdminMedia = () => {
                         </button>
                     ))}
                 </div>
+                <div className="am-pick-row">
+                <div className="am-pick-select">
                 <SearchableExerciseSelect
                     key={newEntity}
                     exercises={isDishTarget ? dishes : exercises}
@@ -549,6 +554,43 @@ const AdminMedia = () => {
                     onCreateNew={createWithBenfit}
                     createLabel={(term) => `Criar "${term}" com o Benfit`}
                 />
+                </div>
+                <button
+                    type="button"
+                    className="am-btn am-new-btn"
+                    disabled={Boolean(generating)}
+                    aria-expanded={creatingNew}
+                    onClick={() => { setCreatingNew(v => !v); setNewName(''); }}
+                >
+                    <Plus size={16} /> Novo
+                </button>
+                </div>
+                {creatingNew && (
+                    <form
+                        className="am-new-form"
+                        onSubmit={(e) => { e.preventDefault(); createWithBenfit(newName); setCreatingNew(false); }}
+                    >
+                        <label htmlFor="am-new-name">{isDishTarget ? 'Nome do prato novo' : 'Nome do exercício novo'}</label>
+                        <input
+                            id="am-new-name"
+                            autoFocus
+                            maxLength={80}
+                            value={newName}
+                            placeholder={isDishTarget ? 'Ex.: Panqueca de aveia com banana' : 'Ex.: Remada curvada com halteres'}
+                            onChange={(e) => setNewName(e.target.value)}
+                        />
+                        <p className="am-hint">O Benfit cadastra {isDishTarget ? 'o prato' : 'o exercício'} e já gera a imagem, que entra em Aprovar.</p>
+                        <div className="am-actions">
+                            <button type="submit" className="am-btn am-btn-primary" disabled={!newName.trim()}>
+                                <Sparkles size={16} /> Criar com imagem
+                            </button>
+                            <button type="button" className="am-btn" onClick={() => setCreatingNew(false)}>
+                                <X size={16} /> Cancelar
+                            </button>
+                        </div>
+                    </form>
+                )}
+                {!creatingNew && <>
                 {!isDishTarget && <div className="am-kind-tabs" role="radiogroup" aria-label="Tipo de mídia">
                     {kindEntries.map(([kind, { label, tab: tabLabel, icon }]) => {
                         const KindIcon = icon;
@@ -598,6 +640,7 @@ const AdminMedia = () => {
                     {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                     {isDishTarget ? 'Gerar foto do prato' : `Gerar ${KINDS[newKind].label.toLowerCase()}`}
                 </button>
+                </>}
                 <p className="am-hint">
                     A descrição é traduzida para o inglês na hora de gerar.{' '}
                     {isDishTarget ? 'A foto leva uns 20 segundos.' : 'Imagem leva uns 20 segundos; duas poses, um pouco mais; o vídeo segue em "Gerando".'}
