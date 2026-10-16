@@ -82,7 +82,7 @@ const pickTodayDay = (schedule, lastSession, workoutId) => {
 const DashboardHome = () => {
     const navigate = useNavigate();
     const { openCoach } = useCoach();
-    const { workouts, reload: reloadWorkouts } = useWorkouts();
+    const { workouts, loading: workoutsLoading, reload: reloadWorkouts } = useWorkouts();
     const { isAdmin, isPersonal, isUser } = useUserRole();
 
     const [loading, setLoading] = useState(true);
@@ -192,7 +192,8 @@ const DashboardHome = () => {
     const tipDayName = todayDayName;
     const tipDoneToday = doneToday;
     useEffect(() => {
-        if (loading || !tipUserId) return undefined;
+        // Espera planos e treinos: a dica fica guardada o dia todo, então precisa do treino de hoje.
+        if (loading || workoutsLoading || !tipUserId) return undefined;
         let alive = true;
         const buildSummary = async () => {
             const lines = [];
@@ -218,7 +219,7 @@ const DashboardHome = () => {
         return () => { alive = false; };
         // Uma vez por carregamento do Início; o cache diário evita gerar de novo.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loading, tipUserId]);
+    }, [loading, workoutsLoading, tipUserId]);
 
     const handleAssign = async (e, workout) => {
         e.stopPropagation();

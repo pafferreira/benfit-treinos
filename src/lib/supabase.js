@@ -2008,23 +2008,24 @@ export const supabaseHelpers = {
         const since = new Date();
         since.setHours(0, 0, 0, 0);
         since.setDate(since.getDate() - (days - 1));
+        // Filtra pela hora de cada exercício (sessões retomadas dias depois contam no dia do registro).
         const { data, error } = await supabase
-            .from('b_workout_sessions')
-            .select('id, b_session_logs (exercise_id, b_exercises (id, name, muscle_group, muscle_groups))')
-            .eq('user_id', userId)
-            .gte('started_at', since.toISOString());
+            .from('b_session_logs')
+            .select('session_id, exercise_id, b_exercises (id, name, muscle_group, muscle_groups), b_workout_sessions!inner(user_id)')
+            .eq('b_workout_sessions.user_id', userId)
+            .gte('created_at', since.toISOString());
         if (error) throw error;
         const exercises = [];
-        let sessions = 0;
-        (data || []).forEach((session) => {
-            const seen = new Set();
-            (session.b_session_logs || []).forEach((log) => {
-                if (!log.b_exercises || seen.has(log.exercise_id)) return;
-                seen.add(log.exercise_id);
-                exercises.push(log.b_exercises);
-            });
-            if (seen.size > 0) sessions += 1;
+        const seen = new Set();
+        const sessionIds = new Set();
+        (data || []).forEach((log) => {
+            const key = `${log.session_id}:${log.exercise_id}`;
+            if (!log.b_exercises || seen.has(key)) return;
+            seen.add(key);
+            sessionIds.add(log.session_id);
+            exercises.push(log.b_exercises);
         });
+        const sessions = sessionIds.size;
         return { exercises, sessions };
     },
 

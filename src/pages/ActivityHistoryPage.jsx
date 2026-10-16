@@ -115,7 +115,7 @@ const ActivityHistoryPage = () => {
 
 
             <div className="activity-page-content">
-                <WeekMuscles userId={targetUid} onSummary={handleWeekSummary} />
+                <WeekMuscles key={targetUid || 'self'} userId={targetUid} onSummary={handleWeekSummary} />
                 <ActivityHistory
                     isOpen={true}
                     onClose={handleBack}

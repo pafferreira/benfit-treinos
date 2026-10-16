@@ -33,7 +33,23 @@ const WeekMuscles = ({ userId, onSummary }) => {
         if (data && onSummary) onSummary({ summary, missing, sessions: data.sessions });
     }, [data, summary, missing, onSummary]);
 
-    if (!data) return <div className="week-muscles week-muscles--loading" aria-hidden="true" />;
+    if (!data) {
+        return (
+            <section className="week-muscles" aria-busy="true" aria-label="Carregando músculos da semana">
+                <div className="week-muscles-head">
+                    <span className="week-muscles-skel week-muscles-skel--title" />
+                    <span className="week-muscles-skel week-muscles-skel--sub" />
+                </div>
+                <div className="week-muscles-body">
+                    <span className="week-muscles-skel week-muscles-skel--map" />
+                    <div className="week-muscles-side">
+                        <span className="week-muscles-skel week-muscles-skel--chips" />
+                        <span className="week-muscles-skel week-muscles-skel--chips" />
+                    </div>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="week-muscles">
