@@ -12,22 +12,22 @@ const PERIODS = [7, 15, 30];
 const WeekMuscles = ({ userId, onSummary }) => {
     const muscleMap = useExerciseMuscleMap();
     const [days, setDays] = useState(7);
-    const [data, setData] = useState(null); // { days, exercises, sessions }
+    const [data, setData] = useState(null); // { period, exercises, sessions, days }
 
     useEffect(() => {
         if (!userId) return;
         let alive = true;
         supabaseHelpers.getRecentTrainedExercises(userId, days)
-            .then(res => { if (alive) setData({ days, ...res }); })
+            .then(res => { if (alive) setData({ ...res, period: days }); })
             .catch(err => {
                 console.error('Erro ao carregar músculos trabalhados:', err);
-                if (alive) setData({ days, exercises: [], sessions: 0 });
+                if (alive) setData({ period: days, exercises: [], sessions: 0, days: 0 });
             });
         return () => { alive = false; };
     }, [userId, days]);
 
     // Ao trocar o período, mantém o resultado anterior (esmaecido) até chegar o novo.
-    const refreshing = !!data && data.days !== days;
+    const refreshing = !!data && data.period !== days;
 
     const summary = useMemo(
         () => (data ? summarizeMuscles(data.exercises, muscleMap) : []),
@@ -36,7 +36,7 @@ const WeekMuscles = ({ userId, onSummary }) => {
     const missing = useMemo(() => missingRegions(summary), [summary]);
 
     useEffect(() => {
-        if (data && onSummary) onSummary({ summary, missing, sessions: data.sessions, days: data.days });
+        if (data && onSummary) onSummary({ summary, missing, trainedDays: data.days, days: data.period });
     }, [data, summary, missing, onSummary]);
 
     if (!data) {
@@ -63,7 +63,7 @@ const WeekMuscles = ({ userId, onSummary }) => {
                 <div>
                     <h2 className="week-muscles-title">Músculos trabalhados</h2>
                     <span className="week-muscles-sub">
-                        Últimos {data.days} dias · {data.sessions} {data.sessions === 1 ? 'treino' : 'treinos'}
+                        Últimos {data.period} dias · {data.days} {data.days === 1 ? 'dia com treino' : 'dias com treino'}
                     </span>
                 </div>
                 <div className="week-muscles-periods" role="group" aria-label="Período">
@@ -82,7 +82,7 @@ const WeekMuscles = ({ userId, onSummary }) => {
             </header>
 
             {summary.length === 0 ? (
-                <p className="week-muscles-empty">Nenhum exercício registrado nos últimos {data.days} dias.</p>
+                <p className="week-muscles-empty">Nenhum exercício registrado nos últimos {data.period} dias.</p>
             ) : (
                 <div className="week-muscles-body">
                     <BodyMap

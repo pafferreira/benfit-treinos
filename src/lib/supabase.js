@@ -2002,31 +2002,36 @@ export const supabaseHelpers = {
     // Última sessão de treino iniciada pelo usuário (vinculada a um plano),
     // usada para destacar onde ele parou.
     // Exercícios feitos nos últimos `days` dias (um por sessão), para o resumo
-    // "Músculos da semana" e a dica do dia. Retorna também quantas sessões houve.
+    // "Músculos trabalhados" e a dica do dia. Retorna também sessões e dias com treino.
     async getRecentTrainedExercises(userId, days = 7) {
-        if (!userId) return { exercises: [], sessions: 0 };
+        if (!userId) return { exercises: [], sessions: 0, days: 0 };
         const since = new Date();
         since.setHours(0, 0, 0, 0);
         since.setDate(since.getDate() - (days - 1));
         // Filtra pela hora de cada exercício (sessões retomadas dias depois contam no dia do registro).
         const { data, error } = await supabase
             .from('b_session_logs')
-            .select('session_id, exercise_id, b_exercises (id, name, muscle_group, muscle_groups), b_workout_sessions!inner(user_id)')
+            .select('session_id, exercise_id, created_at, b_exercises (id, name, muscle_group, muscle_groups), b_workout_sessions!inner(user_id)')
             .eq('b_workout_sessions.user_id', userId)
             .gte('created_at', since.toISOString());
         if (error) throw error;
         const exercises = [];
         const seen = new Set();
         const sessionIds = new Set();
+        const trainedDays = new Set(); // dias (data local) com algum exercício registrado
         (data || []).forEach((log) => {
             const key = `${log.session_id}:${log.exercise_id}`;
-            if (!log.b_exercises || seen.has(key)) return;
+            if (!log.b_exercises) return;
+            const d = new Date(log.created_at);
+            trainedDays.add(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+            if (seen.has(key)) return;
             seen.add(key);
             sessionIds.add(log.session_id);
             exercises.push(log.b_exercises);
         });
         const sessions = sessionIds.size;
-        return { exercises, sessions };
+        const trainedDayCount = trainedDays.size;
+        return { exercises, sessions, days: trainedDayCount };
     },
 
     async getLastWorkoutSession(userId) {
