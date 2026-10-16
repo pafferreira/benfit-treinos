@@ -31,3 +31,4 @@
 .imf-tag button { color: #9CA3AF; }
 
 .imf-footer { display: grid; grid-template-columns: 1fr 2fr; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px solid #E5E7EB; }
+.imf-url-label { font-weight: 600; color: #6B7280; margin-top: 0.25rem; }

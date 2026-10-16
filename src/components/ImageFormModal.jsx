@@ -293,6 +293,9 @@ const ImageFormModal = ({ isOpen, onClose, image = null, exercises = [], dishes 
                                 : <span className="imf-drop-empty">{uploading ? <Loader2 size={22} className="animate-spin" /> : <ImageIcon size={26} />}</span>}
                             <span className="imf-drop-text">{uploading ? 'Enviando…' : file.url ? 'Trocar arquivo' : 'Escolher PNG ou JPG'}</span>
                         </label>
+                        <label className="imf-label imf-url-label" htmlFor="imf-url">Ou cole o link (URL) da imagem</label>
+                        <input id="imf-url" type="url" className="imf-input" placeholder="https://..." value={file.url}
+                            onChange={(e) => setFile({ url: e.target.value.trim(), path: '' })} />
                         {!editing && item && (
                             <label className="imf-check">
                                 <input type="checkbox" checked={useOnItem} onChange={(e) => setUseOnItem(e.target.checked)} />
