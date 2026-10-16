@@ -1,0 +1,69 @@
+.week-muscles {
+    background: var(--color-card-light);
+    border: 1px solid #dbe3ee;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    padding: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.week-muscles--loading {
+    min-height: 120px;
+    opacity: 0.6;
+}
+
+.week-muscles-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.week-muscles-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--color-text-main);
+    margin: 0;
+}
+
+.week-muscles-sub {
+    font-size: 0.75rem;
+    color: var(--color-subtext-light);
+}
+
+.week-muscles-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.week-muscles-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.week-muscles-missing,
+.week-muscles-empty {
+    font-size: 0.8rem;
+    color: var(--color-subtext-light);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.week-muscles-missing strong {
+    color: var(--color-text-main);
+}
+
+@media (min-width: 768px) {
+    .week-muscles-body {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .week-muscles-body .bodymap {
+        flex: 0 0 auto;
+    }
+}

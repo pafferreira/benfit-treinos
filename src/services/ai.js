@@ -38,6 +38,29 @@ export const generateConversationTitle = async (firstMessage) => {
     }
 };
 
+// Dica do dia escrita pelo Benfit a partir de um resumo do aluno (buildSummary: async () => texto).
+// Gera no máximo uma por dia e por usuário (guardada no aparelho); em erro devolve null
+// e a tela usa a dica fixa.
+export const getDailyTip = async (userId, buildSummary) => {
+    const today = new Date();
+    const key = `benfit_tip:${userId}:${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    try {
+        const saved = localStorage.getItem(key);
+        if (saved) return saved;
+    } catch { /* armazenamento indisponível */ }
+    try {
+        const summary = await buildSummary();
+        const { text } = await postJson('/api/chat', { message: summary, mode: 'tip' });
+        const tip = String(text || '').trim().replace(/^["“]|["”]$/g, '').slice(0, 240);
+        if (!tip) return null;
+        try { localStorage.setItem(key, tip); } catch { /* sem cache */ }
+        return tip;
+    } catch (err) {
+        console.warn('[Benfit] Dica do dia indisponível:', err.message);
+        return null;
+    }
+};
+
 export const chatWithBenfit = async (userMessage, context, conversationId) => {
     const result = await postJson('/api/chat', {
         message: userMessage,

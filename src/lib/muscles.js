@@ -106,3 +106,9 @@ export const summarizeMuscles = (exercises, muscleMap) => {
         .filter(item => item.muscle)
         .sort((a, b) => b.pct - a.pct);
 };
+
+// Regiões do corpo sem nenhum músculo no resumo (ex.: semana sem treino de pernas).
+export const missingRegions = (summary) => {
+    const worked = new Set(summary.map(item => item.muscle?.regiao));
+    return REGIONS.filter(region => !worked.has(region.id));
+};

@@ -8,6 +8,8 @@ import { supabaseHelpers } from '../lib/supabase';
 import { useWorkouts, useUserRole } from '../hooks/useSupabase';
 import { cacheGet, cacheInvalidate, swr } from '../lib/dataCache';
 import { useCoach, useCoachScreen } from '../context/coach';
+import { getDailyTip } from '../services/ai';
+import { summarizeMuscles, missingRegions } from '../lib/muscles';
 import MiniCalendar from '../components/MiniCalendar';
 import './DashboardHome.css';
 
@@ -93,6 +95,7 @@ const DashboardHome = () => {
     const [lastSession, setLastSession] = useState(() => cacheGet('workouts:lastSession')?.value || null);
     const [chosenDayId, setChosenDayId] = useState(null);
     const [assigningId, setAssigningId] = useState(null);
+    const [aiTip, setAiTip] = useState(null);
 
     const loadDashboardData = async () => {
         try {
@@ -184,6 +187,39 @@ const DashboardHome = () => {
             : ['Qual plano combina comigo?', 'Como começar a treinar com segurança?'],
     });
 
+    // Dica do dia escrita pelo Benfit (uma por dia; a lista fixa fica de reserva).
+    const tipUserId = user?.id;
+    const tipDayName = todayDayName;
+    const tipDoneToday = doneToday;
+    useEffect(() => {
+        if (loading || !tipUserId) return undefined;
+        let alive = true;
+        const buildSummary = async () => {
+            const lines = [];
+            if (tipDayName) lines.push(`Treino sugerido hoje: ${tipDayName} do plano "${todayTitle}"${tipDoneToday ? ' (já concluído hoje)' : ''}.`);
+            else lines.push('Ainda não tem plano de treino ativo.');
+            lines.push(`Semana atual: ${stats.sessionsThisWeek} sessões, ${stats.completedThisWeek} concluídas.`);
+            if (stats.lastSession?.ended_at) {
+                const days = Math.floor((Date.now() - new Date(stats.lastSession.ended_at).getTime()) / 86400000);
+                lines.push(`Último treino finalizado há ${days} dia(s)${stats.lastSession.feeling ? `, sensação ${stats.lastSession.feeling}/10` : ''}.`);
+            }
+            try {
+                const { exercises } = await supabaseHelpers.getRecentTrainedExercises(tipUserId, 7);
+                const summary = summarizeMuscles(exercises);
+                if (summary.length) {
+                    lines.push(`Músculos nos últimos 7 dias: ${summary.slice(0, 5).map(m => m.muscle.nome).join(', ')}.`);
+                    const missing = missingRegions(summary);
+                    if (missing.length) lines.push(`Sem treino nos últimos 7 dias: ${missing.map(r => r.nome).join(', ')}.`);
+                }
+            } catch { /* resumo sem músculos */ }
+            return lines.join('\n');
+        };
+        getDailyTip(tipUserId, buildSummary).then(tip => { if (alive && tip) setAiTip(tip); });
+        return () => { alive = false; };
+        // Uma vez por carregamento do Início; o cache diário evita gerar de novo.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading, tipUserId]);
+
     const handleAssign = async (e, workout) => {
         e.stopPropagation();
         if (!user) return;
@@ -246,7 +282,7 @@ const DashboardHome = () => {
         return 'O momento perfeito para treinar é agora. ⚡';
     };
 
-    const tip = TIPS[new Date().getDate() % TIPS.length];
+    const tip = aiTip || TIPS[new Date().getDate() % TIPS.length];
 
     return (
         <div className="dashboard-home">

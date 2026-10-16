@@ -1,5 +1,5 @@
 import { chatWithFallback, SYSTEM_PROMPT } from './_providers.js';
-import { TITLE_PROMPT } from './_prompt.js';
+import { TIP_PROMPT, TITLE_PROMPT } from './_prompt.js';
 import { COACH_TOOLS, createToolRunner } from './_coach-tools.js';
 import {
     buildConversationMessages,
@@ -28,6 +28,15 @@ export default async function handler(req, res) {
             const { text, provider } = await chatWithFallback({
                 systemPrompt: TITLE_PROMPT,
                 messages: [{ role: 'user', content: `Primeira mensagem da conversa:\n\n"${message.slice(0, 500)}"` }],
+            });
+            return res.status(200).json({ text, provider });
+        }
+
+        if (mode === 'tip') {
+            await requireUser(accessToken);
+            const { text, provider } = await chatWithFallback({
+                systemPrompt: TIP_PROMPT,
+                messages: [{ role: 'user', content: `Resumo do aluno hoje:\n${message.slice(0, 800)}` }],
             });
             return res.status(200).json({ text, provider });
         }

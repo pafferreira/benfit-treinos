@@ -2001,6 +2001,33 @@ export const supabaseHelpers = {
     // Buscar exercícios concluídos em uma sessão específica
     // Última sessão de treino iniciada pelo usuário (vinculada a um plano),
     // usada para destacar onde ele parou.
+    // Exercícios feitos nos últimos `days` dias (um por sessão), para o resumo
+    // "Músculos da semana" e a dica do dia. Retorna também quantas sessões houve.
+    async getRecentTrainedExercises(userId, days = 7) {
+        if (!userId) return { exercises: [], sessions: 0 };
+        const since = new Date();
+        since.setHours(0, 0, 0, 0);
+        since.setDate(since.getDate() - (days - 1));
+        const { data, error } = await supabase
+            .from('b_workout_sessions')
+            .select('id, b_session_logs (exercise_id, b_exercises (id, name, muscle_group, muscle_groups))')
+            .eq('user_id', userId)
+            .gte('started_at', since.toISOString());
+        if (error) throw error;
+        const exercises = [];
+        let sessions = 0;
+        (data || []).forEach((session) => {
+            const seen = new Set();
+            (session.b_session_logs || []).forEach((log) => {
+                if (!log.b_exercises || seen.has(log.exercise_id)) return;
+                seen.add(log.exercise_id);
+                exercises.push(log.b_exercises);
+            });
+            if (seen.size > 0) sessions += 1;
+        });
+        return { exercises, sessions };
+    },
+
     async getLastWorkoutSession(userId) {
         if (!userId) return null;
         const { data, error } = await supabase
