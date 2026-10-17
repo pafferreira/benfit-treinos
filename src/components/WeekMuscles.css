@@ -1,0 +1,128 @@
+.week-muscles {
+    background: var(--color-card-light);
+    border: 1px solid #dbe3ee;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    padding: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.week-muscles-skel {
+    display: block;
+    border-radius: var(--radius-lg, 0.75rem);
+    background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+    background-size: 200% 100%;
+    animation: week-muscles-shimmer 1.5s ease-in-out infinite;
+}
+
+.dark .week-muscles-skel {
+    background: linear-gradient(90deg, #1F2937 25%, #374151 50%, #1F2937 75%);
+    background-size: 200% 100%;
+}
+
+.week-muscles-skel--title { width: 45%; height: 1.1rem; }
+.week-muscles-skel--sub { width: 30%; height: 0.8rem; }
+.week-muscles-skel--map { width: 100%; max-width: 280px; height: 220px; align-self: center; }
+.week-muscles-skel--chips { width: 100%; height: 1.75rem; border-radius: 999px; }
+
+@keyframes week-muscles-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .week-muscles-skel { animation: none; }
+}
+
+.week-muscles-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.week-muscles-periods {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.2rem;
+    border-radius: 999px;
+    background: rgba(var(--color-primary-rgb), 0.07);
+}
+
+.week-muscles-period {
+    border: none;
+    background: transparent;
+    color: var(--color-subtext-light);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.week-muscles-period.is-active {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.week-muscles-period:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.week-muscles.is-refreshing .week-muscles-body,
+.week-muscles.is-refreshing .week-muscles-empty {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.week-muscles-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--color-text-main);
+    margin: 0;
+}
+
+.week-muscles-sub {
+    font-size: 0.75rem;
+    color: var(--color-subtext-light);
+}
+
+.week-muscles-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.week-muscles-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.week-muscles-missing,
+.week-muscles-empty {
+    font-size: 0.8rem;
+    color: var(--color-subtext-light);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.week-muscles-missing strong {
+    color: var(--color-text-main);
+}
+
+@media (min-width: 768px) {
+    .week-muscles-body {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .week-muscles-body .bodymap {
+        flex: 0 0 auto;
+    }
+}

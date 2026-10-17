@@ -34,3 +34,12 @@
 .ml-used { font-size: 0.7rem; color: #034EA2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ml-card-delete { position: absolute; top: 0.4rem; right: 0.4rem; padding: 0.35rem; border-radius: 0.6rem; background: rgba(255, 255, 255, 0.9); color: #DC2626; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
 .ml-row-end { justify-content: space-between; }
+
+/* Tipos de mídia (Imagens, 2 poses, Vídeos) e grade das animações. */
+.ml-kinds { margin-bottom: 0.75rem; }
+.ml-kinds .ml-count { margin-left: 0.15rem; }
+.ml-search-solo { margin-bottom: 0.75rem; }
+.ml-anim-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+@media (min-width: 640px) { .ml-anim-grid { grid-template-columns: repeat(2, 1fr); } }
+.ml-anim-card { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.5rem; border: 1px solid #E5E7EB; border-radius: 0.9rem; background: #fff; }
+.ml-anim-card .exercise-animation { border: 1px solid #F3F4F6; }

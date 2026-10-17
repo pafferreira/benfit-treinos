@@ -14,7 +14,7 @@ import {
 } from '../api/_media.js';
 import { COACH_TOOLS, MUSCLE_NAMES, createToolRunner } from '../api/_coach-tools.js';
 import { MUSCLES } from '../src/lib/muscles.js';
-import mediaHandler, { defaultPrompt, splitPosePrompt } from '../api/media.js';
+import mediaHandler, { defaultPrompt, freeDefaultPrompt, splitPosePrompt } from '../api/media.js';
 
 const fakeResponse = () => ({
     statusCode: null,
@@ -160,4 +160,13 @@ test('startVideo mostra a mensagem do Veo quando nenhum formato serve', async ()
         startVideo({ prompt: 'p', image: { mimeType: 'image/png', data: 'AAA' }, fetchImpl }),
         err => err.status === 502 && /\(400\): billing required/.test(err.message),
     );
+});
+
+test('avatar e outro têm descrição padrão e só aceitam imagem', async () => {
+    assert.match(freeDefaultPrompt('avatar', { gender: 'male', style: '3d' }), /homem adulto/);
+    assert.match(freeDefaultPrompt('avatar', { gender: 'female', style: 'real' }), /Foto realista/);
+    assert.match(freeDefaultPrompt('other'), /^Exemplo/);
+    const res = fakeResponse();
+    await mediaHandler({ method: 'POST', body: { action: 'poses', entityType: 'avatar' } }, res);
+    assert.equal(res.statusCode, 400);
 });

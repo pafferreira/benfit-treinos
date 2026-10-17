@@ -220,7 +220,7 @@ export const planMediaRequest = ({ item, isDish, isAdmin, userId, kinds }) => {
     return { accepted, refused };
 };
 
-async function requestMediaTool(supabase, user, input) {
+async function requestMediaTool(supabase, user, input, autoImages = new Set()) {
     const isDish = input?.tipo_item === 'prato';
     const kinds = [...new Set((input?.midias || []).map(m => MEDIA_KINDS[m]).filter(Boolean))];
     if (kinds.length === 0) return { content: 'Diga quais mídias gerar: imagem, poses ou vídeo.', isError: true };
@@ -233,7 +233,16 @@ async function requestMediaTool(supabase, user, input) {
     }
     const item = found.items[0];
     const { data: isAdmin } = await supabase.rpc('is_admin');
-    const { accepted, refused } = planMediaRequest({ item, isDish, isAdmin: Boolean(isAdmin), userId: user?.id, kinds });
+    const planned = planMediaRequest({ item, isDish, isAdmin: Boolean(isAdmin), userId: user?.id, kinds });
+    const refused = planned.refused;
+    // Item criado nesta mesma resposta: o app já gera a foto sozinho, não pede de novo.
+    const accepted = planned.accepted.filter(kind => {
+        if (kind === 'image' && autoImages.has(`${isDish ? 'dish' : 'exercise'}:${item.id}`)) {
+            refused.push(`${MEDIA_LABELS.image}: já está sendo gerada porque o item acabou de ser criado`);
+            return false;
+        }
+        return true;
+    });
     const notes = refused.length ? ` Não enviado: ${refused.join('; ')}.` : '';
     if (accepted.length === 0) return { content: `Nada foi enviado para "${item.name}".${notes}` };
     return {
@@ -244,9 +253,21 @@ async function requestMediaTool(supabase, user, input) {
 }
 
 // Executa uma ferramenta pedida pelo Claude com o cliente do usuário (RLS).
-export const createToolRunner = (supabase, user = null) => async (name, input) => {
+// Guarda os itens criados na resposta, cuja imagem o app gera sozinho (evita foto repetida).
+export const createToolRunner = (supabase, user = null) => {
+    const autoImages = new Set();
+    return async (name, input) => {
+        const result = await runTool(supabase, user, name, input, autoImages);
+        const action = result?.action;
+        if (action?.type === 'dish_created' && !action.existing) autoImages.add(`dish:${action.dishId}`);
+        if (action?.type === 'exercise_created' && !action.existing) autoImages.add(`exercise:${action.exerciseId}`);
+        return result;
+    };
+};
+
+async function runTool(supabase, user, name, input, autoImages) {
     if (name === 'buscar_pratos') return searchDishes(supabase, input || {});
-    if (name === 'gerar_midia') return requestMediaTool(supabase, user, input || {});
+    if (name === 'gerar_midia') return requestMediaTool(supabase, user, input || {}, autoImages);
     if (name === 'sugerir_prato') {
         const { data, error } = await supabase.rpc('b_create_ai_dish', { p_data: input });
         if (error) {
@@ -282,4 +303,4 @@ export const createToolRunner = (supabase, user = null) => async (name, input) =
             + ' e aparece no exercício depois de aprovada; até lá ele mostra a imagem padrão.',
         action: { type: 'exercise_created', exerciseId: data.id, name: data.name, existing: false },
     };
-};
+}

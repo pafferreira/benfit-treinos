@@ -1,11 +1,12 @@
 /* ActivityHistoryPage.jsx */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useUserRole } from '../hooks/useSupabase';
 import { supabase, supabaseHelpers } from '../lib/supabase';
 import ActivityHistory from '../components/ActivityHistory';
 import CoachButton from '../components/CoachButton';
+import WeekMuscles from '../components/WeekMuscles';
 import { useCoachScreen } from '../context/coach';
 import './ActivityHistoryPage.css';
 
@@ -16,11 +17,23 @@ const ActivityHistoryPage = () => {
     const [isHeaderStuck, setIsHeaderStuck] = useState(false);
     const [finalizedDates, setFinalizedDates] = useState([]);
     const [doneDates, setDoneDates] = useState([]);
+    const [targetUid, setTargetUid] = useState(userId || null);
+    const [weekText, setWeekText] = useState('');
+
+    const handleWeekSummary = useCallback(({ summary, missing, trainedDays, days }) => {
+        if (!summary.length) {
+            setWeekText(`Nos últimos ${days} dias não há exercícios registrados.`);
+            return;
+        }
+        const worked = summary.map(m => `${m.muscle.nome} ${m.pct}%`).join(', ');
+        const gaps = missing.length ? ` Sem treino: ${missing.map(r => r.nome).join(', ')}.` : '';
+        setWeekText(`Músculos dos últimos ${days} dias (${trainedDays} dias com treino): ${worked}.${gaps}`);
+    }, []);
 
     useCoachScreen({
         label: 'Histórico de atividades',
-        details: 'O aluno está vendo o histórico completo de treinos (calendário e sessões).',
-        suggestions: ['Como foi minha evolução no último mês?', 'Estou treinando com frequência suficiente?'],
+        details: ['O aluno está vendo o histórico completo de treinos (calendário e sessões).', weekText].filter(Boolean).join('\n'),
+        suggestions: ['Como foi minha evolução no último mês?', 'Quais músculos estou deixando de lado?'],
     });
 
     useEffect(() => {
@@ -58,6 +71,7 @@ const ActivityHistoryPage = () => {
                     uid = user?.id;
                 }
                 if (!uid) return;
+                setTargetUid(uid);
                 const res = await supabaseHelpers.getExerciseDoneCalendarDates(uid);
                 setFinalizedDates(res.finalizedDates || []);
                 setDoneDates(res.doneDates || []);
@@ -108,6 +122,7 @@ const ActivityHistoryPage = () => {
                     isPage={true}
                     finalizedDates={finalizedDates}
                     doneDates={doneDates}
+                    musclesSlot={<WeekMuscles key={targetUid || 'self'} userId={targetUid} onSummary={handleWeekSummary} />}
                 />
             </div>
         </div>

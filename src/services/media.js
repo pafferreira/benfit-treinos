@@ -21,6 +21,18 @@ export const getDefaultPrompt = async (entityId, kind, entityType = 'exercise') 
     return prompt;
 };
 
+// Avatar e Outro (sem item no banco): descrição padrão e imagem gerada, que volta
+// como { url, path } para a tela Nova imagem mostrar antes de salvar.
+export const getFreePrompt = async (entityType, { gender, style } = {}) => {
+    const { prompt } = await postJson('/api/media', { action: 'prompt', entityType, gender, style });
+    return prompt;
+};
+
+export const generateFreeImage = async (entityType, prompt, { gender, style } = {}) => {
+    const { image } = await postJson('/api/media', { action: 'image', entityType, prompt, gender, style });
+    return image;
+};
+
 export const listMedia = async ({ statuses, limit = 50 } = {}) => {
     let query = supabase
         .from('b_media')

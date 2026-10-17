@@ -85,6 +85,8 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'medium' }) =>
             onClick={handleBackdropClick}
         >
             <div
+                role="dialog"
+                aria-modal="true"
                 className={`relative w-full max-w-[calc(100vw-2.5rem)] sm:w-[90%] md:w-full ${sizeClasses[size] || 'md:max-w-lg'} mx-auto bg-white rounded-lg shadow-2xl flex flex-col max-h-[90vh] overflow-x-hidden animate-in zoom-in-95 duration-200 border border-[#dbe3ee]`}
                 onClick={(e) => e.stopPropagation()}
             >

@@ -66,6 +66,9 @@
 .am-error { font-size: 0.8rem; color: #B91C1C; background: #FEF2F2; border-radius: 0.6rem; padding: 0.5rem 0.65rem; }
 .am-link { display: inline-flex; align-items: center; gap: 0.25rem; align-self: flex-start; font-size: 0.78rem; font-weight: 600; color: #008ACF; }
 .am-prompt { white-space: pre-wrap; font-size: 0.72rem; line-height: 1.45; color: #4B5563; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 0.6rem; padding: 0.6rem; max-height: 12rem; overflow: auto; }
+.am-prompt-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.am-prompt-row .am-link { align-self: center; }
+.am-link:disabled { opacity: 0.5; }
 .am-adjust { display: flex; flex-direction: column; gap: 0.3rem; }
 .am-adjust label { font-size: 0.78rem; font-weight: 600; color: #374151; }
 .am-adjust textarea { width: 100%; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.5rem 0.7rem; font-size: 0.85rem; }
@@ -92,3 +95,44 @@
 .am-entity-filter { display: flex; gap: 0.4rem; }
 .am-entity-filter button { padding: 0.4rem 0.85rem; border-radius: 999px; border: 1px solid #E5E7EB; background: #fff; font-size: 0.8rem; font-weight: 600; color: #4B5563; }
 .am-entity-filter button.is-active { background: #034EA2; border-color: #034EA2; color: #fff; }
+
+/* Aba Gerar: escolha do item com o botão "+ Novo" ao lado. */
+.am-pick-row { display: flex; align-items: stretch; gap: 0.5rem; }
+.am-pick-select { flex: 1; min-width: 0; }
+.am-new-btn { flex: 0 0 auto; white-space: nowrap; }
+
+/* Imagem atual do exercício ou prato escolhido para gerar mídia. */
+.am-current { display: flex; align-items: center; gap: 0.75rem; margin: 0; padding: 0.5rem; border: 1px solid #E5E7EB; border-radius: 0.75rem; background: #F9FAFB; }
+.am-current img, .am-current-empty { width: 4.5rem; height: 4.5rem; flex-shrink: 0; border-radius: 0.6rem; object-fit: cover; background: #fff; }
+.am-current-empty { display: flex; align-items: center; justify-content: center; color: #9CA3AF; background: #E5E7EB; }
+.am-current figcaption { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; font-size: 0.8rem; color: #4B5563; }
+.am-current figcaption strong { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6B7280; }
+/* Com imagem: mesmo tamanho da foto do exercício (largura total, 16:9, sem cortar). */
+.am-current.is-large { flex-direction: column-reverse; align-items: stretch; gap: 0.4rem; }
+.am-current.is-large img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; border: 1px solid #E5E7EB; }
+.am-current.is-large figcaption { flex-direction: row; align-items: baseline; gap: 0.5rem; }
+.am-current.is-large figcaption span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Aviso de geração em andamento, com Cancelar, nas abas fora de Gerar. */
+.am-generating { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; padding: 0.6rem 0.75rem; border: 1px solid #BFDBFE; border-radius: 0.75rem; background: #EFF6FF; color: #034EA2; font-size: 0.85rem; font-weight: 600; }
+.am-generating span { flex: 1; min-width: 0; }
+
+/* Histórico em accordion: filtro por estado, linha com miniatura, últimos 10. */
+.am-hist-filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+.am-hist-filters button { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; border: 1px solid #E5E7EB; border-radius: 999px; background: #fff; font-size: 0.8rem; font-weight: 600; color: #4B5563; }
+.am-hist-filters button.is-active { background: #034EA2; border-color: #034EA2; color: #fff; }
+.am-hist-filters button.is-active .am-tab-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.am-hist-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.am-hist { border: 1px solid #E5E7EB; border-radius: 0.9rem; background: #fff; overflow: hidden; }
+.am-hist.is-open { border-color: #BFDBFE; }
+.am-hist > .am-card { border: 0; border-top: 1px solid #F3F4F6; border-radius: 0; box-shadow: none; }
+.am-hist-row { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.65rem; text-align: left; }
+.am-hist-thumb { position: relative; display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; flex-shrink: 0; border-radius: 0.6rem; background: #F3F4F6; color: #9CA3AF; overflow: hidden; }
+.am-hist-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.am-hist-badge { position: absolute; right: 0.2rem; bottom: 0.2rem; display: flex; padding: 0.15rem; border-radius: 0.3rem; background: rgba(3, 78, 162, 0.85); color: #fff; }
+.am-hist-body { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; min-width: 0; }
+.am-hist-name { font-size: 0.88rem; font-weight: 700; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.am-hist-meta { display: flex; align-items: center; gap: 0.25rem; font-size: 0.72rem; color: #6B7280; }
+.am-hist-chev { flex-shrink: 0; color: #9CA3AF; }
+.am-hist-more { width: 100%; margin-top: 0.75rem; }
+.am-hist > .am-card > .am-card-head { display: none; }
+.am-hist-hint { margin: -0.25rem 0 0.6rem; }

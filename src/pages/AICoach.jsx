@@ -508,22 +508,22 @@ const AICoach = ({ variant = 'page' }) => {
 
     // Pratos criados pelo Benfit (etapa 2D): avisa a tela Dieta e gera a foto.
     const reloadDishes = () => window.dispatchEvent(new CustomEvent(DISHES_CHANGED_EVENT));
-    const handleDishActions = (actions) => {
+    const handleDishActions = (actions, track) => {
         const dishes = (actions || []).filter(a => a?.type === 'dish_created');
         if (dishes.length === 0) return;
         reloadDishes();
         mediaChanged();
         dishes.filter(a => !a.existing).forEach(action => {
-            trackMedia({ kind: 'image', entityType: 'dish', entityId: action.dishId, name: action.name }, reloadDishes);
+            track({ kind: 'image', entityType: 'dish', entityId: action.dishId, name: action.name }, reloadDishes);
         });
     };
 
     // gerar_midia: o Benfit pediu imagem, poses ou vídeo de um item do catálogo.
-    const handleMediaActions = (actions) => {
+    const handleMediaActions = (actions, track) => {
         const requests = (actions || []).filter(a => a?.type === 'media_requested' && a.entityId);
         requests.forEach(action => {
             action.kinds.forEach(kind => {
-                trackMedia(
+                track(
                     { kind, entityType: action.entityType, entityId: action.entityId, name: action.name },
                     action.entityType === 'dish' ? reloadDishes : reloadExercises,
                 );
@@ -533,17 +533,25 @@ const AICoach = ({ variant = 'page' }) => {
 
     // Exercício novo criado pelo Benfit (etapa 2C): atualiza o catálogo e gera a imagem.
     // Ordem dos cartões: imagem dos itens novos primeiro, depois o que gerar_midia pediu.
+    // Cada item+mídia gera uma vez só por resposta, mesmo que venha de duas ações.
     const handleCoachActions = (actions) => {
+        const seen = new Set();
+        const track = (media, onDone) => {
+            const key = `${media.entityType}:${media.entityId}:${media.kind}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            trackMedia(media, onDone);
+        };
         const created = (actions || []).filter(a => a?.type === 'exercise_created' && !a.existing);
         if (created.length > 0) {
             reloadExercises();
             mediaChanged();
             created.forEach(action => {
-                trackMedia({ kind: 'image', entityType: 'exercise', entityId: action.exerciseId, name: action.name }, reloadExercises);
+                track({ kind: 'image', entityType: 'exercise', entityId: action.exerciseId, name: action.name }, reloadExercises);
             });
         }
-        handleDishActions(actions);
-        handleMediaActions(actions);
+        handleDishActions(actions, track);
+        handleMediaActions(actions, track);
     };
 
     // ── Envia mensagem (core, reutilizável) ───────────────────────

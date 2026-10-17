@@ -1,5 +1,7 @@
 import { ChatHttpError, getBearerToken, requireUser } from './_conversation-history.js';
 import {
+    OTHER_EXAMPLE_PROMPT,
+    buildAvatarPrompt,
     buildDishImagePrompt,
     buildImagePrompt,
     buildPosePrompt,
@@ -26,6 +28,9 @@ const ACTIONS = new Set(['image', 'poses', 'video', 'video-status', 'prompt']);
 const ADMIN_ONLY = new Set(['poses', 'video', 'prompt']);
 const KINDS = new Set(['image', 'poses', 'video']);
 const ENTITY_TYPES = new Set(['exercise', 'dish']);
+// Avatar e Outro não têm item no banco: a imagem volta direto para a tela
+// Nova imagem, que mostra a prévia e só grava na Biblioteca se o admin salvar.
+const FREE_TYPES = new Set(['avatar', 'other']);
 const PROMPT_MAX = 4000;
 // Nas duas poses, a descrição tem duas partes (início e fim) separadas por esta linha.
 export const POSE_SEPARATOR = '\n---\n';
@@ -175,6 +180,39 @@ async function handlePoses({ supabase, exercise, adjustment, customPrompt }) {
     });
 }
 
+// Referência de estilo do avatar: outros avatares do mesmo gênero (e estilo, se houver).
+const avatarReferences = async (supabase, gender, style) => {
+    const { data } = await supabase
+        .from('b_avatars')
+        .select('public_url, tags')
+        .eq('category', 'Avatar')
+        .eq('gender', gender === 'male' ? 'male' : 'female')
+        .eq('is_active', true)
+        .like('public_url', '%/benfit-assets/avatars/%')
+        .limit(12);
+    const rows = data || [];
+    const sameStyle = rows.filter(row => (row.tags || []).includes(style));
+    const picked = (sameStyle.length ? sameStyle : rows).slice(0, 2);
+    const images = await Promise.all(picked.map(row => fetchImage(row.public_url).catch(() => null)));
+    return images.filter(Boolean);
+};
+
+export const freeDefaultPrompt = (entityType, { gender, style } = {}) => (
+    entityType === 'avatar' ? buildAvatarPrompt({ gender, style }) : OTHER_EXAMPLE_PROMPT
+);
+
+// Avatar ou Outro: gera, salva o arquivo em avatars/ia e devolve o link.
+async function handleFreeImage({ supabase, entityType, prompt, gender, style }) {
+    const [references, english] = await Promise.all([
+        entityType === 'avatar' ? avatarReferences(supabase, gender, style) : [],
+        translatePrompt(prompt),
+    ]);
+    const image = await generateImage({ prompt: english, references, aspectRatio: '1:1' });
+    const path = mediaPath({ id: entityType }, 'imagem', image.mimeType, 'avatars');
+    const url = await uploadMedia(supabase, path, Buffer.from(image.data, 'base64'), image.mimeType);
+    return { url, path };
+}
+
 async function handleVideo({ supabase, exercise, adjustment, customPrompt }) {
     const image = await requireExerciseImage(exercise);
     const prompt = customPrompt || buildVideoPrompt(exercise, adjustment);
@@ -218,7 +256,8 @@ export default async function handler(req, res) {
     const { action, exerciseId, mediaId, adjustment, kind, prompt } = req.body || {};
     const entityType = req.body?.entityType || 'exercise';
     const entityId = req.body?.entityId || exerciseId;
-    if (!ACTIONS.has(action) || !ENTITY_TYPES.has(entityType)) {
+    const free = FREE_TYPES.has(entityType);
+    if (!ACTIONS.has(action) || !(ENTITY_TYPES.has(entityType) || free) || (free && !['image', 'prompt'].includes(action))) {
         return res.status(400).json({ error: 'Ação inválida' });
     }
     const cleanAdjustment = typeof adjustment === 'string' ? adjustment.trim().slice(0, 500) : '';
@@ -234,6 +273,15 @@ export default async function handler(req, res) {
             if (!mediaId) return res.status(400).json({ error: 'Campo "mediaId" é obrigatório' });
             const media = await handleVideoStatus({ supabase, mediaId });
             return res.status(200).json({ media });
+        }
+
+        if (free) {
+            if (!(await isAdminUser(supabase, user.id))) return res.status(403).json({ error: 'Só administradores geram estas imagens' });
+            const options = { gender: req.body?.gender, style: req.body?.style === 'real' ? 'real' : '3d' };
+            if (action === 'prompt') return res.status(200).json({ prompt: freeDefaultPrompt(entityType, options) });
+            if (!customPrompt) return res.status(400).json({ error: 'Escreva a descrição da imagem' });
+            const image = await handleFreeImage({ supabase, entityType, prompt: customPrompt, ...options });
+            return res.status(200).json({ image });
         }
 
         if (!entityId) return res.status(400).json({ error: 'Campo "entityId" é obrigatório' });
