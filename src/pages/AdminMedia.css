@@ -135,5 +135,4 @@
 .am-hist-chev { flex-shrink: 0; color: #9CA3AF; }
 .am-hist-more { width: 100%; margin-top: 0.75rem; }
 .am-hist > .am-card > .am-card-head { display: none; }
-.am-purge { background: #FEF2F2; border-color: #FECACA; color: #991B1B; font-weight: 500; }
 .am-hist-hint { margin: -0.25rem 0 0.6rem; }

@@ -233,10 +233,11 @@ const MediaCard = ({ media, exercise, busy, onReview, onUse, onDelete, onRegener
 };
 
 // Histórico: o foco são as aprovadas ainda sem uso (as em uso já estão na
-// Biblioteca, então só as 10 últimas aparecem). Rejeitar exclui a mídia.
+// Biblioteca, então só as 10 últimas aparecem). Rejeitadas ficam até o Excluir.
 const HISTORY_FILTERS = [
     { key: 'semuso', label: 'Aprovadas sem uso' },
     { key: 'emuso', label: 'Em uso' },
+    { key: 'rejeitada', label: 'Rejeitadas' },
     { key: 'falhou', label: 'Falharam' },
 ];
 const HISTORY_PAGE = 10;
@@ -284,8 +285,6 @@ const AdminMedia = () => {
     const { exercises, reload: reloadExercises } = useExercises();
     const [tab, setTab] = useState('pendente');
     const [historyFilter, setHistoryFilter] = useState('semuso');
-    const [toReject, setToReject] = useState(null);
-    const [purgeOpen, setPurgeOpen] = useState(false);
     const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE);
     const [openId, setOpenId] = useState(null);
     // Abas da tela Mídias Benfit; #biblioteca e #gerar no link abrem direto nelas.
@@ -451,39 +450,7 @@ const AdminMedia = () => {
         }
     };
 
-    // Rejeitar = excluir: a mídia sai da fila e os arquivos são apagados.
-    const handleReject = async () => {
-        const media = toReject;
-        setToReject(null);
-        setBusy(media.id, true);
-        try {
-            await reviewMedia(media.id, 'rejeitada');
-            await deleteMedia(media.id);
-            setItems(prev => prev.filter(m => m.id !== media.id));
-            toast('Mídia rejeitada e excluída.');
-        } catch (err) {
-            toast(err.message, 'error');
-            load();
-        } finally {
-            setBusy(media.id, false);
-        }
-    };
-
-    // Rejeitadas de antes desta regra: exclui todas de uma vez.
-    const purgeRejected = async () => {
-        setPurgeOpen(false);
-        const targets = items.filter(m => m.status === 'rejeitada');
-        let done = 0;
-        for (const media of targets) {
-            try { await deleteMedia(media.id); done += 1; } catch { /* segue para a próxima */ }
-        }
-        await load();
-        window.dispatchEvent(new Event('avatars-updated'));
-        toast(done === targets.length ? `${done} rejeitadas excluídas.` : `${done} de ${targets.length} rejeitadas excluídas.`, done === targets.length ? 'success' : 'error');
-    };
-
     const handleReview = async (media, decision, use = true) => {
-        if (decision === 'rejeitada') { setToReject(media); return; }
         setBusy(media.id, true);
         try {
             const updated = await reviewMedia(media.id, decision, use);
@@ -494,6 +461,8 @@ const AdminMedia = () => {
                 toast(use
                     ? (isDish ? 'Foto aprovada e publicada no prato.' : 'Mídia aprovada e publicada no exercício.')
                     : `Mídia aprovada sem trocar a do ${isDish ? 'prato' : 'exercício'}. Use quando quiser pelo Histórico.`);
+            } else {
+                toast('Mídia rejeitada. Ela fica no Histórico até você excluir.');
             }
         } catch (err) {
             toast(err.message, 'error');
@@ -829,14 +798,6 @@ const AdminMedia = () => {
             ) : (
                 tab === 'historico' ? (
                     <>
-                        {historyCounts.rejeitada > 0 && (
-                            <div className="am-generating am-purge">
-                                <span>{historyCounts.rejeitada} {historyCounts.rejeitada === 1 ? 'rejeitada antiga ainda guardada' : 'rejeitadas antigas ainda guardadas'}. Agora rejeitar já exclui.</span>
-                                <button type="button" className="am-btn am-btn-reject" onClick={() => setPurgeOpen(true)}>
-                                    <Trash2 size={15} /> Excluir
-                                </button>
-                            </div>
-                        )}
                         <div className="am-hist-filters" role="radiogroup" aria-label="Estado">
                             {HISTORY_FILTERS.filter(f => f.key !== 'falhou' || historyCounts.falhou > 0 || historyFilter === 'falhou').map(f => (
                                 <button key={f.key} type="button" role="radio" aria-checked={historyFilter === f.key}
@@ -851,7 +812,7 @@ const AdminMedia = () => {
                         )}
                         {historyVisible.length === 0 ? (
                             <div className="am-empty">
-                                {historyFilter === 'semuso' ? 'Nenhuma aprovada esperando uso.' : historyFilter === 'emuso' ? 'Nenhuma mídia em uso.' : 'Nenhuma falha.'}
+                                {historyFilter === 'semuso' ? 'Nenhuma aprovada esperando uso.' : historyFilter === 'emuso' ? 'Nenhuma mídia em uso.' : historyFilter === 'rejeitada' ? 'Nenhuma rejeitada.' : 'Nenhuma falha.'}
                             </div>
                         ) : (
                             <div className="am-hist-list">
@@ -883,22 +844,6 @@ const AdminMedia = () => {
                 title="Excluir mídia"
                 message="A mídia sai da fila e os arquivos são apagados. Se for imagem, ela sai também da Biblioteca. Não dá para desfazer."
                 confirmText="Excluir"
-            />
-            <ConfirmationModal
-                isOpen={Boolean(toReject)}
-                onClose={() => setToReject(null)}
-                onConfirm={handleReject}
-                title="Rejeitar mídia"
-                message="Rejeitar exclui a mídia e apaga os arquivos. Não dá para desfazer."
-                confirmText="Rejeitar e excluir"
-            />
-            <ConfirmationModal
-                isOpen={purgeOpen}
-                onClose={() => setPurgeOpen(false)}
-                onConfirm={purgeRejected}
-                title="Excluir rejeitadas"
-                message={`Excluir as ${historyCounts.rejeitada} mídias rejeitadas e apagar os arquivos? Não dá para desfazer.`}
-                confirmText="Excluir todas"
             />
         </div>
     );
