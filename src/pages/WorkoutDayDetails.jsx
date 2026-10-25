@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Calendar, Clock, Layers, Timer, Flame, Activity, ChevronDown } from 'lucide-react';
+import { ChevronLeft, Calendar, Clock, Layers, Timer, Flame, Activity, ChevronDown, CheckCircle2 } from 'lucide-react';
 import RestTimer from '../components/RestTimer';
 import SessionExerciseItem from '../components/SessionExerciseItem';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -264,7 +264,7 @@ const WorkoutDayDetails = () => {
         // Prevent event bubbling so it doesn't accidentally trigger other elements
         if (e && e.stopPropagation) e.stopPropagation();
 
-        if (!currentSessionId) {
+        if (!currentSessionId || completedCount === 0) {
             window.dispatchEvent(new CustomEvent('app-toast', { detail: { message: 'Inicie o treino marcando ao menos um exercício.', type: 'warn' } }));
             return;
         }
@@ -278,6 +278,8 @@ const WorkoutDayDetails = () => {
     const totalExercises = new Set(workoutExercises.map((item) => item.exercise_id)).size;
     const completedCount = completedExercises.length;
     const isFullyCompleted = totalExercises > 0 && completedCount >= totalExercises;
+    // Pode finalizar a qualquer momento, desde que ao menos um exercício esteja feito.
+    const canFinish = !!currentSessionId && completedCount > 0 && !finishingSession;
 
     const sessionDurationMinutes = useMemo(
         () => getSessionDurationMinutes(currentSessionStartedAt, lastExerciseDoneAt),
@@ -536,8 +538,8 @@ const WorkoutDayDetails = () => {
                 <button
                     className="btn-primary finish-session-btn"
                     onClick={handleOpenFinishModal}
-                    disabled={!currentSessionId || finishingSession || !isFullyCompleted}
-                    data-tooltip={isFullyCompleted ? 'Finalizar sessão' : 'Marque todos os exercícios como "Feito" para finalizar'}
+                    disabled={!canFinish}
+                    data-tooltip={canFinish ? 'Finalizar sessão' : 'Marque ao menos um exercício como "Feito" para finalizar'}
                 >
                     Finalizar Treino
                 </button>
@@ -585,6 +587,10 @@ const WorkoutDayDetails = () => {
                         <div className="finish-summary-item">
                             <Flame size={16} />
                             <span>{estimatedSessionCalories} kcal estimadas</span>
+                        </div>
+                        <div className="finish-summary-item">
+                            <CheckCircle2 size={16} />
+                            <span>{completedCount} de {totalExercises} exercícios feitos</span>
                         </div>
                     </div>
 

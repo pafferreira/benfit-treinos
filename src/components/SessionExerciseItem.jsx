@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Check, Target, Repeat, Timer, Play, Layers, StickyNote, ClipboardList, Dumbbell, Tags, ChevronDown, CalendarCheck } from 'lucide-react';
 import './SessionExerciseItem.css';
 
@@ -22,8 +22,6 @@ const SessionExerciseItem = ({
     onSelect,
     orderIndex
 }) => {
-    const [showUndo, setShowUndo] = useState(false);
-    const [undoTimeLeft, setUndoTimeLeft] = useState(10);
     const itemRef = useRef(null);
 
     // Rolar para o topo do Acordeão quando ativado
@@ -37,47 +35,16 @@ const SessionExerciseItem = ({
         }
     }, [isActive]);
 
-    // Timer de 10 segundos para desfazer
-    useEffect(() => {
-        let interval;
-        if (showUndo && undoTimeLeft > 0) {
-            interval = setInterval(() => {
-                setUndoTimeLeft(prev => {
-                    if (prev <= 1) {
-                        setShowUndo(false);
-                        return 10;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        }
-        return () => clearInterval(interval);
-    }, [showUndo, undoTimeLeft]);
-
     // Fail-safe: Se dados fundamentais faltarem, não renderiza nada para evitar crash.
     // (Mantido após os hooks para respeitar as regras de hooks do React.)
     if (!exercise || !workoutExercise) {
         return null; // Ou um placeholder de erro se preferir
     }
 
+    // "Feito" pode ser marcado e desmarcado a qualquer momento enquanto a
+    // sessão está aberta, para permitir refazer o exercício.
     const handleToggleComplete = () => {
-        if (isCompleted && !showUndo) {
-            // Já foi completado há mais de 40s, não pode desmarcar
-            return;
-        }
-
-        if (!isCompleted) {
-            // Marcar como feito pela primeira vez
-            if (onToggleComplete) onToggleComplete(exercise.id, true);
-            setShowUndo(true);
-            setUndoTimeLeft(10);
-            // Desvincular cronômetro do botão de completado, conforme feedback
-        } else if (showUndo) {
-            // Desfazer dentro dos 10s
-            if (onToggleComplete) onToggleComplete(exercise.id, false);
-            setShowUndo(false);
-            setUndoTimeLeft(10);
-        }
+        if (onToggleComplete) onToggleComplete(exercise.id, !isCompleted);
     };
 
     const formatRestTime = (seconds) => {
@@ -98,7 +65,7 @@ const SessionExerciseItem = ({
         : [];
 
     return (
-        <div ref={itemRef} className={`session-exercise-item ${isCompleted ? 'completed' : ''} ${showUndo ? 'undo-mode' : ''} ${isActive ? 'active-accordion' : ''}`}>
+        <div ref={itemRef} className={`session-exercise-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active-accordion' : ''}`}>
             {/* Header / Clickable Area */}
             <div
                 className="session-exercise-header-row"
@@ -130,11 +97,6 @@ const SessionExerciseItem = ({
                         <span className={isCompleted ? 'status-done' : 'status-pending'}>
                             {isCompleted ? 'Feito' : 'Feito?'}
                         </span>
-                        {showUndo && (
-                            <span className="undo-countdown">
-                                {undoTimeLeft}s
-                            </span>
-                        )}
                     </div>
                     <div className="completion-actions">
                         <button
@@ -143,22 +105,11 @@ const SessionExerciseItem = ({
                                 e.stopPropagation();
                                 handleToggleComplete();
                             }}
-                            disabled={isCompleted && !showUndo}
-                            title={isCompleted ? "Feito" : "Marcar como feito"}
+                            title={isCompleted ? "Desmarcar para refazer" : "Marcar como feito"}
+                            aria-pressed={isCompleted}
                         >
                             {isCompleted && <Check size={18} strokeWidth={3} />}
                         </button>
-                        {showUndo && (
-                            <button
-                                className="undo-chip"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleComplete();
-                                }}
-                            >
-                                Desfazer
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
