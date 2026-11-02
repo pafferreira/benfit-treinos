@@ -1,3 +1,6 @@
+## Hub
+Este projeto segue o hub `pafferreira/dev-tools` (convenções, banco, versão e chaves). A skill `estilo_paf` local é uma cópia gerada pelo hub — não edite; altere no hub.
+
 ## Skills
 A skill is a set of local instructions to follow that is stored in a `SKILL.md` file.
 

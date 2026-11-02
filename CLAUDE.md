@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Hub DEV
+Este projeto segue o hub **`pafferreira/dev-tools`** (no Windows, a pasta `..\dev-tools`): ficha `projetos/benfit-treinos.md`, convenções `padroes/convencoes.md`, banco `padroes/banco-de-dados.md`, versão `padroes/versionamento.md` e chaves `segredos/MAPA.md` (só nomes; valores no Infisical). As regras deste arquivo são específicas do projeto e prevalecem.
+
+- **Estilo:** skill `estilo-paf`, tema **`paf`** (cópia em `.agent/skills/estilo_paf/`, gerada pelo hub — não edite aqui).
+
 ## Project Overview
 
 Benfit Treinos — fitness/training management app. React 19 + Vite SPA backed by Supabase (auth + database). Deployed on Vercel.
