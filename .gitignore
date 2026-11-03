@@ -28,5 +28,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# Skills locais (repositório próprio, fora do deploy)
-antigravity-skills/

@@ -41,13 +41,7 @@ Single-page React app using React Router v7 for navigation.
 
 ## Skills (AGENTS.md)
 
-This project uses skill files in `antigravity-skills/skills/`:
-
-- `estilo_paf` — Primary skill. Apply to all UI/UX, layout, styling, and design tasks.
-- `design_profissional` — Professional design deliverables.
-- `ui-ux-designer` — Interface design and design systems.
-- `ui-visual-validator` — Visual validation against design system.
-- `sql-pro` — Apply to all database, SQL, schema, and Supabase tasks.
+A skill principal é `estilo_paf` (cópia gerada pelo hub em `.agent/skills/estilo_paf/`). Aplique em toda tarefa de UI/UX, layout e estilo. Para banco de dados e SQL, siga `padroes/banco-de-dados.md` do hub.
 
 **Design System**: `design-system/` contains the master design reference. Check `design-system/centro/pages/[page-name].md` first for page-specific rules; fall back to `design-system/centro/MASTER-BR.md`.
 
