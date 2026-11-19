@@ -1,0 +1,86 @@
+# Cópia do modelo do hub pafferreira/dev-tools (templates/github/tag-versao.yml).
+# Não edite a lógica aqui: mude no hub e recopie. Só o bloco "env" é deste projeto.
+#
+# Cria a tag vX.Y.Z e o Release do GitHub sempre que o arquivo de versão muda na
+# branch principal (commit do release.py, direto ou pelo merge do PR). Também
+# cria as tags que faltarem acima da maior tag existente (ex.: versões lançadas
+# quando a tag não subia da nuvem); por isso roda também quando este arquivo
+# muda. Usa só o token do próprio GitHub.
+name: Tag da versão
+
+on:
+  push:
+    branches: [main]
+    paths: [package.json, .github/workflows/tag-versao.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tag-versao
+  cancel-in-progress: false
+
+env:
+  ARQUIVO_VERSAO: package.json # mesmo "version_file" do release.config.json
+  CHAVE_NOTA: "" # "release_note_key" do release.config.json (vazio = assunto do commit)
+  PREFIXO: v
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Criar tags e releases que faltam
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 - <<'PY'
+          import json, os, re, subprocess
+
+          arquivo, chave, prefixo = os.environ["ARQUIVO_VERSAO"], os.environ["CHAVE_NOTA"], os.environ["PREFIXO"]
+
+          def git(*args, check=True):
+              r = subprocess.run(["git", *args], capture_output=True, text=True)
+              if check and r.returncode:
+                  raise SystemExit(f"git {' '.join(args)}: {r.stderr}")
+              return r.stdout.strip()
+
+          def versao(texto):
+              m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", str(texto).strip())
+              return tuple(map(int, m.groups())) if m else None
+
+          tags = {t: versao(t[len(prefixo):]) for t in git("tag", "--list", f"{prefixo}*").splitlines()}
+          maior = max([v for v in tags.values() if v] or [(0, 0, 0)])
+          sem_tags = not tags  # projeto sem nenhuma tag: marca só a versão atual, não o histórico todo
+          novas = []
+          for commit in git("log", "--reverse", "--format=%H", "--", arquivo).splitlines():
+              conteudo = git("show", f"{commit}:{arquivo}", check=False)
+              try:
+                  dados = json.loads(conteudo)
+              except ValueError:
+                  continue
+              v = versao(dados.get("version", ""))
+              tag = f"{prefixo}{dados.get('version', '')}"
+              if not v or v <= maior or tag in tags:
+                  continue
+              nota = (dados.get(chave) if chave else "") or git("log", "-1", "--format=%s", commit)
+              tags[tag] = v
+              maior = v
+              novas.append((tag, commit, nota))
+          if sem_tags:
+              novas = novas[-1:]
+
+          if not novas:
+              print("Nenhuma versão nova: nada a fazer.")
+          for tag, commit, nota in novas:
+              git("tag", "-a", tag, commit, "-m", f"Release {tag}")
+              print(f"tag {tag} -> {commit[:7]}")
+              git("push", "origin", tag)
+              subprocess.run(["gh", "release", "create", tag, "--verify-tag", "--title", tag, "--notes", nota], check=True)
+          PY

@@ -50,8 +50,8 @@ O controle de versão usa o `release.py` do repositório **`pafferreira/dev-tool
 
 - **Windows:** de dentro da pasta do projeto (`\DEV\benfit-treinos`): `python ..\dev-tools\release.py patch "texto curto"`.
 - **Sessão na nuvem:** anexar `pafferreira/dev-tools` (`add_repo`), clonar e rodar `python /home/user/dev-tools/release.py patch "texto curto" --project <pasta do projeto>`.
-- `--dry-run` mostra a versão sem alterar nada. Rodar na `main`, com a árvore limpa, depois do merge (o script faz push direto na branch atual, sem PR).
-- No ambiente de nuvem o push da **tag** costuma falhar (403): o release continua válido e a tag pode ser enviada depois (`git push origin vX.Y.Z`).
+- `--dry-run` mostra a versão sem alterar nada. Rodar com a árvore limpa **na branch do PR, antes do merge**: o script faz commit e push na branch atual, a versão entra no PR e o merge é o release. Sem PR, rodar na `main`.
+- A **tag** `vX.Y.Z` e o Release do GitHub são criados pelo workflow `.github/workflows/tag-versao.yml` (cópia do modelo do hub) quando o arquivo de versão muda na `main`. Não envie tag à mão; para criar tags que faltam, rode o workflow pela aba Actions.
 
 ### Gatilho "commit"
 Quando o usuário pedir somente **"commit"**: (1) commitar o trabalho pendente (o release aborta com a árvore suja); (2) rodar um release **patch** com um texto curto resumindo as alterações, sem pedir confirmação extra; (3) se as mudanças forem maiores (funcionalidade nova, mudança de fluxo ou de contrato, migração de banco), **propor minor ou major e confirmar** antes. Regra de bolso: correção/ajuste → patch; funcionalidade nova → minor; quebra de compatibilidade → major.
