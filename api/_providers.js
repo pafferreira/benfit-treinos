@@ -20,7 +20,7 @@ export const resolveClaudeModel = (value) => {
 
 // low | medium | high: "low" basta para conversa de treino e mantém o custo baixo.
 const CLAUDE_EFFORT = process.env.BENFIT_AI_EFFORT || 'low';
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-6-luna'; // gpt-4o-mini sai da API em 14/01/2027
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const GEMINI_THINKING = process.env.GEMINI_THINKING_LEVEL || 'low';
 
